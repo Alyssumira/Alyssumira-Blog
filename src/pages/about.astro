@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
-import { siteFacts } from '../lib/stats.js';
+import { siteFacts, tone } from '../lib/stats.js';
 import { inlineMd } from '../lib/markdown.js';
 import { fonts, notes } from '../data/site.js';
 
@@ -39,7 +39,7 @@ const walk = notes[0];
           {notes.slice(0, 3).map(n => (
             <li>
               <time>{n.date}{n.jieqi ? ' · ' + n.jieqi : ''}</time>
-              <span set:html={inlineMd(n.text)}></span>
+              <span class={tone(n.text)} set:html={inlineMd(n.text)}></span>
             </li>
           ))}
         </ul>

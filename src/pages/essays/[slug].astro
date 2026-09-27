@@ -10,6 +10,20 @@ export async function getStaticPaths(){
 }
 const { post, prev, next } = Astro.props;
 const sub = post.data.excerpt;
+/* 写作时辰（§7）：月份从 date 推是事实，小时只能来自 front matter 的 hour。
+   没填就整行不出现——"写于一个傍晚"这种话猜不得。 */
+const MONTH_CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
+function whenOf(d, hour){
+  if (hour === undefined || hour === null) return '';
+  const w = hour >= 5 && hour < 9 ? '清晨'
+    : hour >= 9 && hour < 12 ? '上午'
+    : hour >= 12 && hour < 14 ? '正午'
+    : hour >= 14 && hour < 17 ? '下午'
+    : hour >= 17 && hour < 20 ? '傍晚'
+    : hour >= 20 ? '深夜' : '凌晨';
+  return `写于一个${MONTH_CN[d.getUTCMonth()]}月的${w}`;
+}
+const when = whenOf(post.data.date, post.data.hour);
 ---
 <Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays">
   <div id="progress" aria-hidden="true"></div>
@@ -19,6 +33,7 @@ const sub = post.data.excerpt;
     <header class="post-head reveal">
       <p class="post-meta">{fmtDate(post.data.date)} · essay</p>
       <h1 class="post-title">{post.data.title}</h1>
+      {when && <p class="post-when">{when}</p>}
       {sub && <p class="post-sub">{sub}</p>}
     </header>
 

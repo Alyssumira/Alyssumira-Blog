@@ -43,6 +43,9 @@
   font-size:clamp(32px,6vw,42px); font-weight:600; line-height:1.4; letter-spacing:.02em;
 }
 .post-sub{ margin-top:18px; color:var(--ink-2); font-size:15px; }
+/* 写作时辰那一行：走 §3 的"说明 14"档，宋体——它是一句人话，不是元数据，
+   所以不进 .post-meta 那行 IBM Plex Mono（那行是等宽数字与英文标签，塞中文会掉进字体回退、一行两套度量） */
+.post-when{ margin-top:14px; font-size:14px; color:var(--ink-2); letter-spacing:.02em; }
 
 /* 目录：宽屏吸附右侧，移动端隐藏 */
 #toc{
@@ -70,6 +73,19 @@
   max-width:680px; margin:0 auto;
   font-family:"Noto Serif SC","Songti SC","STSong",serif;
   font-size:18px; line-height:1.9; letter-spacing:.01em;
+  /* 身后的雾（§8.7）：--read-fog 由 site.js 每个滚动帧写一次（和进度线同一个 rAF 回调，零新监听）。
+     雾线在视口 30% 那一行，它以下完全不动 ⇒ 正在读的那一屏一个字都不被蒙；往上走 100vh 才淡到底。
+     ⚠️ 坡道的**起点钉在雾线上游 100vh，不是元素顶**：钉元素顶时"走过第一段"的淡度与滚动深度无关，
+     屏顶那行正文会一路掉到 2.34:1（亮色 --ink），那是 §2.4 明令禁止的"正文淡"。钉在雾线上游之后
+     坡道在屏幕上是恒定的：屏顶最坏 5.05、到阅读线回到 13.13——顶端那一段是"即将离场"的档，
+     和站名/日志行同一族，数字登记在 §2.4。
+     ⚠️ 深度用 `min()` 夹在 **.44**：浓档（`--fog` 1.35）不许把这层推得比 .44 更深，否则屏顶正文掉到
+     4.2:1，用户的旋钮就作废了 §2.4 的 4.5 线（纱罩不吃 --fog 是同一条理由）。淡档 .4 ⇒ 深度 .176 ⇒ 屏顶 7.7:1。
+     ⚠️ 这是**字自己在身后化掉**，不是给屏幕加一层纱：后者会蒙在文字之上（§15"气必须在 z-index:-1"同一个理由）。
+     起点值 -9999px＝雾线还在元素之上，首屏全实。 */
+  --read-fog:-9999px;
+  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,calc(1 - min(.44, .44 * var(--fog)))) calc(var(--read-fog) - 100vh),#000 var(--read-fog));
+  mask-image:linear-gradient(180deg,rgba(0,0,0,calc(1 - min(.44, .44 * var(--fog)))) calc(var(--read-fog) - 100vh),#000 var(--read-fog));
 }
 .post-body p{ margin-bottom:28px; }
 .post-body h2{
@@ -195,4 +211,9 @@
 }
 
 /* 目录靠 animation 显形，减弱偏好下 animation 被关掉 ⇒ 直接给终态 */
-@media (prefers-reduced-motion:reduce){ #toc{ opacity:1; } }
+/* 身后的雾也一并撤：它是滚动驱动的"动"，prefers-reduced-motion 的口径管的就是这个，
+   而且撤掉 mask 之后文字回到 100% 实——降级永远是往"更不动"的方向走 */
+@media (prefers-reduced-motion:reduce){
+  #toc{ opacity:1; }
+  .post-body{ -webkit-mask-image:none; mask-image:none; }
+}

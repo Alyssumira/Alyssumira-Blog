@@ -1,12 +1,19 @@
 /* 色板反解：把 §2.4 从"每个颜色逐个实测再回填"变成"按 OKLCH 的 L 反解门槛"
    用法  node tools/palette-check.mjs              （查现有令牌达不达标，CI/发布前跑）
          node tools/palette-check.mjs --need 7     （新色该把 L 放在哪：反解 + 打印候选 hex）
-   换算按 Björn Ottosson 的 OKLab 推导；对比度是 WCAG 2.1 相对亮度比。 */
+   换算按 Björn Ottosson 的 OKLab 推导；对比度是 WCAG 2.1 相对亮度比。
+
+   ⚠️ 第四轮扩了两件事，因为规范开始引入"随时间变的材质"（§2.3 换季、§6 月相）：
+   ① 不只读 `:root{}` 与 `html[data-theme="dark"]{}` ——**所有带 `data-phase` / `data-moon` 的块都过闸**，
+      按"主题底 + 该时段覆盖"合成有效色板再算对比度。以前时段块里的色板是完全没扫过的。
+   ② 两份样式表（mistwood.css / home.css）里的**同名 hex 令牌必须逐字符相同**——不同就红。
+      §16 记的那条隐患（"改一处忘另一处就静默分叉，而工具只读 mistwood.css"）从今天起由机器守，不靠记性。 */
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const CSS = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'styles', 'mistwood.css');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const SHEETS = ['mistwood.css', 'home.css'].map(f => join(ROOT, 'src', 'styles', f));
 
 /* ---------- 色彩数学 ---------- */
 const toLin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) };
@@ -47,24 +54,52 @@ function ladder(bgHex, target, C, H){
   return +lo.toFixed(3);
 }
 
-/* ---------- 读色板 ---------- */
-function tokens(){
-  const src = readFileSync(CSS, 'utf8');
-  const block = header => {
-    const i = src.indexOf(header);
-    const end = src.indexOf('\n}', i);
-    const out = {};
-    for (const m of src.slice(i, end).matchAll(/(--[a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})/g)) out[m[1]] = m[2].toUpperCase();
-    return out;
-  };
-  return { light: block(':root{'), dark: block('html[data-theme="dark"]{') };
+/* ---------- 读色板：两份表 × 所有条件块 ---------- */
+const HEX = /(--[a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})\b/g;
+/* rgba()/rgb() 令牌（--shadow / --glass / --scrim-* / --line 这一族）：算不进对比度（它们是面与影，
+   不是压在底上的字），但**两份表里必须逐字符一样**——§2.3 那四条时段投影就是 rgba，
+   只查 hex 的话"改一处忘另一处"这条老路照样走得通。 */
+/* ⚠️ 匹配的是"值里含 rgba()/rgb()"的令牌，不是"值以 rgba( 开头"——`--shadow:0 12px 24px -8px rgba(…)`
+   这种一长串偏移打头的写法，用 `:\s*(rgba?\(` 去抠会一个字都不中，漂移检查当场变成摆设（实测踩过）。 */
+const FN = /(--[a-z0-9-]+):([^;]*rgba?\([^)]*\)[^;]*)/g;
+/* 按"选择器 { 体 }"粗切：CSS 里没有嵌套规则（@media 里那几块不含 hex 令牌，扫到也不匹配） */
+function allBlocks(src){
+  const out = [];
+  const re = /(^|\n)([^\n{}]+)\{([^{}]*)\}/g;
+  let m;
+  while ((m = re.exec(src))){
+    const sel = m[2].trim(), body = m[3];
+    if (!sel.includes('html') && sel !== ':root') continue;
+    const attrs = {};
+    for (const a of sel.matchAll(/\[data-([a-z-]+)="([a-z0-9-]+)"\]/g)) attrs[a[1]] = a[2];
+    const toks = {}, fn = {};
+    for (const t of body.matchAll(HEX)) toks[t[1]] = t[2].toUpperCase();
+    for (const t of body.matchAll(FN)) fn[t[1]] = t[2].replace(/\s+/g, '');
+    if (!Object.keys(toks).length && !Object.keys(fn).length) continue;
+    out.push({ sel, attrs, toks, fn });
+  }
+  return out;
+}
+function readSheets(){
+  const per = SHEETS.map(f => ({ file: f.split(/[\\/]/).pop(), blocks: allBlocks(readFileSync(f, 'utf8')) }));
+  const base = name => { const b = per.flatMap(p => p.blocks).find(x => x.sel === name); return b ? b.toks : {}; };
+  return { per, light: base(':root'), dark: base('html[data-theme="dark"]') };
+}
+/* 条件块 = 选择器里带 data-phase / data-moon 的那些（data-theme 单独出现不算，那是基础板） */
+function variants(per){
+  const out = [];
+  for (const { file, blocks } of per)
+    for (const b of blocks)
+      if ('phase' in b.attrs || 'moon' in b.attrs) out.push({ file, ...b });
+  return out;
 }
 /* 档位来自 §2.4：正文级 ≥7、次要 ≥4.5，其余（三级/苔/枯草/月光）属大字或装饰档，不设地板 */
 const FLOOR = { '--ink': 7, '--moss-ink': 7, '--ink-2': 4.5 };
 const TIERS = [7, 4.5, 3];
+const PHASES = ['dawn', 'day', 'dusk', 'night'], MOONS = ['*', 'full'];
 
 const args = process.argv.slice(2);
-const { light, dark } = tokens();
+const { per, light, dark } = readSheets();
 const themes = [['亮色', light], ['暗色', dark]];
 
 if (args[0] === '--need'){
@@ -103,5 +138,60 @@ for (const [name, t] of themes){
 }
 function toOkLchSafe(hex){ try { return toOklch(hex) } catch (e) { return { L: 0, C: 0, H: 0 } } }
 
-if (bad){ console.log(`\n✗ ${bad} 个令牌跌破 §2.4 登记的档位`); process.exit(1); }
+/* ---------- ① 两份表不许各说各话 ---------- */
+let drift = 0;
+{
+  /* 键 = "选择器 + 令牌名"，值 = 各文件里给出的 hex。同一个键在两份表里出现而取值不同 ⇒ 分叉，红。 */
+  const table = new Map();
+  for (const { file, blocks } of per)
+    for (const b of blocks)
+      for (const [kind, map] of [['hex', b.toks], ['rgba', b.fn]])
+        for (const [k, v] of Object.entries(map)){
+          const id = `${b.sel} ${k}`;
+          if (!table.has(id)) table.set(id, new Map());
+          table.get(id).set(file, { v, kind });
+        }
+  let shared = 0, sharedFn = 0;
+  for (const [id, byFile] of table){
+    if (byFile.size < 2) continue;
+    const vals = [...byFile.values()];
+    if (vals[0].kind === 'rgba') sharedFn++; else shared++;
+    for (const x of vals) if (x.v !== vals[0].v){
+      console.log(`  ✗ ${id} 在两份表里取值不同：` + [...byFile].map(([f, o]) => `${f} ${o.v}`).join(' vs '));
+      drift++;
+    }
+  }
+  console.log('\n=== 双表漂移（mistwood.css vs home.css）===');
+  console.log(`  ${drift ? '✗ ' + drift + ' 处分叉' : '✓'} 两份表同时声明的 ${shared} 个色板令牌 + ${sharedFn} 个 rgba 令牌（面/影/纱）取值一致`);
+}
+
+/* ---------- ② 时段 / 月相块：随时间变的色板也要过闸 ---------- */
+const vs = variants(per);
+console.log('\n=== 条件块（data-phase / data-moon）过闸 ===');
+if (!vs.length) console.log('  （没有条件块，跳过）');
+let bad2 = 0;
+for (const [tName, tBase] of [['light', light], ['dark', dark]]){
+  for (const phase of PHASES) for (const moon of MOONS){
+    /* 没点名 data-theme 的块按"亮色专用"处理——§2.3 明写暗色不随时段变色，
+       所以一条裸 [data-phase] 规则套到夜林头上同样算分叉 */
+    const usable = vs.filter(v => (v.attrs.theme || 'light') === tName)
+                     .filter(v => (!v.attrs.phase || v.attrs.phase === phase) && (!v.attrs.moon || v.attrs.moon === moon));
+    const eff = { ...tBase };
+    const from = [];
+    for (const v of usable) for (const [k, val] of Object.entries(v.toks)){ if (eff[k] !== val) from.push(`${k}←${v.file}`); eff[k] = val; }
+    if (!from.length) continue;                       // 这个组合不覆盖任何色板令牌，不必报
+    const bgB = eff['--bg-base'], bgT = eff['--bg-top'];
+    let line = `  ${tName} ${phase}${moon === 'full' ? '+满月' : ''}：底 ${bgB} 顶 ${bgT}（覆盖 ${from.join('、')}）`;
+    let ok = true;
+    for (const [k, floor] of Object.entries(FLOOR)){
+      const w = Math.min(ratio(eff[k], bgB), ratio(eff[k], bgT));
+      if (w < floor){ ok = false; bad2++; line += `\n    ✗ ${k} ${eff[k]} 只剩 ${w.toFixed(2)}:1，应 ≥${floor}`; }
+      else line += `  ${k} ${w.toFixed(2)}✓`;
+    }
+    console.log(line + (ok ? '  ⇒ 全过' : ''));
+  }
+}
+if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段与月相没有把任何一档推下它的地板');
+
+if (bad || bad2 || drift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相读数、${drift} 处双表漂移跌破登记值`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');

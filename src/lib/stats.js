@@ -24,6 +24,15 @@ const CJK = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g;
 export function readMinutes(body){
   return Math.max(1, Math.ceil(cjkCount(body) / 400 + latinWords(body) / 220));
 }
+/* 手记的呼吸（§15）：一条 note 的行距按它的长短走三档——短句松（1.95）、中句照基准、长句挤（1.75）。
+   和 readMinutes 同一把尺子（同一套 CJK 正则），所以"这条多长"全站只有一个算法。
+   阈值 22 / 38 是拿现有三条量出来的：21 / 38 / 21 个单位——中间那条**正好压在 38 的边界上**，
+   再多一个字就换成 tight 档。所以这一档不是稳态：加 note 时要重新量一次，别顺手改成 20/40 那种整数。
+   ⚠️ 构建期算，不是运行时、更不是随机数：版式是作者写下的东西决定的，不是访客的浏览器决定的。 */
+export function tone(text){
+  const n = cjkCount(text) + latinWords(text);
+  return n <= 22 ? 'tone-breath' : n <= 38 ? 'tone-plain' : 'tone-tight';
+}
 export const cjkCount = body => (String(body).match(CJK) || []).length;
 export const latinWords = body => (String(body).replace(CJK, ' ').match(/[A-Za-z0-9'’-]+/g) || []).length;
 

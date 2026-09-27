@@ -5,11 +5,11 @@
   --bg-base:#F2F4EF;
   --bg-top:#EDE9DD;
   --ink:#232B25;
-  --ink-2:#5E6B61;            /* 灰苔：压在暖顶上 4.60:1、基底 5.05:1，够 §2.4 的 4.5 线 */
+  --ink-2:#5A675E;            /* 灰苔：压在暖顶上 4.60:1、基底 5.05:1，够 §2.4 的 4.5 线 */
   --ink-3:#9AA59B;            /* 三级：白底上限只有 2.55:1，按规范属"淡是氛围"档 */
   --moss:#7C9A80;
   --moss-deep:#5F7D63;        /* 只给大字（≥24px 标题/悬停），4.12:1 */
-  --moss-ink:#3C513F;         /* 正文级强调与小字：7.78:1 */
+  --moss-ink:#384D3B;         /* 正文级强调与小字：压在四个顶上都 ≥7（最差 7.25，傍晚暖顶）。⚠️ 原值 #3C513F 在傍晚只剩 6.81——时段块当年没过闸 */
   --straw:#C2A878;
   --moon:#BCCFC4;
   --line:rgba(35,43,37,.07);
@@ -42,9 +42,22 @@ html[data-theme="dark"]{
   --shadow:0 12px 28px -8px rgba(14,19,13,.55);
   --photo-look:saturate(.8) brightness(.78);      /* 夜林：原图直出会刺眼，照片也重新打光 */
 }
-html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; }
-html[data-phase="dusk"][data-theme="light"]{ --bg-top:#EDE4D2; }
-html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7DE; }
+/* 光的方向（§2.3）：**只转"仰角/长度"，不转"方位"**。
+   方位被那张照片钉死了——§5 实测亮部在左（暗色标题区横向三分 左.076/中.069/右.059，亮色 .83/.73/.58），
+   内容区的影子一旦往右倒，就等于和首屏分属两个太阳，比"光不动"更错。
+   所以：清晨低角度＝长影、正午高角度＝短影（= :root 的基准值）、傍晚＝全年最长、夜里＝几乎无影。
+   ⚠️ 三条硬约束：① 4 处 text-shadow 全是 `0 1px`（那是"字抬起来"不是光照方向），**光晕不参与**，跟着转会变成歪影；
+   ② `box-shadow` 只在**换档那一刻**离散改值，不给它加 transition——它不在 §8.8 白名单里，淡一个 24px 的投影就是每帧重绘一次阴影；
+   ③ 暗色**不参与日循环**（§2.2 夜林是"另一个时刻"，它没有太阳）——夜里的影子归月相管，见下面那块。 */
+html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; --shadow:0 20px 32px -12px rgba(95,125,99,.13); }
+html[data-phase="dusk"][data-theme="light"]{ --bg-top:#EDE4D2; --shadow:0 26px 38px -14px rgba(95,125,99,.14); }
+html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7DE; --shadow:0 6px 16px -10px rgba(95,125,99,.10); }
+
+/* 夜林里影子归月相管（§6）：无月之夜是这套暗色的身份，它没有方向光，所以基准那版投影又短又软。
+   满月那一晚"有月之夜"成立——影子回来一点（更长、更实）。**只动 shadow 与灯，绝不动照片底**：
+   提亮底图会直接吃掉 §2.4 首屏那笔账（暗色标题中位 6.81、≥7 只有 44.5%，全靠大字档 3:1 守住），
+   而投影与灯都不在文字底下 ⇒ 一条对比度都不用重算。 */
+html[data-theme="dark"][data-moon="full"]{ --shadow:0 16px 30px -10px rgba(14,19,13,.62); }
 
 /* ============ 基础 ============ */
 *,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
@@ -77,9 +90,15 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
    也是"整片在沸腾"的这一岸，两头都不像材质。steps(1) 让一周期真跳四下，回到签过字的那个数。 */
 .grain{
   position:fixed; inset:-50%; z-index:3; pointer-events:none; opacity:.035;
+  transition:opacity 1.2s cubic-bezier(.22,1,.36,1);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
   animation:grain-shift 1.2s steps(1) infinite;
 }
+/* 合上书＝更静（§8.7）：读到文末，这一页唯一还在动的东西自己退场。
+   反着做的那一版（文末把颗粒加深一倍）否掉了：颗粒是 position:fixed 的全屏层，它闪一下
+   等于全屏幕动一次，正面撞 §1.2"一处动处处静"；而"结束"这个感觉本该是一次沉默，不是一次响动。
+   ⚠️ 只动 opacity（§8.8 白名单内），1.2s 吐纳，往回滚它自己回来。 */
+html[data-quiet="1"] .grain{ opacity:0; }
 @keyframes grain-shift{
   0%{ transform:translate(0,0); } 25%{ transform:translate(-2%,1%); }
   50%{ transform:translate(1%,-2%); } 75%{ transform:translate(-1%,2%); } 100%{ transform:translate(0,0); }
@@ -113,6 +132,13 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   position:absolute; left:50%; top:50%; width:15px; height:15px; margin:-7.5px 0 0 -7.5px;
   fill:none; stroke:var(--moss); stroke-width:1; opacity:.42; pointer-events:none;
 }
+/* 满月那两晚，"现在"这一点换成月白（§6）。这是这一档唯一**一直看得见**的信号——
+   灯要动手才有、影子要卡片悬停才看，而这枚 5px 的点在导航里常驻。
+   夜林平时是"无月之夜"，所以点该是苔绿；有月的晚上它变成月色，等于这一页在说"今晚不一样"。
+   ⚠️ 只换色不换形：§9 那两枚点的配对（时钟点 / 当前页点）里只有时钟点参与，
+   当前页那枚是"我在哪儿"，和天上的事无关。 */
+html[data-theme="dark"][data-moon="full"] .nav-clock .dot{ background:var(--moon); }
+html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:.6; }
 .nav-clock{
   font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em;
   color:var(--ink-2); white-space:nowrap; display:flex; align-items:center; gap:8px;
@@ -288,6 +314,13 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 /* 滚动入场（规范 §8.7）：错落节拍住在 CSS 里，JS 只给 --cascade 序号 */
 .reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); transition-delay:calc(var(--cascade,0) * 80ms); }
 .reveal.in{ opacity:1; transform:none; }
+
+/* 手记的呼吸（§15）：同一页里行距按句子长短走三档——短句留白、长句挤在一起，版式自己在表达语气。
+   三档只有 1.75 / 1.85 / 1.95：差 5% 与 5%，读得出"这条写得很短"，读不出"这里有个算法"。
+   构建期由 `stats.js` 的 tone() 打 class ⇒ 静态版式，零动效、零新材质、零随机数。 */
+.tone-breath{ line-height:1.95; }
+.tone-plain{ line-height:1.85; }
+.tone-tight{ line-height:1.75; }
 
 /* ============ 文章目录（/essays/）：编号 + 细线，指过去才长出摘要 ============ */
 /* 原先是三版式卡片墙，而封面位全是空槽。文字型列表的正解是"目录"不是"卡片墙"——
@@ -528,7 +561,13 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    页面末尾会闪一下。 */
 @view-transition{ navigation:auto; }
 ::view-transition-old(root){ animation:vt-out .4s cubic-bezier(.22,1,.36,1) both; }
-::view-transition-new(root){ animation:vt-in .5s cubic-bezier(.22,1,.36,1) both; }
+/* 翻书的停顿（§8.3）：旧页走完之后、新页开始之前，留 80ms 让"这一站的地面"露一下。
+   ⚠️ 关键不在 delay，在**中间那层得有东西**：跨文档转场里伪元素树是盖在"已经渲染好的新文档"之上的快照，
+   两层都透明时露出来的是新页面本身、不是雾。所以必须先给 image-pair 铺底（就是子页 body 那条 40vh 渐变），
+   delay 才有意义。铺了底之后连交叉淡化的中点也会透出一点地面——转场中途起一层薄雾，这是顺带的。
+   ⚠️ Chrome 给 ::view-transition-new 的默认 mix-blend-mode 是 plus-lighter，所以透出的是"加亮"不是"盖白"。 */
+::view-transition-image-pair(root){ background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-base) 40vh); }
+::view-transition-new(root){ animation:vt-in .5s cubic-bezier(.22,1,.36,1) 80ms both; }
 @keyframes vt-out{ from{ opacity:1; transform:none } to{ opacity:0; transform:translateY(-8px) } }
 @keyframes vt-in{ from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
 

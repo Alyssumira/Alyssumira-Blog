@@ -93,6 +93,19 @@
   }
   const weatherWord = { dawn:'fog', day:'light', dusk:'dusk', night:'night' };
 
+  /* 月相（§6）：夜林里的影子与那盏灯归月亮管，所以这里要知道"今晚是月的哪一天"。
+     用平月法（synodic 29.530588853 天 + 一个已知的新月基准），**不做真天象计算**：
+     平均法与真满月的偏差最大约 ±0.6 天，而这里要的只是"亮一档"这个感觉，窗口给到 ±1.2 天足够宽。
+     真天象要引 VSOP87 那类星历表（几百行、还要处理时区），为一个 5px 的圆点不值，而且会把
+     "算出来的近似"重新带回分钟级时钟旁边——正是 §2.3 否决节气上导航的同一个理由。 */
+  const SYNODIC = 29.530588853;
+  const NEW_MOON_EPOCH = Date.UTC(2000, 0, 6, 18, 14) / 86400000;   // 2000-01-06 18:14 UTC 新月
+  function moonAge(d){
+    const days = d.getTime() / 86400000 - NEW_MOON_EPOCH;
+    return ((days % SYNODIC) + SYNODIC) % SYNODIC;
+  }
+  const isFullMoon = d => Math.abs(moonAge(d) - SYNODIC / 2) <= 1.2;
+
   /* 苔时弧：实心点是"现在"，外圈那一段是"今天已经走完的多少"。
      它是属性更新不是动画（§6 时钟零动效照样成立），随 15s 一次的 tick 走，一天一圈。
      周长从几何本身要——getTotalLength() 只在这里出现一次，不在 CSS 里再写一个 43.98 */
@@ -100,7 +113,7 @@
     if (!dayRing) return;
     const len = dayRing.getTotalLength ? dayRing.getTotalLength() : 44;
     const now = new Date();
-    const frac = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400;
+    const frac = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400;   // 一天 86400 秒
     dayRing.style.strokeDasharray = len.toFixed(2);
     dayRing.style.strokeDashoffset = (len * (1 - frac)).toFixed(2);
   }
@@ -110,6 +123,11 @@
     if (clockEl) clockEl.textContent = String(now.getHours()).padStart(2,'0') + ':' +
                                        String(now.getMinutes()).padStart(2,'0');
     paintDayRing();
+    const full = isFullMoon(now);
+    if ((root.dataset.moon === 'full') !== full){
+      if (full) root.setAttribute('data-moon', 'full'); else root.removeAttribute('data-moon');
+      announce();
+    }
     const p = phaseOf(now);
     if (p !== phase){
       phase = p;
@@ -122,25 +140,34 @@
   /* 首页的雾灯/萤火虫要看主题与时段脸色，但不想耦合进来——广播一次即可 */
   function announce(){ root.dispatchEvent(new CustomEvent('mistwood:state')); }
 
-  /* ---------- 详情页：进度线 + 目录高亮 ---------- */
+  /* ---------- 详情页：进度线 + 身后的雾 + 文末收灯 + 目录高亮 ---------- */
   const postBody = document.getElementById('post-body');
   const progress = document.getElementById('progress');
   const toc = document.getElementById('toc');
 
   function updateProgress(){
-    if (!progress || !postBody) return;
+    if (!postBody) return;
     const r = postBody.getBoundingClientRect();
     const total = Math.max(r.height - innerHeight, 1);
     const done = Math.min(Math.max(-r.top, 0), total);
-    progress.style.transform = `scaleX(${done / total})`;
+    if (progress) progress.style.transform = `scaleX(${done / total})`;
+    /* 身后的雾（§8.7）：雾线钉在视口 30% 那一行（阅读位置之上），换算成正文自己坐标系里的 px 写进 --read-fog。
+       坡道从这条线往上游 100vh 才淡到底（那一段已经在屏幕外），所以**屏幕上的最坏值是恒定的**：
+       屏顶 5.03:1（亮色正文），到雾线处回到 13.13——正在读的那一屏一个字都不蒙。
+       往回滚雾线跟着上移 ⇒ 想重读哪一段，它自己走回清晰。 */
+    const edge = innerHeight * .30 - r.top;
+    postBody.style.setProperty('--read-fog', edge.toFixed(1) + 'px');
+    /* 合上书＝更静：读到文末，让颗粒（这一页唯一还在动的东西）退场，别用一次全屏加深去画"结束" */
+    root.dataset.quiet = (r.bottom < innerHeight * .82) ? '1' : '';
   }
-  if (progress && postBody){
+  if (postBody){
     let ticking = false;
     addEventListener('scroll', () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => { updateProgress(); ticking = false; });
     }, { passive:true });
+    addEventListener('resize', updateProgress, { passive:true });
     updateProgress();
   }
 
@@ -263,12 +290,14 @@
     });
   }
 
-  /* ---------- 守夜：夜里第一次落进这个站点，首页那一行字认识你（§6） ----------
-     只在首屏存在的那一格出现，且一次会话只播一回（刷新即无）。落点不在导航——那串
-     `mistwood · fog` 是英文标签层，插中文撞 §7 的双语分层。 */
+  /* ---------- 首屏那一行"此刻的话"：入夜＝守夜、清晨＝初、傍晚＝暮（§6） ----------
+     一格、一套机制、一枚键。三个词都只在**本次会话第一次**落进来时说一次，刷新即无；
+     读不到 sessionStorage 就永远不说——猜出来的问候不是问候。 */
   const watchEl = document.getElementById('hero-watch');
+  const WATCH_WORD = { night:'守夜', dawn:'初', dusk:'暮' };
   if (watchEl && !readFlag('mistwood-greeted')){
     writeFlag('mistwood-greeted', '1');
-    if (phase === 'night') watchEl.hidden = false;
+    const w = WATCH_WORD[phase];
+    if (w){ watchEl.textContent = w; watchEl.hidden = false; }
   }
 })();

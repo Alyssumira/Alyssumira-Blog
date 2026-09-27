@@ -3,6 +3,7 @@ import '../styles/notes.css';
 import Layout from '../layouts/Layout.astro';
 import { notes } from '../data/site.js';
 import { inlineMd } from '../lib/markdown.js';
+import { tone } from '../lib/stats.js';
 const pad = n => String(n).padStart(2, '0');
 ---
 <Layout title="notes · mistwood" desc="观察日志：日期，加一两句话。" here="notes">
@@ -16,7 +17,7 @@ const pad = n => String(n).padStart(2, '0');
       {notes.map(n => (
         <div class="note reveal">
           <time>{n.date} · {n.weather}</time>
-          <p set:html={inlineMd(n.text)}></p>
+          <p class={tone(n.text)} set:html={inlineMd(n.text)}></p>
         </div>
       ))}
     </div>

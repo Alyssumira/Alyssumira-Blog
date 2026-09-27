@@ -16,7 +16,10 @@ const today = () => {
   const d = new Date();
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('.');
 };
-const read = p => readFileSync(p, 'utf8');
+/* ⚠️ 读进来先归一成 LF：splitMd 认的是 '---\n'，而 `core.autocrlf=true` 的机器上 `git checkout`
+   会把稿件重新落成 CRLF —— 那时 front matter 明明在，--check 却报"开头少了 --- front matter ---"
+   （本轮实测踩到：git checkout 复原一篇稿件之后 gate ① 当场红）。假阳性比漏检更糟，因为它会教人忽略门禁。 */
+const read = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
 /* 站点用 LF，Windows 上写文件别让 Node 换行 */
 const write = (p, s) => writeFileSync(p, s.replace(/\r\n/g, '\n'));
 const q = s => String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -33,7 +36,8 @@ function argList(argv) {
   return out;
 }
 
-/* front matter 只要 title/date/excerpt/cover 四个键，多了 schema 不认 */
+/* front matter 认 title/date/excerpt/cover 四个键，外加可选的 hour（0–23，写作时刻）。
+   骨架不写 hour：它空着比写一个 0 好——0 会被读成"凌晨写的"。要填自己加一行 */
 function splitMd(raw) {
   if (!raw.startsWith('---\n')) return null;
   const end = raw.indexOf('\n---\n', 3);
