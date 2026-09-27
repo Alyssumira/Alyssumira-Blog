@@ -126,10 +126,34 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 
 /* ============ 区块通用 ============ */
 .wrap{ position:relative; z-index:5; max-width:1120px; margin:0 auto; padding:0 8vw; }
-.page-head{ padding:22vh 0 64px; }
+/* ============ 子页开场：三档横幅 + 一层静止的气 ============ */
+/* 原先子页第一屏就是一行标题压在空底上——阅读动线没有"进场"这回事。现在开场由三层组成：
+   底（body 那条 40vh 渐变，已有）· 气（这一条 --mist 横向雾带，静态、零循环、零新模糊）· 字（标题与 sec-label）。
+   ⚠️ 三档高度是"内容越要沉下来，开场越高"，不是随机数：看图 30vh / 读字 22vh / 迷路 14vh（§15）。
+   ⚠️ 一档只拨一个数（`--head-top` 与带高 `--band-h`）：带子的位置由这两者算出来并让中心落在标题上，
+      标题在带子里的相对位置因此不会随着档位漂走。
+   ⚠️ 气这一层必须留在 z-index:-1：它在标题之前绘制，若排在文本之上就等于给标题蒙了半层白，
+      §2.4 的对比度是按纯色底算的，蒙上去的半透明层会把那笔账作废。
+   零 infinite 是硬要求——§1 的预算表现在写着"子页面 = 颗粒 + 至多一个呼吸点"，没给它再加循环的余地。 */
+.page-head{ position:relative; --head-top:22vh; --band-h:32vh; --band-a:.75; --title-size:clamp(32px,6vw,42px); padding:var(--head-top) 0 64px; }
+html[data-tier="look"] .page-head{ --head-top:30vh; --band-h:42vh; }
+html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.5; }
+.page-head::before{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  /* 全出血用的是 `left:50% + width:100vw + translateX(-50%)`，不是"两边各留 -8vw"：
+     .wrap 有 1120px 上限，宽屏下内容盒离视口边远不止 8vw，靠负内边距会在两侧留下看得见的竖直断边
+     （渐变是竖向的，救不了横向的边）。 */
+  left:50%; width:100vw; transform:translateX(-50%);
+  /* 带子的中心 = 标题行盒的中心：1.85 是从 body 继承的行高，标题字号与行盒都从 --title-size 推，
+     所以换档、换视口、改标题字号都不用重摆。 */
+  --title-box:calc(1.85 * var(--title-size));
+  top:calc(var(--head-top) - (var(--band-h) - var(--title-box)) / 2);
+  height:var(--band-h); opacity:var(--band-a);
+  background:linear-gradient(180deg,transparent,var(--mist) 42%,var(--mist) 58%,transparent);
+}
 .page-title{
   font-family:"Noto Serif SC","Songti SC","STSong",serif;
-  font-size:clamp(32px,6vw,42px); font-weight:600; letter-spacing:.02em;
+  font-size:var(--title-size); font-weight:600; letter-spacing:.02em;
 }
 .sec-label{
   font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.14em;
@@ -317,7 +341,11 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .nav-clock{ display:none; }
   .nav-links{ gap:12px; }
   .nav-links a{ font-size:12px; }
-  .page-head{ padding:18vh 0 48px; }
+  .page-head{ --head-top:18vh; --band-h:24vh; padding-bottom:48px; }
+  /* ⚠️ 三档在窄屏各压一档，且必须用同名选择器覆盖：`html[data-tier] .page-head` 的权重高于裸 `.page-head`，
+     只改上面那一行的话 look/lost 两档会悄悄留在桌面高度上。 */
+  html[data-tier="look"] .page-head{ --head-top:24vh; --band-h:32vh; }
+  html[data-tier="lost"] .page-head{ --head-top:12vh; --band-h:18vh; }
   .row{ gap:14px; padding:20px 0; }
   .folio{ width:20px; }
   .row h3{ font-size:19px; }
@@ -376,4 +404,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
     background:var(--surface) !important;
     -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
   }
+  /* 开场那条雾带是半透明的"气"，这里没有"退回实面"的解法——实面就是一块白板。
+     它是氛围不是信息，所以直接撤掉：绝对定位，撤了不改一行版面、不改一次换行。 */
+  .page-head::before{ display:none; }
 }

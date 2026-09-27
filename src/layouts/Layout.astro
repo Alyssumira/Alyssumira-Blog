@@ -2,7 +2,7 @@
 import '../styles/mistwood.css';
 import { fonts, FONT_HOST } from '../data/site.js';
 
-const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '' } = Astro.props;
+const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read' } = Astro.props;
 const links = [
   ['/', '首页', 'home'],
   ['/essays/', '文章', 'essays'],
@@ -13,7 +13,7 @@ const links = [
 const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&display=swap`;
 ---
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light" data-phase="day">
+<html lang="zh-CN" data-theme="light" data-phase="day" data-tier={tier}>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
