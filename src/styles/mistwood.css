@@ -152,13 +152,32 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   -webkit-backdrop-filter:blur(18px) saturate(1.1);
   backdrop-filter:blur(18px) saturate(1.1);
   box-shadow:var(--shadow);
-  opacity:0; visibility:hidden; transform:translateY(-6px);
-  transition:opacity .3s cubic-bezier(.22,1,.36,1),transform .3s cubic-bezier(.22,1,.36,1),visibility 0s .3s;
+  opacity:0; visibility:hidden; transform:translateY(-8px) scale(.94);
+  /* 原点在"那枚按钮的圆心"：面板像是从手上长出来的，不是原地出现的一块东西。
+     横向 100%−15px（按钮宽 30、与面板右缘对齐），纵向 −29px（面板顶在按钮下方 14px，按钮中心在自身下方 15px） */
+  transform-origin:calc(100% - 15px) -29px;
+  transition:opacity .18s cubic-bezier(.22,1,.36,1),transform .18s cubic-bezier(.22,1,.36,1),visibility 0s .18s;
+}
+/* 收起时行本身也退回原位，展开时逐行错落跟上（§8.1 只有吐纳这一档可用：
+   回弹那档 §8.1 明写"只给按下"，不许拿来做面板入场） */
+.settings > *{
+  opacity:0; transform:translateY(-5px);
+  transition:opacity .18s cubic-bezier(.22,1,.36,1),transform .18s cubic-bezier(.22,1,.36,1);
 }
 .settings.open{
   opacity:1; visibility:visible; transform:none;
   transition:opacity .3s cubic-bezier(.22,1,.36,1),transform .3s cubic-bezier(.22,1,.36,1),visibility 0s;
 }
+.settings.open > *{
+  opacity:1; transform:none;
+  transition:opacity .3s cubic-bezier(.22,1,.36,1),transform .3s cubic-bezier(.22,1,.36,1);
+}
+/* 错落 40ms 一档，四行落在 .12s 起步、.42s 收尾，仍在 §8.3 的 0.3–0.6s 交互档内。
+   ⚠️ 退场不带 delay（延迟只写在 .open 里），所以收起是一起快速撤掉——弹窗要"跟手感"，
+   这条与 §8.5 雾灯"熄得比点得慢"相反，因为那一边管氛围收束、这一边管面板开合 */
+.settings.open > :nth-child(2){ transition-delay:.04s; }
+.settings.open > :nth-child(3){ transition-delay:.08s; }
+.settings.open > :nth-child(4){ transition-delay:.12s; }
 .settings-cap{
   /* 标题栏是"这是什么面板"的唯一说明，功能件 ⇒ --ink-2（--ink-3 在亮色只有 2.30:1，够不到 §2.4 的 4.5） */
   font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em;
