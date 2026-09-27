@@ -33,9 +33,12 @@ if (/[\s\r\n]/.test(token)) { console.log(`✗ token 里混进了空白字符（
 const git = (...a) => execFileSync('git', ['-c', 'core.quotePath=false', ...a], { encoding: 'utf8' });
 const gitBin = sha => execFileSync('git', ['cat-file', 'blob', sha], { maxBuffer: 64 << 20 });
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 async function api(method, path, body, attempt = 0) {
-  const res = await fetch('https://api.github.com' + path, {
+  const send = async () => fetch('https://api.github.com' + path, {
     method,
+    signal: AbortSignal.timeout(60_000),
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
@@ -44,11 +47,33 @@ async function api(method, path, body, attempt = 0) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  let res;
+  try {
+    res = await send();
+  } catch (e) {
+    /* 本机会出现瞬时连接超时（dry-run 刚过、下一步就 Connect Timeout），
+       65 次串行请求一次抖动就整轮废掉 ⇒ 网络错与 5xx 一律退避重试，最多 5 次 */
+    if (attempt < 5) {
+      const wait = 700 * 2 ** attempt;
+      console.log(`  …${method} ${path.split('?')[0]} 网络错 ${e.code || e.name || e.message}，${wait}ms 后第 ${attempt + 1} 次重试`);
+      await sleep(wait);
+      return api(method, path, body, attempt + 1);
+    }
+    throw new Error(`${method} ${path} 重试 5 次仍失败：${e.code || e.name || e.message}`);
+  }
+
+  if (res.status >= 500 && attempt < 5) {
+    const wait = 700 * 2 ** attempt;
+    console.log(`  …${method} ${path.split('?')[0]} HTTP ${res.status}，${wait}ms 后第 ${attempt + 1} 次重试`);
+    await sleep(wait);
+    return api(method, path, body, attempt + 1);
+  }
   if (res.status === 404 || res.status === 403) {
-    // 限流与网络抖动会伪装成 4xx 之外的形状；403 带 Retry-After 时等一次
+    // 限流会带 Retry-After；等一次再试，不算进网络预算
     const retryAfter = Number(res.headers.get('retry-after') || 0);
     if (res.status === 403 && retryAfter && attempt < 2) {
-      await new Promise(r => setTimeout(r, retryAfter * 1000 + 500));
+      await sleep(retryAfter * 1000 + 500);
       return api(method, path, body, attempt + 1);
     }
   }
