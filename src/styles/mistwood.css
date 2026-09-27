@@ -84,8 +84,8 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   padding:10px 22px; border-radius:999px;
   background:var(--glass);
   border:1px solid var(--glass-border);
-  backdrop-filter:blur(18px) saturate(1.1);
   -webkit-backdrop-filter:blur(18px) saturate(1.1);
+  backdrop-filter:blur(18px) saturate(1.1);
   box-shadow:var(--shadow);
   opacity:0; animation:nav-in .6s cubic-bezier(.22,1,.36,1) .3s forwards;
   transition:background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
@@ -104,13 +104,16 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   padding:2px 0; transition:color .3s cubic-bezier(.22,1,.36,1); white-space:nowrap;
 }
 .nav-links a::after{
-  content:""; position:absolute; left:0; bottom:-2px; width:0; height:2px;
-  background:var(--moss); transition:width .35s cubic-bezier(.22,1,.36,1);
+  /* 下划线用 scaleX 长出来，不再动 width：width 是布局属性，悬停一次重排一次；
+     transform-origin 钉在左端，"从左长出"的读法不变（§8.3） */
+  content:""; position:absolute; left:0; bottom:-2px; width:100%; height:2px;
+  background:var(--moss); transform:scaleX(0); transform-origin:0 50%;
+  transition:transform .35s cubic-bezier(.22,1,.36,1);
 }
 .nav-links a:hover{ color:var(--ink); }
-.nav-links a:hover::after{ width:100%; }
+.nav-links a:hover::after{ transform:scaleX(1); }
 .nav-links a.here{ color:var(--ink); }
-.nav-links a.here::after{ width:100%; }
+.nav-links a.here::after{ transform:scaleX(1); }
 .theme-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
   border:1px solid var(--glass-border); background:transparent; cursor:pointer;
@@ -204,7 +207,7 @@ html[data-theme="dark"] .essay-card:hover h3{ color:var(--moss); }
   display:flex; align-items:center; justify-content:space-between; gap:16px;
   padding:12px 18px; border-radius:12px;
   background:var(--glass); border:1px solid var(--glass-border);
-  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
 }
 .thing-bar h3{ font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:17px; font-weight:600; }
 .thing-bar span{ font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3); white-space:nowrap; }
@@ -264,7 +267,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .card-b .cover{ width:100%; }
   .things-grid{ grid-template-columns:1fr; }
   /* §11：移动卡片改实色+软影，模糊是性能杀手 ⇒ 入场虚焦只在桌面上演 */
-  .thing-bar{ background:var(--surface); box-shadow:var(--shadow); backdrop-filter:none; -webkit-backdrop-filter:none; }
+  .thing-bar{ background:var(--surface); box-shadow:var(--shadow); -webkit-backdrop-filter:none;backdrop-filter:none; }
   .cover img,.thing .shot,.portrait img,.post-body img{ filter:var(--photo-look); }
   .contact{ margin-top:72px; }
   .contact-links a{ font-size:24px; }
@@ -274,8 +277,26 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 /* ============ 减弱动态偏好：全部落到终态，一个循环都不留 ============ */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation:none !important; transition-duration:.01s !important; transition-delay:0s !important; }
+  /* 颜色与不透明度过渡保留 200ms：主题切换是"日落"语义，一并砍掉会把渐变变成亮度突跳（§12 禁明暗突跳）。
+     位移、缩放、模糊一律不动（上面那行已经把时长压到 0），infinite 一律 animation:none。 */
+  *,*::before,*::after{
+    transition-property:color,background-color,border-color,text-decoration-color,opacity !important;
+    transition-duration:.2s !important;
+  }
   html{ scroll-behavior:auto; }
   .nav{ opacity:1; transform:translate(-50%,0); }
   .reveal{ opacity:1; transform:none; }
   .cover img,.thing .shot,.portrait img,.post-body img{ filter:var(--photo-look); }
+}
+
+/* ============ 系统要求"减少透明度"：玻璃退回实面，位置与层级一概不变 ============ */
+/* 只处理真正依赖身后内容的两处模糊面；`.post-body code` 那类半透明填充不是透明材质问题，保留。
+   !important 不是偷懒：首页的 .nav 另有一条 backdrop-filter 在 home.css 里，现在靠 Astro 把
+   Layout.css 排在页面 CSS 之后才赢下级联——那是运气不是设计。用户偏好覆盖作者样式本就该用
+   !important（MDN 明确列为正当场景），这样无论样式表顺序怎么变都不会静默失效。 */
+@media (prefers-reduced-transparency:reduce){
+  .nav,.thing-bar{
+    background:var(--surface) !important;
+    -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  }
 }

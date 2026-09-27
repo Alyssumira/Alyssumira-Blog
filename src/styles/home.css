@@ -90,8 +90,13 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
 
 /* 纱罩：统一色调 + 保证文字可读 + 底部溶入正文底色 */
+/* 灯的"开合度"要能插值，所以注册成数字属性：mask 里的颜色stops本身不可过渡，
+   只淡 rim/glow 会留下"环还亮着、洞已合上"的半截灯。不支持 @property 的浏览器退化为瞬开瞬合，
+   rim/glow 仍然是渐变熄的 */
+@property --hole{ syntax:'<number>'; inherits:true; initial-value:1; }
 .scrim{
-  position:absolute; inset:0; transition:background .8s cubic-bezier(.22,1,.36,1);
+  position:absolute; inset:0;
+  transition:background .8s cubic-bezier(.22,1,.36,1),--hole .9s cubic-bezier(.22,1,.36,1);
   background:
     var(--scrim-text),
     linear-gradient(180deg,
@@ -99,15 +104,21 @@ html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
       var(--scrim-mid) 35%,
       var(--scrim-mid) 62%,
       var(--scrim-bottom) 97%);
-  /* 雾灯：灯位处纱罩变薄，洞内照片露清晰（规范 §8.5） */
-  -webkit-mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,.04),#000 72%);
-  mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,.04),#000 72%);
+  /* 雾灯：灯位处纱罩变薄，洞内照片露清晰（规范 §8.5）。--hole=1 即"雾合上"，等于没有洞 */
+  -webkit-mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,var(--hole,1)),#000 72%);
+  mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,var(--hole,1)),#000 72%);
+}
+.scene.lantern-on .scrim{
+  --hole:.04;
+  transition:background .8s cubic-bezier(.22,1,.36,1),--hole .6s cubic-bezier(.22,1,.36,1);
 }
 
 /* 雾灯伴生层：浅色 = 洞外沿的雾墙白环；暗色 = 月光微光 */
-.lantern-rim,.lantern-glow{ position:absolute; inset:0; opacity:0; transition:opacity .6s cubic-bezier(.22,1,.36,1); }
+.lantern-rim,.lantern-glow{ position:absolute; inset:0; opacity:0; transition:opacity .9s cubic-bezier(.22,1,.36,1); }
 .scene.lantern-on .lantern-rim,
-.scene.lantern-on .lantern-glow{ opacity:1; }
+.scene.lantern-on .lantern-glow{ opacity:1; transition-duration:.6s; }
+/* 熄得比点亮慢（0.9s vs 0.6s）：灯是"雾重新合上"，不是 UI 收起。
+   这条有意偏离 emilkowalski 的"退场快于入场"——那条管的是弹窗跟手感，这里管的是氛围收束，见 §8.5 */
 .lantern-rim{
   background:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),
     transparent 52%, rgba(255,255,255,.45) 68%, transparent 82%);
@@ -158,8 +169,8 @@ html[data-phase="dawn"] .mist-band{ opacity:1; }   /* 清晨雾最浓；day/nigh
   padding:10px 22px; border-radius:999px;
   background:var(--glass);
   border:1px solid var(--glass-border);
-  backdrop-filter:blur(18px) saturate(1.1);
   -webkit-backdrop-filter:blur(18px) saturate(1.1);
+  backdrop-filter:blur(18px) saturate(1.1);
   box-shadow:var(--shadow);
   opacity:0; animation:nav-in .6s cubic-bezier(.22,1,.36,1) 1.4s forwards;
   transition:background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
@@ -178,13 +189,15 @@ html[data-phase="dawn"] .mist-band{ opacity:1; }   /* 清晨雾最浓；day/nigh
   padding:2px 0; transition:color .3s cubic-bezier(.22,1,.36,1); white-space:nowrap;
 }
 .nav-links a::after{
-  content:""; position:absolute; left:0; bottom:-2px; width:0; height:2px;
-  background:var(--moss); transition:width .35s cubic-bezier(.22,1,.36,1);
+  /* 与 mistwood.css 同步：下划线走 scaleX，不动 width */
+  content:""; position:absolute; left:0; bottom:-2px; width:100%; height:2px;
+  background:var(--moss); transform:scaleX(0); transform-origin:0 50%;
+  transition:transform .35s cubic-bezier(.22,1,.36,1);
 }
 .nav-links a:hover{ color:var(--ink); }
-.nav-links a:hover::after{ width:100%; }
+.nav-links a:hover::after{ transform:scaleX(1); }
 .nav-links a.here{ color:var(--ink); }
-.nav-links a.here::after{ width:100%; }
+.nav-links a.here::after{ transform:scaleX(1); }
 .theme-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
   border:1px solid var(--glass-border); background:transparent; cursor:pointer;
@@ -272,6 +285,11 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
 /* ============ 减弱动态偏好：落到终态，一个循环都不留（§1 预算表末行） ============ */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation:none !important; transition-duration:.01s !important; transition-delay:0s !important; }
+  /* 与 mistwood.css 同口径：颜色/透明度保留 200ms 交叉淡化，避免明暗切换变成亮度突跳 */
+  *,*::before,*::after{
+    transition-property:color,background-color,border-color,text-decoration-color,opacity !important;
+    transition-duration:.2s !important;
+  }
   html{ scroll-behavior:auto; }
   .hero-title .line > span{ transform:none; opacity:1; }
   .hero-title em,.hero-name,.hero-log,.nav,.bg-photo{ opacity:1 !important; }

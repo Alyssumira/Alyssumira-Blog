@@ -91,17 +91,28 @@
   const layers = Array.from(document.querySelectorAll('[data-depth]'));
   const scene = document.querySelector('.scene');
   let tx = 0, ty = 0, cx = 0, cy = 0;
-  let tlx = 0, tly = 0, lx = 0, ly = 0, lanternOn = false;
+  let tlx = 0, tly = 0, lx = 0, ly = 0, lanternOn = false, everLit = false, idleT = 0;
   let lastX = 0, lastY = 0, lastT = 0;
+  const IDLE_MS = 700;                       /* 手停了 0.7s，灯就该熄（§8.5） */
+  function blowOut(){
+    if (!lanternOn) return;
+    lanternOn = false;
+    scene.classList.remove('lantern-on');    /* --hole 回到 1：雾合上，rim/glow 同时淡掉 */
+  }
+  function lightLantern(){
+    if (!lanternOn){
+      lanternOn = true;
+      if (!everLit){ everLit = true; lx = tlx; ly = tly; }   /* 只有首次不飞过来，之后从熄的位置走回来 */
+      scene.classList.add('lantern-on');
+    }
+    clearTimeout(idleT);
+    idleT = setTimeout(blowOut, IDLE_MS);
+  }
   addEventListener('mousemove', e => {
     tx = (e.clientX / innerWidth  - .5) * 2;
     ty = (e.clientY / innerHeight - .5) * 2;
     tlx = e.clientX;  tly = e.clientY + scrollY;
-    if (!lanternOn){
-      lanternOn = true;
-      lx = tlx;  ly = tly;              /* 首次点亮：灯直接出现在手边，不飞过来 */
-      scene.classList.add('lantern-on');
-    }
+    lightLantern();
     const now = performance.now();
     if (lastT){
       const v = Math.hypot(e.clientX - lastX, e.clientY - lastY) / (now - lastT);
@@ -109,6 +120,8 @@
     }
     lastX = e.clientX;  lastY = e.clientY;  lastT = now;
   });
+  /* 光标离开窗口：不等空闲，直接熄 */
+  document.documentElement.addEventListener('mouseleave', blowOut);
   (function loop(){
     cx += (tx - cx) * .04;  cy += (ty - cy) * .04;
     for (const el of layers){
