@@ -451,6 +451,10 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   padding:0 24px; text-align:center;
   font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.14em; color:var(--ink-3);
 }
+/* 真图进来之后那圈方框就没有理由了：框是**占位期的容器**（它要托住那句提示文字、要有一块雾当底），
+   而这张图自己是圆盘、四角透明，再套一层方框等于用直线框圆——所以只撤描边与雾底，
+   尺寸一格不动（描边改成 transparent 而不是 none，1px 的盒子还在，圆角与 overflow 都留着）。 */
+.portrait:has(img){ border-color:transparent; background:none; }
 .about-text p{ margin-bottom:20px; }
 /* "现在在做"：一整行是可点开的披露件，那枚点只是记号（§15）。
    ⚠️ 命中区不是 5px 的点——一个看不见却能按中的圆是关于页最容易挨骂的东西；
