@@ -1,0 +1,33 @@
+---
+import '../../styles/essay.css';
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+import { renderMd, fmtDate } from '../../lib/markdown.js';
+
+export async function getStaticPaths(){
+  const posts = (await getCollection('posts')).sort((a, b) => b.data.date - a.data.date);
+  return posts.map((p, i) => ({ params: { slug: p.id }, props: { post: p, prev: posts[i - 1], next: posts[i + 1] } }));
+}
+const { post, prev, next } = Astro.props;
+const sub = post.data.excerpt;
+---
+<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays">
+  <div id="progress" aria-hidden="true"></div>
+  <nav id="toc" aria-label="目录"></nav>
+
+  <main class="wrap">
+    <header class="post-head reveal">
+      <p class="post-meta">{fmtDate(post.data.date)} · essay</p>
+      <h1 class="post-title">{post.data.title}</h1>
+      {sub && <p class="post-sub">{sub}</p>}
+    </header>
+
+    <!-- 正文走 §15 的排版白名单解析器，构建期落成静态 HTML -->
+    <article class="post-body reveal" id="post-body" set:html={renderMd(post.body)}></article>
+
+    <nav class="post-nav reveal">
+      {prev && <a href={`/essays/${prev.id}/`}><span>← prev</span>{prev.data.title}</a>}
+      {next && <a class="next" href={`/essays/${next.id}/`}><span>next →</span>{next.data.title}</a>}
+    </nav>
+  </main>
+</Layout>

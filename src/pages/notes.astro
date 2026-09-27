@@ -1,0 +1,24 @@
+---
+import '../styles/notes.css';
+import Layout from '../layouts/Layout.astro';
+import { notes } from '../data/site.js';
+import { inlineMd } from '../lib/markdown.js';
+const pad = n => String(n).padStart(2, '0');
+---
+<Layout title="notes · mistwood" desc="观察日志：日期，加一两句话。" here="notes">
+  <main class="wrap">
+    <header class="page-head reveal">
+      <h1 class="page-title">碎碎念</h1>
+      <span class="sec-label">notes — <b>{pad(notes.length)}</b> →</span>
+    </header>
+
+    <div class="notes-list">
+      {notes.map(n => (
+        <div class="note reveal">
+          <time>{n.date} · {n.weather}</time>
+          <p set:html={inlineMd(n.text)}></p>
+        </div>
+      ))}
+    </div>
+  </main>
+</Layout>

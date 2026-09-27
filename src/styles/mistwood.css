@@ -184,9 +184,9 @@ html[data-theme="dark"] .essay-card:hover h3{ color:var(--moss); }
   transition:filter .6s cubic-bezier(.22,1,.36,1),transform .5s cubic-bezier(.22,1,.36,1);
 }
 .cover img.in,.thing .shot.in,.portrait img.in,.post-body img.in{ filter:var(--photo-look); }
-/* 正文图不裁框：essay.html 里把 position/尺寸改回原比例，只保留褪色与雾散开 */
+/* 正文图不裁框：essay.css 里把 position/尺寸改回原比例，只保留褪色与雾散开 */
 
-/* ============ 小东西：图鉴网格（things.html） ============ */
+/* ============ 小东西：图鉴网格（/things/） ============ */
 .things-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:32px; padding-bottom:16vh; }
 .thing{
   position:relative; display:block; aspect-ratio:4/3; border-radius:16px; overflow:hidden;
@@ -211,7 +211,7 @@ html[data-theme="dark"] .essay-card:hover h3{ color:var(--moss); }
 .thing-bar h3{ font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:17px; font-weight:600; }
 .thing-bar span{ font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3); white-space:nowrap; }
 
-/* ============ 关于：窄栏 680px（about.html） ============ */
+/* ============ 关于：窄栏 680px（/about/） ============ */
 .about-inner{ max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:40px; padding-bottom:16vh; }
 .portrait{
   position:relative; overflow:hidden; width:220px; aspect-ratio:4/5; border-radius:16px;

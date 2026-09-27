@@ -1,0 +1,34 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+import { fmtDate, root } from '../../lib/markdown.js';
+
+const posts = (await getCollection('posts')).sort((a, b) => b.data.date - a.data.date);
+const pad = n => String(n).padStart(2, '0');
+---
+<Layout title="文章 · mistwood" desc="经得起重读的东西。" here="essays">
+  <main class="wrap">
+    <header class="page-head reveal">
+      <h1 class="page-title">文章</h1>
+      <span class="sec-label">essays — <b>{pad(posts.length)}</b> →</span>
+    </header>
+
+    <div class="essay-list">
+      {posts.map(p => p.data.excerpt ? (
+        <a class="essay-card card-b reveal" href={`/essays/${p.id}/`}>
+          <div class="cover">{p.data.cover && <img src={root(p.data.cover)} alt="" loading="lazy">}</div>
+          <div>
+            <h3>{p.data.title}</h3>
+            <p>{p.data.excerpt}</p>
+            <time>{fmtDate(p.data.date)}</time>
+          </div>
+        </a>
+      ) : (
+        <a class="essay-card card-c reveal" href={`/essays/${p.id}/`}>
+          <h3>{p.data.title}</h3>
+          <time>{fmtDate(p.data.date)}</time>
+        </a>
+      ))}
+    </div>
+  </main>
+</Layout>

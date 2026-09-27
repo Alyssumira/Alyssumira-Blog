@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { things } from '../data/site.js';
+import { root } from '../lib/markdown.js';
+const pad = n => String(n).padStart(2, '0');
+---
+<Layout title="小东西 · mistwood" desc="做一些小东西，像捡拾林间的石头。" here="things">
+  <main class="wrap">
+    <header class="page-head reveal">
+      <h1 class="page-title">小东西</h1>
+      <span class="sec-label">things — <b>{pad(things.length)}</b> →</span>
+    </header>
+
+    <div class="things-grid">
+      {things.map(t => (
+        <a class="thing reveal" href={t.link}>
+          {t.shot && <img class="shot" src={root(t.shot)} alt="" loading="lazy">}
+          <div class="thing-bar"><h3>{t.name}</h3><span>{t.tag}</span></div>
+        </a>
+      ))}
+    </div>
+  </main>
+</Layout>
