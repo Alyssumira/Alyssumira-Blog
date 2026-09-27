@@ -134,10 +134,16 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 .settings-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
   border:1px solid var(--glass-border); background:transparent; cursor:pointer;
-  color:var(--ink-2); transition:color .3s cubic-bezier(.22,1,.36,1),background-color .3s cubic-bezier(.22,1,.36,1);
+  color:var(--ink-2);
+  transition:color .3s cubic-bezier(.22,1,.36,1),background-color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
 }
-.settings-toggle:hover{ color:var(--ink); }
-.settings-toggle[aria-expanded="true"]{ color:var(--ink); background:var(--surface); }
+/* 悬停转 90°：与旁边主题钮的 180° 同族（.6s 吐纳、只有 transform），但换个角度免得两枚钮看起来是同一个动作。
+   90° 对这枚图标是有语义的——横滑杆转成竖滑杆，仍是同一组调节件。
+   ⚠️ 图标内部"滑杆滑动"那种动法试过不做：渲染尺寸只有 15px，±2 用户单位 ≈ 0.9 CSS px，看不见。 */
+.settings-toggle:hover{ color:var(--ink); transform:rotate(90deg); }
+.settings-toggle:active{ transform:rotate(90deg) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+/* 抽屉开着的时候停在 90°：这一下不是装饰，是"你在设置里面"的状态灯 */
+.settings-toggle[aria-expanded="true"]{ color:var(--ink); background:var(--surface); transform:rotate(90deg); }
 .settings-toggle svg{ width:15px; height:15px; }
 .settings{
   position:absolute; right:0; top:calc(100% + 14px); z-index:20; width:236px;
