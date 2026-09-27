@@ -212,8 +212,11 @@ try {
   await api('POST', `/repos/${OWNER}/${REPO}/git/refs`, { ref: `refs/heads/${BRANCH}`, sha: headSha });
   console.log(`✓ 建分支 refs/heads/${BRANCH} @ ${headSha.slice(0, 7)}`);
 } catch (e) {
-  await api('PATCH', `/repos/${OWNER}/${REPO}/git/refs/heads/${BRANCH}`, { sha: headSha });
-  console.log(`✓ 更新分支 refs/heads/${BRANCH} @ ${headSha.slice(0, 7)}`);
+  /* 非快进（远端头不是本地历史的祖先）只有 --force 才允许，且显式打出来：
+     这一步会丢掉远端原有提交（GitHub 侧保留为悬空对象一段时间，可再指回去） */
+  const forced = REST.includes('--force');
+  await api('PATCH', `/repos/${OWNER}/${REPO}/git/refs/heads/${BRANCH}`, { sha: headSha, ...(forced ? { force: true } : {}) });
+  console.log(`✓ ${forced ? '强制' : '快进'}更新分支 refs/heads/${BRANCH} @ ${headSha.slice(0, 7)}`);
 }
 
 if (status.default_branch !== BRANCH) {
