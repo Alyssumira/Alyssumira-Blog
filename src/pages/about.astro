@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import { siteFacts } from '../lib/stats.js';
+import { inlineMd } from '../lib/markdown.js';
 import { fonts, notes } from '../data/site.js';
 
 const EMAIL = 'mailto:chidanta_suki@qq.com';
@@ -30,14 +31,27 @@ const walk = notes[0];
         <p>写代码的人，住在城市边缘，心在森林里。白天修 bug，傍晚散步，夜里把这个网站当作营地慢慢打理。</p>
         <p>这里不追热点，只收集经得起重读的东西。</p>
       </div>
-      <p class="about-now reveal"><span class="dot"></span>now · 在给这个网站种内容</p>
+      <!-- 整行是可点开的披露件：那一枚点只是记号，命中区是这一整行（§15）。
+           展开的内容不新写——就是 notes 最近几条，"这一周在做什么"的答案本来就在日志本里 -->
+      <details class="about-now reveal">
+        <summary><span class="dot"></span>now · 在给这个网站种内容</summary>
+        <ul class="now-list">
+          {notes.slice(0, 3).map(n => (
+            <li>
+              <time>{n.date}{n.jieqi ? ' · ' + n.jieqi : ''}</time>
+              <span set:html={inlineMd(n.text)}></span>
+            </li>
+          ))}
+        </ul>
+      </details>
 
       <div class="contact reveal">
         <nav class="contact-links">
           <a href={EMAIL}>email</a>
           <a href="#" rel="noopener">github</a>
         </nav>
-        <p class="last-walk">last walk · {walk.date} · weather: {walk.weather}</p>
+        <!-- 节气是手填位（§7）：空着就不显示。算出来的近似节气不配站在分钟级时钟旁边 -->
+        <p class="last-walk">last walk · {walk.date} · weather: {walk.weather}{walk.jieqi ? ' · ' + walk.jieqi : ''}</p>
       </div>
 
       <!-- 站点档案：数字全部在构建期从仓库里数出来。没有"访问量"这一栏，因为本站没有服务端 ⇒ 拿不到 -->
@@ -70,7 +84,9 @@ const walk = notes[0];
         <p class="col-note">
           这是一份纯静态站点：没有服务端、没有 cookie、没有第三方统计脚本。
           所以这里不放"访问量"——那个数字我们真的拿不到，写一个出来就是假的。
-          你的浏览器里只有三行本地数据：主题、显示设置（雾 / 颗粒 / 萤火）、和下面这个载入次数。清掉它们，这个网站不会少一块。
+          你的浏览器里只有三行留得住的本地数据：主题、显示设置（雾 / 颗粒 / 萤火 / 入场）、和下面这个载入次数；
+          另有三行关掉标签页就消失的会话标记——这次会话看过完整入场没有、从哪一篇回列表、这一轮说过"守夜"没有。
+          清掉它们，这个网站不会少一块。
         </p>
         <p class="col-visit" id="col-visit" hidden></p>
       </section>

@@ -1,10 +1,37 @@
 /* ===== 详情页专属 ===== */
 
-/* 进度线：2px 苔绿，linear（规范唯一允许匀速的地方） */
+/* 进度线：2px 苔绿，linear（规范唯一允许匀速的地方）。
+   ⚠️ 原先是一条左右等宽的实线——那是仪表盘语言（"还剩多少"）。现在右端散开：
+   scaleX 会把这段渐变一起拉伸，所以读到 30% 时那个"梢"也跟着变短，比例自己守恒，
+   不需要为不同进度重画。语义翻过来了：这条不是"还剩"，是"已经走过的这一段在往前长"。
+   不做成栏边苔痕：680 栏左缘那条 1px 苔绿竖线已经是"引用块"的记号（下面 .post-body blockquote::before），
+   同一个符号两种意思是 §9 上一轮刚为下划线修掉的那种错。 */
 #progress{
   position:fixed; top:0; left:0; right:0; height:2px; z-index:20;
-  background:var(--moss); transform:scaleX(0); transform-origin:0 50%;
+  background:linear-gradient(90deg,var(--moss) 0%,var(--moss) 58%,transparent 100%);
+  transform:scaleX(0); transform-origin:0 50%;
 }
+
+/* 盖章（§15）：分享＝把这一篇收进手记，回执是一行字、不是一枚图形。
+   画一枚圆章要新造一套符号语言（描边圆＋环排文字），那是第四种材质；排印能做到的事不另开材质。 */
+.post-tail{ max-width:680px; margin:56px auto 0; }
+.post-stamp{
+  background:none; border:0; padding:0; cursor:pointer; font:inherit;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--moss-ink);
+  text-decoration-line:underline; text-decoration-thickness:1px; text-underline-offset:3px;
+  text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);
+  transition:text-decoration-color .3s cubic-bezier(.22,1,.36,1),text-decoration-thickness .3s cubic-bezier(.22,1,.36,1),color .3s cubic-bezier(.22,1,.36,1);
+}
+.post-stamp:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; color:var(--ink); }
+.post-stamp:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+/* 剪贴板被拒（非安全上下文 / 用户没给权限）：当面说出来，不假装盖上了 */
+.post-stamp.miss{ color:var(--ink-2); text-decoration-color:var(--ink-3); }
+.post-stamp.miss::after{ content:" · 没能复制，地址在地址栏"; }
+.stamp-note{
+  margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
+  color:var(--ink-3); animation:stamp-in .4s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes stamp-in{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
 
 .post-head{ padding:24vh 0 56px; max-width:680px; margin:0 auto; }
 .post-meta{

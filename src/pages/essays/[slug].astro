@@ -25,6 +25,12 @@ const sub = post.data.excerpt;
     <!-- 正文走 §15 的排版白名单解析器，构建期落成静态 HTML -->
     <article class="post-body reveal" id="post-body" set:html={renderMd(post.body)}></article>
 
+    <!-- 盖章：分享＝把这一篇收下来。只落一行手记字，不画圆章（理由见 essay.css 与 §15） -->
+    <div class="post-tail reveal">
+      <button class="post-stamp" id="post-stamp" type="button">share · 把这一篇收进手记</button>
+      <p class="stamp-note" id="stamp-note" hidden></p>
+    </div>
+
     <nav class="post-nav reveal">
       {prev && <a href={`/essays/${prev.id}/`}><span>← prev</span>{prev.data.title}</a>}
       {next && <a class="next" href={`/essays/${next.id}/`}><span>next →</span>{next.data.title}</a>}

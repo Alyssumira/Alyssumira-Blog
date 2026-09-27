@@ -32,7 +32,15 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
 (function(){try{var t=localStorage.getItem('mistwood-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 /* 显示偏好先落地再首帧：雾和颗粒是"看得见的面"，等模块脚本跑完再改会闪一下 */
 (function(){var r=document.documentElement,d={};try{d=JSON.parse(localStorage.getItem('mistwood-display'))||{};}catch(e){}
- r.setAttribute('data-fog',d.fog||'normal');r.setAttribute('data-grain',d.grain||'on');r.setAttribute('data-fireflies',d.fireflies||'on');})();
+ var enter=d.enter||'auto';r.setAttribute('data-fog',d.fog||'normal');r.setAttribute('data-grain',d.grain||'on');r.setAttribute('data-fireflies',d.fireflies||'on');r.setAttribute('data-enter',enter);
+ /* 回访判定必须在首帧之前：晚一步照片已经开始 2.2s 的淡入，改了也看不见。
+    判据是"本次会话里已经播过一次入场"（sessionStorage＝标签页级），不是载入次数——
+    站内跳转也算一次的 mistwood-opens 分不清"刚进来"和"翻了个页"。用户点了"每次完整"就不走这条捷径。 */
+ try{
+  if(enter==='auto'&&sessionStorage.getItem('mistwood-seen'))r.setAttribute('data-revisit','1');
+  sessionStorage.setItem('mistwood-seen','1');
+ }catch(e){}   /* 隐私模式下 sessionStorage 会抛：读不到就当第一次，慢慢播一遍 */
+})();
 </script>
 </head>
 <body>
@@ -41,7 +49,9 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
 
 <header class="nav">
   <div class="nav-clock">
-    <span class="dot"></span>
+    <!-- 一枚点两层信息：实心点是"现在"，外面那圈弧是"今天已经走完的这一段"（§6）。
+         弧占位靠 overflow 画出 5px 盒子之外，不改一行版面；起点在 12 点方向，顺时针走一圈＝24h -->
+    <span class="nowdot"><span class="dot"></span><svg class="dayring" viewBox="0 0 15 15" aria-hidden="true"><circle id="day-ring" cx="7.5" cy="7.5" r="7" transform="rotate(-90 7.5 7.5)"/></svg></span>
     <span id="clock">--:--</span>
     <span>·</span>
     <span>mistwood</span>
@@ -79,6 +89,14 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
           <span class="seg-opts">
             <label><input type="radio" name="fireflies" value="on"><span class="seg-c">有</span></label>
             <label><input type="radio" name="fireflies" value="off"><span class="seg-c">无</span></label>
+          </span>
+        </div>
+        <!-- 第四枚旋钮管的是"第几次进场"：默认按会话走简版，点"每次完整"就永远慢慢播一遍（§8.2） -->
+        <div class="seg" role="group" aria-label="入场">
+          <span class="seg-k">入场</span>
+          <span class="seg-opts">
+            <label><input type="radio" name="enter" value="auto"><span class="seg-c">自动</span></label>
+            <label><input type="radio" name="enter" value="full"><span class="seg-c">完整</span></label>
           </span>
         </div>
       </div>

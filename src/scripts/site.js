@@ -30,12 +30,13 @@
      真相源读回来，不再第二次解析 localStorage——两处读同一份 JSON 迟早读成两个样子。 */
   const sBtn = document.getElementById('settings-toggle');
   const sPanel = document.getElementById('display-settings');
-  const disp = { fog: root.dataset.fog || 'normal', grain: root.dataset.grain || 'on', fireflies: root.dataset.fireflies || 'on' };
+  const disp = { fog: root.dataset.fog || 'normal', grain: root.dataset.grain || 'on', fireflies: root.dataset.fireflies || 'on', enter: root.dataset.enter || 'auto' };
 
   function paintSettings(){
     root.dataset.fog = disp.fog;
     root.dataset.grain = disp.grain;
     root.dataset.fireflies = disp.fireflies;
+    root.dataset.enter = disp.enter;
     document.querySelectorAll('.settings input[type=radio]').forEach(i => { i.checked = disp[i.name] === i.value; });
     announce();   /* 萤火虫在不在岗，由 hero.js 听这个事件自己决定 */
   }
@@ -64,24 +65,52 @@
     });
   }
 
-  /* ---------- 时间感知：时钟 + 时段 + 天气词 ---------- */
+  /* ---------- 时间感知：时钟 + 时段（日循环 + 年循环）+ 天气词 ---------- */
   const clockEl = document.getElementById('clock');
   const weatherEl = document.getElementById('weather-word');
+  const dayRing = document.getElementById('day-ring');
   let phase = 'day';
 
-  function phaseOf(h){
-    if (h >= 5  && h < 9)  return 'dawn';
-    if (h >= 9  && h < 17) return 'day';
-    if (h >= 17 && h < 20) return 'dusk';
+  /* 换季（§2.3）：傍晚的窗口随季节走，别的日子不动。
+     只有 dusk 的两端在动，night 从 dusk 结束处接手 ⇒ 四个时段永不重叠、也不需要第二张表。
+     幅度按月算最多 3.5 小时，落在"今天和半年前不太一样"那一档，比日变化更弱——
+     §6 那句"应感觉今天早上来和下午来不太一样，而不是这网站会变色"同样管着年尺度。 */
+  const SEASON_DUSK = {
+    winter: [16, 17.5],   // 12·1·2 月
+    spring: [17.5, 19],   // 3·4·5 月
+    summer: [19.5, 20.5], // 6·7·8 月
+    autumn: [17, 19],     // 9·10·11 月
+  };
+  const seasonOf = m => (m === 11 || m <= 1) ? 'winter' : m <= 4 ? 'spring' : m <= 7 ? 'summer' : 'autumn';
+
+  function phaseOf(d){
+    const h = d.getHours() + d.getMinutes() / 60;
+    if (h >= 5 && h < 9) return 'dawn';
+    const [ds, de] = SEASON_DUSK[seasonOf(d.getMonth())];
+    if (h >= ds && h < de) return 'dusk';
+    if (h >= 9 && h < ds) return 'day';
     return 'night';
   }
   const weatherWord = { dawn:'fog', day:'light', dusk:'dusk', night:'night' };
+
+  /* 苔时弧：实心点是"现在"，外圈那一段是"今天已经走完的多少"。
+     它是属性更新不是动画（§6 时钟零动效照样成立），随 15s 一次的 tick 走，一天一圈。
+     周长从几何本身要——getTotalLength() 只在这里出现一次，不在 CSS 里再写一个 43.98 */
+  function paintDayRing(){
+    if (!dayRing) return;
+    const len = dayRing.getTotalLength ? dayRing.getTotalLength() : 44;
+    const now = new Date();
+    const frac = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400;
+    dayRing.style.strokeDasharray = len.toFixed(2);
+    dayRing.style.strokeDashoffset = (len * (1 - frac)).toFixed(2);
+  }
 
   function tick(){
     const now = new Date();
     if (clockEl) clockEl.textContent = String(now.getHours()).padStart(2,'0') + ':' +
                                        String(now.getMinutes()).padStart(2,'0');
-    const p = phaseOf(now.getHours());
+    paintDayRing();
+    const p = phaseOf(now);
     if (p !== phase){
       phase = p;
       root.setAttribute('data-phase', p);
@@ -175,9 +204,71 @@
 
   /* ---------- 启动 ---------- */
   applyTheme(theme);
-  phase = phaseOf(new Date().getHours());
+  phase = phaseOf(new Date());
   root.setAttribute('data-phase', phase);
   if (weatherEl) weatherEl.textContent = weatherWord[phase];
   tick();
   setInterval(tick, 15000);   /* 15s 校准一次，显示粒度是分钟 */
+
+  /* ---------- 归巢：从详情页回到列表，之前点进来的那一行亮一下（§8.7） ----------
+     ⚠️ 挂 pageshow 不挂 DOMContentLoaded：预取和 bfcache 会把文档原地复活，那时后者根本不再触发，
+     而"回来"恰恰是这条交互唯一的场合。标记只在详情页写、只在找到行的那一页清掉——
+     绕道去了 /about/ 也不算丢，下一次落在有它的页面上照样亮。 */
+  const HOMING = 'mistwood-homing';
+  function readFlag(k){ try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+  function writeFlag(k, v){ try { v === null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} }
+  if (/^\/essays\/[^/]+\/$/.test(location.pathname)) writeFlag(HOMING, location.pathname);
+  else {
+    addEventListener('pageshow', () => {
+      const to = readFlag(HOMING);
+      const slug = to && /^\/essays\/(.+)\/$/.exec(to);
+      if (!slug) return;
+      let hit = null;
+      document.querySelectorAll('.row[data-slug]').forEach(r => { if (r.dataset.slug === slug[1]) hit = r; });
+      if (!hit) return;                       /* 这一页没有那一行：标记留着，别把它悄悄吃掉 */
+      hit.classList.add('homing');
+      setTimeout(() => hit.classList.remove('homing'), 1700);
+      writeFlag(HOMING, null);
+    });
+  }
+
+  /* ---------- 盖章：分享 = 把这一篇收进手记，回执是一行字不是一枚图形（§15） ----------
+     复制没成功就什么都不落——一行"盖于…"的收据配一个没复制到的动作，是 §12 那种假反馈。 */
+  const stampBtn = document.getElementById('post-stamp');
+  const stampNote = document.getElementById('stamp-note');
+  if (stampBtn && stampNote){
+    const p2 = n => String(n).padStart(2, '0');
+    const fallbackCopy = text => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:-200vh;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      ta.remove();
+      return ok;
+    };
+    stampBtn.addEventListener('click', async () => {
+      const url = location.href;
+      let ok = false;
+      try { await navigator.clipboard.writeText(url); ok = true; }
+      catch (e) { ok = fallbackCopy(url); }         /* http 或非安全上下文里 clipboard API 会直接拒 */
+      stampBtn.classList.toggle('miss', !ok);
+      if (!ok) return;
+      const d = new Date();
+      stampNote.textContent = `盖于 ${d.getFullYear()}.${p2(d.getMonth() + 1)}.${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())} · 本机`;
+      stampNote.hidden = false;
+    });
+  }
+
+  /* ---------- 守夜：夜里第一次落进这个站点，首页那一行字认识你（§6） ----------
+     只在首屏存在的那一格出现，且一次会话只播一回（刷新即无）。落点不在导航——那串
+     `mistwood · fog` 是英文标签层，插中文撞 §7 的双语分层。 */
+  const watchEl = document.getElementById('hero-watch');
+  if (watchEl && !readFlag('mistwood-greeted')){
+    writeFlag('mistwood-greeted', '1');
+    if (phase === 'night') watchEl.hidden = false;
+  }
 })();

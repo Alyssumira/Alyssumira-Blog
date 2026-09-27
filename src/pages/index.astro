@@ -3,9 +3,15 @@ import '../styles/home.css';
 import Layout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import { things, notes } from '../data/site.js';
+import { fmtDate, inlineMd } from '../lib/markdown.js';
+import { readMinutes } from '../lib/stats.js';
 
 const pad = n => String(n).padStart(2, '0');
-const counts = { essays: (await getCollection('posts')).length, things: things.length, notes: notes.length };
+const posts = (await getCollection('posts')).sort((a, b) => b.data.date - a.data.date);
+const counts = { essays: posts.length, things: things.length, notes: notes.length };
+/* 首页下半段只是"最近三篇"，不是第二个 /essays/：超过三条就把尾巴剪掉，宁缺不挤 */
+const recent = posts.slice(0, 3);
+const walk = notes[0];
 ---
 <Layout title="mistwood · 晨雾森林" here="home">
   <div class="scene" aria-hidden="true">
@@ -37,7 +43,43 @@ const counts = { essays: (await getCollection('posts')).length, things: things.l
     </h1>
     <!-- 观察日志：数字 = 构建期真实条数 -->
     <p class="hero-log"><b>{pad(counts.essays)}</b> essays<span class="sep">·</span><b>{pad(counts.things)}</b> things<span class="sep">·</span><b>{pad(counts.notes)}</b> notes</p>
+    <!-- 守夜：只在夜里第一次落进来时出现，由 site.js 决定显不显示（读不到 session 就永远不显示） -->
+    <p class="hero-watch" id="hero-watch" hidden>守夜</p>
   </main>
+
+  <!-- 首页下半段：日志报了"03 essays"，这里就是那三篇的名字——同一句话的数字层与实例层（§4）。
+       上一轮撤掉 .ending 之后首页只剩一屏，§5 那条溶到 --bg-base 的斜坡没了职责；
+       补回来的不是那块纯色，是它下面本来就该有的实色内容区。 -->
+  <section class="home-lower">
+    <h2 class="sec-label">recent essays — <b>{pad(recent.length)}</b> →</h2>
+    <ol class="essay-index">
+      {recent.map((p, i) => {
+        const d = p.data.date;
+        return (
+          <li>
+            <a class="row reveal" href={`/essays/${p.id}/`} data-slug={p.id}>
+              <span class="folio">{pad(i + 1)}</span>
+              <span class="row-main">
+                <h3>{p.data.title}</h3>
+                <p class="row-ex">{p.data.excerpt}</p>
+              </span>
+              <span class="row-side">
+                <time>{fmtDate(d).slice(5)}</time>
+                <span class="row-min">{readMinutes(p.body)} min</span>
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+
+    <!-- 最后一句交给 notes：这一页以作者真写过的一句话收尾，"再走回雾里"那一拍由它承担（§5）。
+         句子走 inlineMd，和 /notes/ 上同一份文本同一个解析口径——两处两种渲染迟早会分叉。 -->
+    <a class="home-note reveal" href="/notes/">
+      <time>{walk.date}</time>
+      <p set:html={inlineMd(walk.text)}></p>
+    </a>
+  </section>
 </Layout>
 
 <script>

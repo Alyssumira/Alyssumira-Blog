@@ -53,7 +53,7 @@ let folio = 0;
             const d = p.data.date;
             return (
               <li>
-                <a class="row" href={`/essays/${p.id}/`}>
+                <a class="row" href={`/essays/${p.id}/`} data-slug={p.id}>
                   <span class="folio">{pad(n)}</span>
                   {p.data.cover ? <span class="cover"><img src={root(p.data.cover)} alt="" loading="lazy"></span> : null}
                   <span class="row-main">

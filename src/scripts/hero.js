@@ -84,53 +84,106 @@
     }
   }
 
-  /* ---------- 鼠标：全景视差 + 雾灯（共用一个 rAF） ---------- */
-  if (reduceMotion || !matchMedia('(pointer: fine)').matches) return;
-  const layers = Array.from(document.querySelectorAll('[data-depth]'));
+  /* ---------- 雾灯：三种"指向"——鼠标跟着手、触屏按住不放、键盘跟着焦点（§8.5） ----------
+     视差仍旧只属于细指针（§11），但灯不再只属于细指针：降级不等于缺席。
+     触屏只亮在按住的那一下，不跟手——跟手就要读 touchmove，那正好和滚动抢同一根手指。 */
+  if (reduceMotion) return;
   const scene = document.querySelector('.scene');
+  if (!scene) return;
+  const nav = document.querySelector('.nav');
+  const fine = matchMedia('(pointer: fine)').matches;
+  const layers = Array.from(document.querySelectorAll('[data-depth]'));
   let tx = 0, ty = 0, cx = 0, cy = 0;
   let tlx = 0, tly = 0, lx = 0, ly = 0, lanternOn = false, everLit = false, idleT = 0;
   let lastX = 0, lastY = 0, lastT = 0;
   const IDLE_MS = 700;                       /* 手停了 0.7s，灯就该熄（§8.5） */
+  const inRange = el => !!(el && el.closest && el.closest('.nav a,.nav button,.hero a,.hero button'));
+
   function blowOut(){
     if (!lanternOn) return;
     lanternOn = false;
     scene.classList.remove('lantern-on');    /* --hole 回到 1：雾合上，rim/glow 同时淡掉 */
+    setNavLit(false);
   }
-  function lightLantern(){
+  /* 灯照到导航那一段玻璃时，玻璃稍微变实一点——一枚灯、两种被照到的材质（§8.5 的"拨雾"并到这里）。
+     只翻一个类，颜色走 .nav 已有的 background-color 过渡，不新增可 animatable 的属性、也不引第二枚灯 */
+  function setNavLit(on){ if (nav) nav.classList.toggle('lit', on); }
+  function nearNav(x, y){
+    if (!nav) return false;
+    const r = nav.getBoundingClientRect();
+    /* 半径不写死：CSS 里那枚 --lantern-r 注册成了 <length>，computed value 就是解析后的 px，
+       所以 JS 用同一个数，不在这里重抄一遍 clamp() */
+    const raw = parseFloat(getComputedStyle(scene).getPropertyValue('--lantern-r'));
+    const pad = (isNaN(raw) ? 200 : raw) * .55;
+    const top = r.top + scrollY, bottom = r.bottom + scrollY;
+    return y > top - pad && y < bottom + pad && x > r.left - pad && x < r.right + pad;
+  }
+  function put(){
+    scene.style.setProperty('--lx', lx.toFixed(1) + 'px');
+    scene.style.setProperty('--ly', ly.toFixed(1) + 'px');
+    setNavLit(nearNav(lx, ly));
+  }
+  function light(x, y, snap, hold){
+    tlx = x; tly = y;
     if (!lanternOn){
       lanternOn = true;
-      if (!everLit){ everLit = true; lx = tlx; ly = tly; }   /* 只有首次不飞过来，之后从熄的位置走回来 */
+      if (!everLit){ everLit = true; lx = tlx; ly = tly; }   /* 只有首次不飞过来，之后从熄灯的位置走回来 */
       scene.classList.add('lantern-on');
     }
+    /* 没有 rAF 的那两条路（触屏 / 键盘）就地落位，不然灯会停在上一处 */
+    if (snap && !fine){ lx = tlx; ly = tly; put(); }
     clearTimeout(idleT);
-    idleT = setTimeout(blowOut, IDLE_MS);
+    if (!hold) idleT = setTimeout(blowOut, IDLE_MS);          /* 按住与聚焦期间不计时，松手 / 移焦才熄 */
   }
-  addEventListener('mousemove', e => {
-    tx = (e.clientX / innerWidth  - .5) * 2;
-    ty = (e.clientY / innerHeight - .5) * 2;
-    tlx = e.clientX;  tly = e.clientY + scrollY;
-    lightLantern();
-    const now = performance.now();
-    if (lastT){
-      const v = Math.hypot(e.clientX - lastX, e.clientY - lastY) / (now - lastT);
-      if (v > 1.2) maybeStartle(e.clientX, e.clientY);   /* 慢速靠近不惊动 */
-    }
-    lastX = e.clientX;  lastY = e.clientY;  lastT = now;
+
+  if (fine){
+    addEventListener('mousemove', e => {
+      tx = (e.clientX / innerWidth  - .5) * 2;
+      ty = (e.clientY / innerHeight - .5) * 2;
+      light(e.clientX, e.clientY + scrollY, false, false);
+      const now = performance.now();
+      if (lastT){
+        const v = Math.hypot(e.clientX - lastX, e.clientY - lastY) / (now - lastT);
+        if (v > 1.2) maybeStartle(e.clientX, e.clientY);   /* 慢速靠近不惊动 */
+      }
+      lastX = e.clientX;  lastY = e.clientY;  lastT = now;
+    });
+    /* 光标离开窗口：不等空闲，直接熄 */
+    document.documentElement.addEventListener('mouseleave', blowOut);
+    (function loop(){
+      cx += (tx - cx) * .04;  cy += (ty - cy) * .04;
+      for (const el of layers){
+        const d = parseFloat(el.dataset.depth);
+        el.style.transform = `translate(${cx * d * 100}px, ${cy * d * 60}px)`;
+      }
+      if (lanternOn){
+        lx += (tlx - lx) * .06;  ly += (tly - ly) * .06;   /* 灯总比手慢半拍 */
+        put();
+      }
+      requestAnimationFrame(loop);
+    })();
+  }
+
+  /* 触屏：整屏只有首屏那 100vh 有纱罩可拨，所以只在场景范围内上岗；不 preventDefault，滚动照滚 */
+  addEventListener('touchstart', e => {
+    const t = e.target;
+    if (inRange(t)) return;                                  /* 手落在导航/链接上：那是按钮，不是灯 */
+    const p = e.touches && e.touches[0];
+    if (!p || p.clientY > innerHeight) return;
+    light(p.clientX, p.clientY + scrollY, true, true);
+  }, { passive:true });
+  addEventListener('touchend', blowOut, { passive:true });
+  addEventListener('touchcancel', blowOut, { passive:true });
+
+  /* 键盘：Tab 到哪，灯就照到哪——灯的本意是"指向"，焦点就是一次指向 */
+  addEventListener('focusin', e => {
+    if (!inRange(e.target)) return;
+    const r = e.target.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > innerHeight) return;
+    light(r.left + r.width / 2, r.top + r.height / 2 + scrollY, true, true);
   });
-  /* 光标离开窗口：不等空闲，直接熄 */
-  document.documentElement.addEventListener('mouseleave', blowOut);
-  (function loop(){
-    cx += (tx - cx) * .04;  cy += (ty - cy) * .04;
-    for (const el of layers){
-      const d = parseFloat(el.dataset.depth);
-      el.style.transform = `translate(${cx * d * 100}px, ${cy * d * 60}px)`;
-    }
-    if (lanternOn){
-      lx += (tlx - lx) * .06;  ly += (tly - ly) * .06;   /* 灯总比手慢半拍 */
-      scene.style.setProperty('--lx', lx.toFixed(1) + 'px');
-      scene.style.setProperty('--ly', ly.toFixed(1) + 'px');
-    }
-    requestAnimationFrame(loop);
-  })();
+  addEventListener('focusout', e => {
+    if (inRange(e.relatedTarget)) return;   /* 从一枚链接走到下一枚：灯跟着走，不熄了再点 */
+    blowOut();
+  });
 })();
