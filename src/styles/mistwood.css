@@ -113,8 +113,23 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 }
 .nav-links a:hover{ color:var(--ink); }
 .nav-links a:hover::after{ transform:scaleX(1); }
+/* ⚠️ 当前页不再用下划线：那条 2px 苔绿短线是"悬停"的记号，同一个符号表达两种状态，
+   读者分不清"我在这里"和"我碰到这里了"。改成文字左侧一枚 5px 实心点——
+   它和导航时钟前那枚"现在"的点是同一个形状，全站两枚点正好成一对（§6）。
+   悬停仍然长下划线，所以停在当前页上会同时看到点＋线：两种状态各自可读。 */
 .nav-links a.here{ color:var(--ink); }
-.nav-links a.here::after{ transform:scaleX(1); }
+.nav-links a.here::after{ transform:scaleX(0); }
+.nav-links a.here::before{
+  content:""; position:absolute; left:-11px; top:50%; width:5px; height:5px; margin-top:-2.5px;
+  border-radius:50%; background:var(--moss);
+}
+/* 内容导航（左）与全局控制（右）之间一枚 8px 竖分隔。用 --glass-border 而不是 --line：
+   §2 的分工是"实色面收边用 --line、玻璃面描边用 --glass-border"，导航是玻璃面。
+   -11px = 22px 间距的正中，与上面那枚点的落点同一套算法。 */
+.display::before{
+  content:""; position:absolute; left:-11px; top:50%; width:1px; height:8px; margin-top:-4px;
+  background:var(--glass-border);
+}
 .theme-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
   border:1px solid var(--glass-border); background:transparent; cursor:pointer;
@@ -423,6 +438,9 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .nav-clock{ display:none; }
   .nav-links{ gap:10px; }
   .nav-links a{ font-size:12px; }
+  /* 窄屏间距只有 10px：点与竖分隔都往中间挪，免得压到左边那项的文字 */
+  .nav-links a.here::before{ left:-7px; }
+  .display::before{ left:-6px; }
   .page-head{ --head-top:18vh; --band-h:24vh; padding-bottom:48px; }
   /* ⚠️ 三档在窄屏各压一档，且必须用同名选择器覆盖：`html[data-tier] .page-head` 的权重高于裸 `.page-head`，
      只改上面那一行的话 look/lost 两档会悄悄留在桌面高度上。 */

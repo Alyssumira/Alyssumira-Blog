@@ -188,21 +188,10 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
 }
 /* §6 时钟零动效：状态点是实心的，不呼吸 */
 .nav-clock .dot{ width:5px; height:5px; border-radius:50%; background:var(--moss); flex:none; }
-.nav-links{ display:flex; align-items:center; gap:22px; flex-wrap:nowrap; }
-.nav-links a{
-  position:relative; font-size:13px; letter-spacing:.14em; color:var(--ink-2);
-  padding:2px 0; transition:color .3s cubic-bezier(.22,1,.36,1); white-space:nowrap;
-}
-.nav-links a::after{
-  /* 与 mistwood.css 同步：下划线走 scaleX，不动 width */
-  content:""; position:absolute; left:0; bottom:-2px; width:100%; height:2px;
-  background:var(--moss); transform:scaleX(0); transform-origin:0 50%;
-  transition:transform .35s cubic-bezier(.22,1,.36,1);
-}
-.nav-links a:hover{ color:var(--ink); }
-.nav-links a:hover::after{ transform:scaleX(1); }
-.nav-links a.here{ color:var(--ink); }
-.nav-links a.here::after{ transform:scaleX(1); }
+/* .nav-links 全家（含 .here / ::after / :hover）只住在 mistwood.css。
+   原先这里有一份逐字重复的副本，而且窄屏那两条已经漂了：这份写 gap:12px / padding:9px 16px，
+   mistwood.css 那版是 10px / 9px 14px——首页靠"Astro 把 Layout.css 排在后面"才用到新值，
+   正是 §8.8 说的"那是运气不是设计"。删副本，留一份。 */
 .theme-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
   border:1px solid var(--glass-border); background:transparent; cursor:pointer;
@@ -214,10 +203,14 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
 .theme-toggle svg{ width:15px; height:15px; }
 
 /* ============ Hero ============ */
+/* 垂直节奏：名字与标题是一组（钉在上方 17vh），日志用 margin-top:auto 沉到近底。
+   原先三件一起居中，结果是"标题 + 44px + 日志 + 162px + 底"——第二段空白不承担任何东西（§8.2）。
+   17vh 是量出来的：整组居中时名字落在 94px = 16.8vh，所以钉 17vh 之后标题一行都没挪；
+   日志则从原来的 67% 高度落到视口底上方 8vh，它同时变成"这一页的最后一行"，替首页做往下走的引导。 */
 .hero{
   position:relative; z-index:5; min-height:100vh;
-  display:flex; flex-direction:column; justify-content:center;
-  padding:0 8vw 12vh; max-width:1120px;
+  display:flex; flex-direction:column; justify-content:flex-start;
+  padding:0 8vw; max-width:1120px;
 }
 .hero-title{
   font-family:"Noto Serif SC","Songti SC","STSong",serif;
@@ -228,7 +221,7 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
 .hero-name{
   font-family:"Fraunces","Noto Serif SC","Songti SC",serif; font-style:normal;
   font-size:15px; font-weight:600; letter-spacing:.5em; color:var(--ink-2);
-  margin-bottom:28px; text-shadow:0 1px 12px var(--halo),0 0 24px var(--halo);
+  margin-top:17vh; margin-bottom:28px; text-shadow:0 1px 12px var(--halo),0 0 24px var(--halo);
   opacity:0; animation:rise .7s cubic-bezier(.22,1,.36,1) .2s forwards;
 }
 /* 按词错落：mask 盒 = 单个词，横向 padding 给 28px 光晕留出裁切余量、负 margin 等量还回推进量，
@@ -244,6 +237,10 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
 }
 .hero-title em{
   font-weight:300; letter-spacing:-.015em; color:var(--moss-deep);
+  /* 拉丁斜体直接挨着中文会贴死（"light和"）——左右各给 .12em 呼吸。
+     ⚠️ 这是占行宽的：整句多约 .24em，改完量过标题盒总高 531px 视口下 178px → 178px，没有多折出一行
+     （第二行在这个宽度上本来就折两视觉行）。倾斜造成的"light 略往下沉"留着不动——它呼应 §8.2 斜体词最后落地 */
+  margin:0 .12em;
   opacity:0; animation:fade-in 1s cubic-bezier(.22,1,.36,1) 1.5s forwards;
 }
 html[data-theme="dark"] .hero-title em{ color:var(--moss); }
@@ -254,7 +251,8 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
 @keyframes fade-in{ to{ opacity:1; } }
 
 .hero-log{
-  margin-top:44px;
+  /* margin-top:auto 把它推到 flex 柱的底端，8vh 是它与视口底的呼吸 */
+  margin-top:auto; margin-bottom:8vh;
   font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.12em;
   color:var(--ink-2); text-shadow:0 1px 12px var(--halo),0 0 22px var(--halo);
   opacity:0; animation:rise .7s cubic-bezier(.22,1,.36,1) .9s forwards;
@@ -270,9 +268,7 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
 @media (max-width:720px){
   .nav{ gap:14px; padding:9px 16px; }
   .nav-clock{ display:none; }
-  .nav-links{ gap:12px; }
-  .nav-links a{ font-size:12px; }
-  .hero{ padding:0 7vw 12vh; }
+  .hero{ padding:0 7vw; }
   .hero-title{ font-size:clamp(34px,9.5vw,44px); }
   /* mask 已改成词级，折行天然按词断开、每词自带升起窗——旧的"整行升起"降级随之删除。
      只剩 text-wrap:balance 收拾折行后的两视觉行，别甩出三字孤行 */
