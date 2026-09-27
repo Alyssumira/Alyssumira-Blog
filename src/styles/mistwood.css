@@ -274,6 +274,20 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .contact-links a::before{ top:5px; }
 }
 
+/* ============ 跨页转场：跨文档 view transition（§8.3"页面切换"档） ============ */
+/* 零 JS：打开 @view-transition 之后，同源跳转由浏览器接管快照，跨页也能续上动画。
+   Chrome / Edge 生效；Firefox、Safari 认不出这个 at-rule 与这组伪元素，直接退成瞬时导航
+   ——那就是本条之前的现状，不额外引库兜底。
+   两段同时起跑（浏览器只给一个快照窗口，串不起来），旧 .4s / 新 .5s；
+   位移 8px 与 10px 是按同一速度 20px/s 配平的，读起来才不像两个节奏。
+   ⚠️ fill-mode 必须是 both：新内容多出的那 100ms 里，旧快照若按默认 none 回填会重新变成不透明，
+   页面末尾会闪一下。 */
+@view-transition{ navigation:auto; }
+::view-transition-old(root){ animation:vt-out .4s cubic-bezier(.22,1,.36,1) both; }
+::view-transition-new(root){ animation:vt-in .5s cubic-bezier(.22,1,.36,1) both; }
+@keyframes vt-out{ from{ opacity:1; transform:none } to{ opacity:0; transform:translateY(-8px) } }
+@keyframes vt-in{ from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
+
 /* ============ 减弱动态偏好：全部落到终态，一个循环都不留 ============ */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation:none !important; transition-duration:.01s !important; transition-delay:0s !important; }
@@ -287,6 +301,8 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .nav{ opacity:1; transform:translate(-50%,0); }
   .reveal{ opacity:1; transform:none; }
   .cover img,.thing .shot,.portrait img,.post-body img{ filter:var(--photo-look); }
+  /* 转场伪元素树不在文档树里，上面那条 `*` 管不到它——跨页淡入淡出必须单独掐掉 */
+  ::view-transition-old(root),::view-transition-new(root){ animation:none !important; }
 }
 
 /* ============ 系统要求"减少透明度"：玻璃退回实面，位置与层级一概不变 ============ */

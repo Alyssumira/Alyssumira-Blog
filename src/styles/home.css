@@ -226,13 +226,17 @@ html[data-phase="dawn"] .mist-band{ opacity:1; }   /* 清晨雾最浓；day/nigh
   margin-bottom:28px; text-shadow:0 1px 12px var(--halo),0 0 24px var(--halo);
   opacity:0; animation:rise .7s cubic-bezier(.22,1,.36,1) .2s forwards;
 }
-.hero-title .line{ display:block; overflow:hidden; }
-.hero-title .line > span{
-  display:inline-block; transform:translateY(110%);
-  animation:line-rise .8s cubic-bezier(.22,1,.36,1) forwards;
+/* 按词错落：mask 盒 = 单个词，横向 padding 给 28px 光晕留出裁切余量、负 margin 等量还回推进量，
+   所以词的落点和裸排一致；纵向 .18em 只撑高裁切窗、不还进行高（原子行的行盒按 margin box 算）。 */
+.hero-title .line{ display:block; }
+.hero-title .w{
+  display:inline-block; vertical-align:top; overflow:hidden; white-space:nowrap;
+  padding:0 .35em .18em; margin:0 -.35em -.18em;
 }
-.hero-title .line:nth-child(1) > span{ animation-delay:.5s; }
-.hero-title .line:nth-child(2) > span{ animation-delay:.62s; }
+.hero-title .w > span{
+  display:inline-block; vertical-align:top; transform:translateY(112%);
+  animation:word-rise .7s cubic-bezier(.22,1,.36,1) calc(.45s + .05s * var(--i,0)) forwards;
+}
 .hero-title em{
   font-weight:300; letter-spacing:-.015em; color:var(--moss-deep);
   opacity:0; animation:fade-in 1s cubic-bezier(.22,1,.36,1) 1.5s forwards;
@@ -240,7 +244,7 @@ html[data-phase="dawn"] .mist-band{ opacity:1; }   /* 清晨雾最浓；day/nigh
 html[data-theme="dark"] .hero-title em{ color:var(--moss); }
 /* 傍晚：枯草金唯一当主角的时段（§2.3），用掉本屏 2 处里的 1 处 */
 html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); }
-@keyframes line-rise{ to{ transform:translateY(0); } }
+@keyframes word-rise{ to{ transform:translateY(0); } }
 @keyframes rise{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
 @keyframes fade-in{ to{ opacity:1; } }
 
@@ -271,12 +275,9 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
   .nav-links a{ font-size:12px; }
   .hero{ padding:0 7vw 16vh; }
   .hero-title{ font-size:clamp(34px,9.5vw,44px); }
-  /* §8.2 的行内 mask 只在"一行真是一行"时成立；窄屏折行会让两视觉行同升，降级为整行升起 */
-  .hero-title .line{ overflow:visible; }
-  .hero-title .line > span{
-    display:block; transform:none; opacity:0; text-wrap:balance;
-    animation:rise .8s cubic-bezier(.22,1,.36,1) forwards;
-  }
+  /* mask 已改成词级，折行天然按词断开、每词自带升起窗——旧的"整行升起"降级随之删除。
+     只剩 text-wrap:balance 收拾折行后的两视觉行，别甩出三字孤行 */
+  .hero-title .line{ text-wrap:balance; }
   .hero-name{ letter-spacing:.35em; }
   .hero-log .sep{ margin:0 8px; }
   .ending{ height:160px; margin-top:12vh; }
@@ -291,7 +292,8 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
     transition-duration:.2s !important;
   }
   html{ scroll-behavior:auto; }
-  .hero-title .line > span{ transform:none; opacity:1; }
+  /* 词盒的静止态本身就是 translateY(112%)，animation:none 不落到终态会让标题整块消失在 mask 里 */
+  .hero-title .w > span{ transform:none; }
   .hero-title em,.hero-name,.hero-log,.nav,.bg-photo{ opacity:1 !important; }
   .reveal{ opacity:1; transform:none; }
 }
