@@ -25,6 +25,45 @@
     applyTheme(next);
   });
 
+  /* ---------- 显示设置：雾 / 颗粒 / 萤火 ----------
+     值由 <head> 里那段内联脚本先落到 dataset（不然首帧会闪一下错误的雾），这里就把 dataset 当唯一
+     真相源读回来，不再第二次解析 localStorage——两处读同一份 JSON 迟早读成两个样子。 */
+  const sBtn = document.getElementById('settings-toggle');
+  const sPanel = document.getElementById('display-settings');
+  const disp = { fog: root.dataset.fog || 'normal', grain: root.dataset.grain || 'on', fireflies: root.dataset.fireflies || 'on' };
+
+  function paintSettings(){
+    root.dataset.fog = disp.fog;
+    root.dataset.grain = disp.grain;
+    root.dataset.fireflies = disp.fireflies;
+    document.querySelectorAll('.settings input[type=radio]').forEach(i => { i.checked = disp[i.name] === i.value; });
+    announce();   /* 萤火虫在不在岗，由 hero.js 听这个事件自己决定 */
+  }
+  function setOpen(v){
+    sPanel.classList.toggle('open', v);
+    sBtn.setAttribute('aria-expanded', String(v));
+    if (v) sPanel.removeAttribute('inert'); else sPanel.setAttribute('inert','');
+  }
+  paintSettings();
+  if (sBtn && sPanel){
+    setOpen(false);
+    sBtn.addEventListener('click', () => setOpen(!sPanel.classList.contains('open')));
+    sPanel.addEventListener('change', e => {
+      const i = e.target;
+      if (!i || i.type !== 'radio' || !(i.name in disp)) return;
+      disp[i.name] = i.value;
+      try { localStorage.setItem('mistwood-display', JSON.stringify(disp)); } catch (err) {}
+      paintSettings();
+    });
+    addEventListener('keydown', e => {
+      if (e.key === 'Escape' && sPanel.classList.contains('open')){ setOpen(false); sBtn.focus(); }
+    });
+    addEventListener('click', e => {
+      if (!sPanel.classList.contains('open') || e.target.closest('.display')) return;
+      setOpen(false);   /* 点外面只收抽屉，不抢焦点：焦点原地不动比跳回去少一次跳动 */
+    });
+  }
+
   /* ---------- 时间感知：时钟 + 时段 + 天气词 ---------- */
   const clockEl = document.getElementById('clock');
   const weatherEl = document.getElementById('weather-word');

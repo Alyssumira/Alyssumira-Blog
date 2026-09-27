@@ -133,14 +133,14 @@ html[data-theme="dark"] .lantern-glow{
 
 /* 中景雾带：照片之上再飘一层"会动的雾"（§1.4 登记的第二种模糊：极大极淡） */
 .mist-band{
-  position:absolute; left:-30vw; width:160vw; border-radius:50%; opacity:.75;
+  position:absolute; left:-30vw; width:160vw; border-radius:50%; opacity:calc(.75 * var(--fog));
   background:linear-gradient(90deg,transparent,var(--mist) 30%,var(--mist) 70%,transparent);
   filter:blur(28px); will-change:transform;
 }
 .mist-band.b1{ top:22vh; height:14vh; animation:mist-drift 75s linear infinite alternate; }
 .mist-band.b2{ top:55vh; height:18vh; animation:mist-drift 95s linear -30s infinite alternate-reverse; }
 .mist-band.b3{ top:85vh; height:12vh; animation:mist-drift 65s linear -55s infinite alternate; }
-html[data-phase="dawn"] .mist-band{ opacity:1; }   /* 清晨雾最浓；day/night 回落到 .75 */
+html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓；day/night 回落到 .75。⚠️ 这里也乘 --fog，"浓"到 1 就被夹住，因为 opacity 上限就是 1 */
 @keyframes mist-drift{ from{ transform:translateX(-6vw); } to{ transform:translateX(6vw); } }
 
 /* 萤火虫：仅夜林 / 深夜 */

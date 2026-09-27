@@ -30,6 +30,9 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
 </script>
 <script is:inline>
 (function(){try{var t=localStorage.getItem('mistwood-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+/* 显示偏好先落地再首帧：雾和颗粒是"看得见的面"，等模块脚本跑完再改会闪一下 */
+(function(){var r=document.documentElement,d={};try{d=JSON.parse(localStorage.getItem('mistwood-display'))||{};}catch(e){}
+ r.setAttribute('data-fog',d.fog||'normal');r.setAttribute('data-grain',d.grain||'on');r.setAttribute('data-fireflies',d.fireflies||'on');})();
 </script>
 </head>
 <body>
@@ -46,6 +49,40 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
   </div>
   <nav class="nav-links">
     {links.map(([href, label, key]) => <a href={href} class:list={[{ here: key === here }]}>{label}</a>)}
+    <div class="display">
+      <button class="settings-toggle" id="settings-toggle" aria-expanded="false" aria-controls="display-settings" aria-label="显示设置" title="显示设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 7h10M18 7h2M4 17h4M12 17h8"/>
+          <circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>
+        </svg>
+      </button>
+      <!-- 收起态：CSS 里 visibility:hidden 让它退出可读树，JS 再补一层 inert，两者同向 -->
+      <div class="settings" id="display-settings" inert>
+        <p class="settings-cap">显示设置</p>
+        <div class="seg" role="group" aria-label="雾浓度">
+          <span class="seg-k">雾</span>
+          <span class="seg-opts">
+            <label><input type="radio" name="fog" value="thin"><span class="seg-c">淡</span></label>
+            <label><input type="radio" name="fog" value="normal"><span class="seg-c">中</span></label>
+            <label><input type="radio" name="fog" value="thick"><span class="seg-c">浓</span></label>
+          </span>
+        </div>
+        <div class="seg" role="group" aria-label="胶片颗粒">
+          <span class="seg-k">颗粒</span>
+          <span class="seg-opts">
+            <label><input type="radio" name="grain" value="on"><span class="seg-c">有</span></label>
+            <label><input type="radio" name="grain" value="off"><span class="seg-c">无</span></label>
+          </span>
+        </div>
+        <div class="seg" role="group" aria-label="萤火虫">
+          <span class="seg-k">萤火</span>
+          <span class="seg-opts">
+            <label><input type="radio" name="fireflies" value="on"><span class="seg-c">有</span></label>
+            <label><input type="radio" name="fireflies" value="off"><span class="seg-c">无</span></label>
+          </span>
+        </div>
+      </div>
+    </div>
     <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">
       <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>

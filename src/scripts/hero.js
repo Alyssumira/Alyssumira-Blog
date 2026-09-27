@@ -35,6 +35,7 @@
     box.innerHTML = '';
     endBox.innerHTML = '';
     if (reduceMotion || narrow.matches) return;
+    if (root.dataset.fireflies === 'off') return;   /* 抽屉里关了：连"惊起"的对象都不留，而不是留着一群不许动 */
     const dark = root.dataset.theme === 'dark';
     const night = root.dataset.phase === 'night';
     spawn(box, dark ? 6 : (night ? 3 : 0), 55, 35);
