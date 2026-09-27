@@ -6,6 +6,8 @@ import { inlineMd } from '../lib/markdown.js';
 import { fonts, notes } from '../data/site.js';
 
 const EMAIL = 'mailto:chidanta_suki@qq.com';
+/* 站名与 GitHub 用户名是同一个字面量：这一行是全站唯一一处 github 地址（§13） */
+const GITHUB = 'https://github.com/Alyssumira';
 const f = siteFacts(await getCollection('posts'));
 const fontNames = fonts.map(x => x.name).join(' · ');
 
@@ -24,9 +26,9 @@ const walk = notes[0];
       <h1 class="page-title">关于</h1>
     </header>
 
-    <!-- 占位：人像与文案替换为真实内容 -->
+    <!-- 人像已到位（public/assets/portrait.png，276×276 透明角）；文案仍是这一页的作者口吻 -->
     <div class="about-inner">
-      <div class="portrait reveal"></div>
+      <div class="portrait reveal"><img src="/assets/portrait.png" alt="Alyssumira" width="276" height="276"></div>
       <div class="about-text reveal">
         <p>写代码的人，住在城市边缘，心在森林里。白天修 bug，傍晚散步，夜里把这个网站当作营地慢慢打理。</p>
         <p>这里不追热点，只收集经得起重读的东西。</p>
@@ -48,7 +50,7 @@ const walk = notes[0];
       <div class="contact reveal">
         <nav class="contact-links">
           <a href={EMAIL}>email</a>
-          <a href="#" rel="noopener">github</a>
+          <a href={GITHUB} target="_blank" rel="noopener noreferrer">github</a>
         </nav>
         <!-- 节气是手填位（§7）：空着就不显示。算出来的近似节气不配站在分钟级时钟旁边 -->
         <p class="last-walk">last walk · {walk.date} · weather: {walk.weather}{walk.jieqi ? ' · ' + walk.jieqi : ''}</p>

@@ -439,7 +439,10 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 /* ============ 关于：窄栏 680px（/about/） ============ */
 .about-inner{ max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:40px; padding-bottom:16vh; }
 .portrait{
-  position:relative; overflow:hidden; width:220px; aspect-ratio:4/5; border-radius:16px;
+  /* 276×276 的圆头像：框跟着图走，不裁。⚠️ 原先 4/5 竖框会把圆盘左右各切掉约 27px（≈20% 宽度），
+     而这张图的四个角本来就是透明的——透明角正好让下面那条雾渐变透出来，"从雾里露出一张脸"
+     是既有材质在做的事，不给站点添第二种框形（全站图片容器仍旧只有圆角矩形一种）。 */
+  position:relative; overflow:hidden; width:220px; aspect-ratio:1/1; border-radius:16px;
   border:1px solid var(--glass-border);
   background:linear-gradient(160deg,var(--bg-top),var(--glass));
 }
