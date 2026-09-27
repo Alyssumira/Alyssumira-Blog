@@ -70,7 +70,11 @@ a{ color:inherit; text-decoration:none; }
 em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 
 /* ============ 背景：照片底 + 动的氛围 ============ */
-.scene{ position:absolute; top:0; left:0; right:0; height:100vh; z-index:0; pointer-events:none; overflow:hidden; }
+.scene{ position:absolute; top:0; left:0; right:0; height:100vh; z-index:0; pointer-events:none; overflow:hidden;
+  /* 雾灯的半径跟着显示面走：22vmin 在 1440×900 上正好是原来的 200px，往小屏收、往大屏放；
+     上下限是刹车——再小就不像一盏灯了（雾灯只在 pointer:fine 上岗，手机本来没有），再大整屏被掀开。 */
+  --lantern-r:clamp(140px,22vmin,300px);
+}
 
 /* 载入底色：照片淡入前的"雾" */
 .bg-gradient{
@@ -105,8 +109,8 @@ html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
       var(--scrim-mid) 68%,
       var(--scrim-bottom) 100%);
   /* 雾灯：灯位处纱罩变薄，洞内照片露清晰（规范 §8.5）。--hole=1 即"雾合上"，等于没有洞 */
-  -webkit-mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,var(--hole,1)),#000 72%);
-  mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,var(--hole,1)),#000 72%);
+  -webkit-mask-image:radial-gradient(circle var(--lantern-r) at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,var(--hole,1)),#000 72%);
+  mask-image:radial-gradient(circle var(--lantern-r) at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,var(--hole,1)),#000 72%);
 }
 .scene.lantern-on .scrim{
   --hole:.04;
@@ -120,14 +124,15 @@ html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
 /* 熄得比点亮慢（0.9s vs 0.6s）：灯是"雾重新合上"，不是 UI 收起。
    这条有意偏离 emilkowalski 的"退场快于入场"——那条管的是弹窗跟手感，这里管的是氛围收束，见 §8.5 */
 .lantern-rim{
-  background:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),
+  background:radial-gradient(circle var(--lantern-r) at var(--lx,-999px) var(--ly,-999px),
     transparent 52%, rgba(255,255,255,.45) 68%, transparent 82%);
 }
 html[data-theme="dark"] .lantern-rim{ display:none; }
 .lantern-glow{ display:none; }
 html[data-theme="dark"] .lantern-glow{
   display:block;
-  background:radial-gradient(circle 230px at var(--lx,-999px) var(--ly,-999px),
+  /* 光晕比洞宽 15%（原先是 230 vs 200 两个写死的数）——比例留在 CSS 里，半径只有一个来源 */
+  background:radial-gradient(circle calc(var(--lantern-r) * 1.15) at var(--lx,-999px) var(--ly,-999px),
     rgba(188,207,196,.12), transparent 70%);
 }
 
