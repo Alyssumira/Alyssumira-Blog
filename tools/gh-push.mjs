@@ -4,11 +4,14 @@
    因此这里也不把 token 交给那台中间人代理，并且绝不落盘到 .git/config。
 
    用法：node tools/gh-push.mjs <owner>/<repo> [--branch master]
-        GITHUB_TOKEN=... 或 /tmp/gh-tok 里放裸 token（脚本读完即弃，不打印）
+        token 从 GITHUB_TOKEN 环境变量读，或按顺序找这三个文件（内容是裸 token，不要有别的字符）：
+          ~/.config/gh-tok   ← 推荐放这里：一次放好，不在临时目录里，不会被清理，脚本也**不会删它**
+          %TEMP%/gh-tok 或 /tmp/gh-tok
+        脚本只读不写：不打印 token、不把它写进 .git/config、也不在推完之后删文件（要删由人删）。
 */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 
 const [,, TARGET, ...REST] = process.argv;
@@ -23,11 +26,11 @@ const [OWNER, REPO] = TARGET.split('/');
 
 let token = process.env.GITHUB_TOKEN || '';
 if (!token) {
-  for (const p of [join(tmpdir(), 'gh-tok'), '/tmp/gh-tok']) {
+  for (const p of [join(homedir(), '.config', 'gh-tok'), join(tmpdir(), 'gh-tok'), '/tmp/gh-tok']) {
     if (existsSync(p)) { token = readFileSync(p, 'utf8').trim(); break; }
   }
 }
-if (!token) { console.log('✗ 没拿到 token（用 GITHUB_TOKEN 环境变量，或在临时目录放 gh-tok）'); process.exit(2); }
+if (!token) { console.log('✗ 没拿到 token（用 GITHUB_TOKEN 环境变量，或把裸 token 放进 ~/.config/gh-tok —— 这个位置不会被临时清理，脚本也不删它）'); process.exit(2); }
 if (/[\s\r\n]/.test(token)) { console.log(`✗ token 里混进了空白字符（长度 ${token.length}），拒绝使用`); process.exit(2); }
 
 const git = (...a) => execFileSync('git', ['-c', 'core.quotePath=false', ...a], { encoding: 'utf8' });

@@ -5,3 +5,7 @@ dist/
 *.log
 .DS_Store
 vibe_images/
+# 裸 token 绝不该进仓库：万一有人把它放在项目里（脚本其实读 ~/.config 与临时目录，不读这里）
+gh-tok
+.gh-tok
+*.token
