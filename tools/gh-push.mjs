@@ -79,6 +79,15 @@ async function api(method, path, body, attempt = 0) {
   }
   if (!res.ok) {
     const t = await res.text();
+    /* GitHub 偶发回 400 "We received a malformed request"，同一个请求原样重投就成功
+       （实测 2026-09-27 推到第 4 个提交时命中）。只认这一种 400，其余 4xx 照抛，
+       免得把真正的内容错误（超限、字段非法）当抖动吞掉 */
+    if (res.status === 400 && /malformed req/i.test(t) && attempt < 5) {
+      const wait = 700 * 2 ** attempt;
+      console.log(`  …${method} ${path.split('?')[0]} HTTP 400 malformed，${wait}ms 后第 ${attempt + 1} 次重试`);
+      await sleep(wait);
+      return api(method, path, body, attempt + 1);
+    }
     throw new Error(`${method} ${path} → HTTP ${res.status}: ${t.slice(0, 300)}`);
   }
   const ct = res.headers.get('content-type') || '';
