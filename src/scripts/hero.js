@@ -5,8 +5,7 @@
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const narrow = matchMedia('(max-width:720px)');
   const box = document.getElementById('fireflies');
-  const endBox = document.getElementById('fireflies-end');
-  if (!box || !endBox) return;
+  if (!box) return;
 
   const style = document.createElement('style');
   style.textContent = `@keyframes firefly-live{
@@ -18,7 +17,7 @@
   }`;
   document.head.appendChild(style);
 
-  /* ---------- 萤火虫：夜林 6 / 亮色深夜 3，首页末尾再守 3（仅暗色）；窄屏一律不上岗 ---------- */
+  /* ---------- 萤火虫：夜林 6 / 亮色深夜 3；首页末尾那块 200px 收尾已撤，守夜的 3 只随之一起退场；窄屏一律不上岗 ---------- */
   function spawn(box, count, topMin, topSpan){
     for (let i = 0; i < count; i++){
       const f = document.createElement('span');
@@ -33,13 +32,11 @@
   }
   function sync(){
     box.innerHTML = '';
-    endBox.innerHTML = '';
     if (reduceMotion || narrow.matches) return;
     if (root.dataset.fireflies === 'off') return;   /* 抽屉里关了：连"惊起"的对象都不留，而不是留着一群不许动 */
     const dark = root.dataset.theme === 'dark';
     const night = root.dataset.phase === 'night';
     spawn(box, dark ? 6 : (night ? 3 : 0), 55, 35);
-    if (dark) spawn(endBox, 3, 15, 70);
   }
   root.addEventListener('mistwood:state', sync);
   narrow.addEventListener('change', sync);
