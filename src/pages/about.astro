@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+const EMAIL = 'mailto:chidanta_suki@qq.com';
 ---
 <Layout title="关于 · mistwood" desc="写代码的人，住在城市边缘，心在森林里。" here="about">
   <main class="wrap">
@@ -15,6 +16,14 @@ import Layout from '../layouts/Layout.astro';
         <p>这里不追热点，只收集经得起重读的东西。</p>
       </div>
       <p class="about-now reveal"><span class="dot"></span>now · 在给这个网站种内容</p>
+
+      <div class="contact reveal">
+        <nav class="contact-links">
+          <a href={EMAIL}>email</a>
+          <a href="#" rel="noopener">github</a>
+        </nav>
+        <p class="last-walk">last walk · 2026.09.25 · weather: light rain</p>
+      </div>
     </div>
   </main>
 </Layout>

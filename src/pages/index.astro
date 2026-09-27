@@ -39,7 +39,10 @@ const counts = { essays: (await getCollection('posts')).length, things: things.l
     <p class="hero-log"><b>{pad(counts.essays)}</b> essays<span class="sep">·</span><b>{pad(counts.things)}</b> things<span class="sep">·</span><b>{pad(counts.notes)}</b> notes</p>
   </main>
 
-  <div slot="footer-extra" id="fireflies-footer" aria-hidden="true"></div>
+  <!-- 收尾：不是尾页，只是"走出雾里"的那 200px；萤火虫守这一块（§5 / §8.5） -->
+  <div class="ending" aria-hidden="true">
+    <div id="fireflies-end"></div>
+  </div>
 </Layout>
 
 <script>

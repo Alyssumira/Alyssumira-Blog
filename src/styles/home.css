@@ -20,7 +20,6 @@
   --scrim-text:radial-gradient(72% 64% at 22% 60%,rgba(242,244,239,.5),transparent 78%);
   --halo:rgba(242,244,239,.55);
   --shadow:0 12px 24px -8px rgba(95,125,99,.12);
-  --footer-bg:#E9EDE4;
   --firefly:#A9C4A0;
 }
 html[data-theme="dark"]{
@@ -42,7 +41,6 @@ html[data-theme="dark"]{
   --scrim-text:radial-gradient(72% 64% at 22% 60%,rgba(14,19,13,.62),transparent 78%);
   --halo:rgba(14,19,13,.6);
   --shadow:0 12px 28px -8px rgba(14,19,13,.55);
-  --footer-bg:#0A0E09;
 }
 /* 时段色温：幅度控制在"说不清但感觉得到"之下 */
 html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; }
@@ -246,32 +244,11 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
 .reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); }
 .reveal.in{ opacity:1; transform:none; }
 
-/* ============ 页脚：渐深一档 + 大号文字链接 + last walk + 200px 空白 ============ */
-.footer{
-  position:relative; z-index:5; margin-top:22vh; overflow:hidden;
-  border-top:1px solid var(--line); background:var(--footer-bg);
-  transition:background-color .8s cubic-bezier(.22,1,.36,1);
+/* ============ 收尾：200px 书末空白 + 守夜的萤火虫（尾页已撤，联系方式去了关于页） ============ */
+.ending{
+  position:relative; z-index:5; height:200px; margin-top:22vh; overflow:hidden;
 }
-#fireflies-footer{ position:absolute; inset:0; pointer-events:none; }
-.footer-inner{ position:relative; max-width:1120px; margin:0 auto; padding:96px 8vw 0; }
-.footer-links{ display:flex; flex-direction:column; gap:28px; margin-bottom:80px; }
-.footer-links a{
-  position:relative; width:fit-content; padding-left:0;
-  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:32px; font-weight:600;
-  transition:padding-left .35s cubic-bezier(.22,1,.36,1),color .3s cubic-bezier(.22,1,.36,1);
-}
-.footer-links a::before{
-  content:"→"; position:absolute; left:0; top:10px; font-size:20px;
-  color:var(--moss); opacity:0; transition:opacity .3s cubic-bezier(.22,1,.36,1);
-}
-.footer-links a:hover{ padding-left:34px; color:var(--moss-deep); }
-html[data-theme="dark"] .footer-links a:hover{ color:var(--moss); }
-.footer-links a:hover::before{ opacity:1; }
-.footer-links a:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
-.last-walk{
-  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
-}
-.footer-blank{ height:200px; }
+#fireflies-end{ position:absolute; inset:0; pointer-events:none; }
 
 /* ============ 移动端 ============ */
 @media (max-width:720px){
@@ -289,9 +266,7 @@ html[data-theme="dark"] .footer-links a:hover{ color:var(--moss); }
   }
   .hero-name{ letter-spacing:.35em; }
   .hero-log .sep{ margin:0 8px; }
-  .footer-inner{ padding:72px 7vw 0; }
-  .footer-links a{ font-size:24px; }
-  .footer-links a::before{ top:5px; }
+  .ending{ height:160px; margin-top:12vh; }
 }
 
 /* ============ 减弱动态偏好：落到终态，一个循环都不留（§1 预算表末行） ============ */

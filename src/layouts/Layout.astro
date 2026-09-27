@@ -10,7 +10,6 @@ const links = [
   ['/notes/', 'notes', 'notes'],
 ];
 const FONTS = 'https://fonts.loli.net/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap';
-const EMAIL = 'mailto:chidanta_suki@qq.com';
 ---
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" data-phase="day">
@@ -53,19 +52,6 @@ const EMAIL = 'mailto:chidanta_suki@qq.com';
 </header>
 
 <slot />
-
-<footer class="footer">
-  <slot name="footer-extra" />
-  <div class="footer-inner">
-    <nav class="footer-links reveal">
-      <a href={EMAIL}>email</a>
-      <a href="#" rel="noopener">github</a>
-      <a href="/notes/">notes</a>
-    </nav>
-    <p class="last-walk reveal">last walk · 2026.09.25 · weather: light rain</p>
-  </div>
-  <div class="footer-blank" aria-hidden="true"></div>
-</footer>
 
 </body>
 </html>
