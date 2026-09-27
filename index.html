@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-phase="day">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mistwood · 晨雾森林</title>
+<meta name="description" content="在森林与代码之间，收集微风、光影和好文章。">
+
+<link rel="preconnect" href="https://fonts.loli.net">
+<link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
+<link href="https://fonts.loli.net/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+
+<style>
+/* ============ 色彩系统 ============ */
+:root{
+  --bg-base:#F2F4EF;
+  --bg-top:#EDE9DD;            /* 雾后太阳的暖白，随时段微调 */
+  --ink:#232B25;
+  --ink-2:#5E6B61;            /* 灰苔：压在暖顶上 4.60:1，够 §2.4 的 4.5 线 */
+  --ink-3:#9AA59B;            /* 三级：白底上限 2.55:1，属"淡是氛围"档 */
+  --moss:#7C9A80;
+  --moss-deep:#5F7D63;        /* 只给大字（Hero 斜体词 68px、悬停标题 24px+） */
+  --moss-ink:#3C513F;         /* 正文级强调与小字：7.78:1 */
+  --straw:#C2A878;             /* 枯草金，每屏至多 2 次 */
+  --moon:#BCCFC4;
+  --line:rgba(35,43,37,.07);
+  --glass:rgba(250,251,248,.72);
+  --glass-border:rgba(35,43,37,.08);
+  --mist:rgba(255,255,255,.5);
+  --scrim-top:rgba(242,244,239,.36);
+  --scrim-mid:rgba(242,244,239,.14);
+  --scrim-bottom:rgba(242,244,239,1);
+  --scrim-text:radial-gradient(72% 64% at 22% 60%,rgba(242,244,239,.5),transparent 78%);
+  --halo:rgba(242,244,239,.55);
+  --shadow:0 12px 24px -8px rgba(95,125,99,.12);
+  --footer-bg:#E9EDE4;
+  --firefly:#A9C4A0;
+}
+html[data-theme="dark"]{
+  --bg-base:#0E130D;
+  --bg-top:#12170F;
+  --ink:#E3E8E0;
+  --ink-2:#87927F;
+  --ink-3:#707B6C;
+  --moss:#A9C4A0;
+  --moss-deep:#8FA98A;
+  --moss-ink:#A9C4A0;
+  --line:rgba(227,232,224,.08);
+  --glass:rgba(26,33,26,.55);
+  --glass-border:rgba(227,232,224,.09);
+  --mist:rgba(188,207,196,.07);
+  --scrim-top:rgba(14,19,13,.60);
+  --scrim-mid:rgba(14,19,13,.30);
+  --scrim-bottom:rgba(14,19,13,1);
+  --scrim-text:radial-gradient(72% 64% at 22% 60%,rgba(14,19,13,.62),transparent 78%);
+  --halo:rgba(14,19,13,.6);
+  --shadow:0 12px 28px -8px rgba(14,19,13,.55);
+  --footer-bg:#0A0E09;
+}
+/* 时段色温：幅度控制在"说不清但感觉得到"之下 */
+html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; }
+html[data-phase="dusk"][data-theme="light"]{ --bg-top:#EDE4D2; --scrim-top:rgba(237,228,210,.34); }
+html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7DE; }
+
+/* ============ 基础 ============ */
+*,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+body{
+  font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg-base);
+  color:var(--ink);
+  font-size:17px;
+  line-height:1.85;
+  overflow-x:hidden;
+  transition:background-color .8s cubic-bezier(.22,1,.36,1),color .8s cubic-bezier(.22,1,.36,1);
+}
+::selection{ background:rgba(124,154,128,.25); }
+html[data-theme="dark"] ::selection{ background:rgba(169,196,160,.22); }
+::-webkit-scrollbar{ width:6px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background:var(--ink-3); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover{ background:var(--ink-2); }
+:focus-visible{ outline:2px solid var(--moss); outline-offset:4px; border-radius:4px; }
+a{ color:inherit; text-decoration:none; }
+em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
+
+/* ============ 背景：照片底 + 动的氛围 ============ */
+.scene{ position:absolute; top:0; left:0; right:0; height:100vh; z-index:0; pointer-events:none; overflow:hidden; }
+
+/* 载入底色：照片淡入前的"雾" */
+.bg-gradient{
+  position:absolute; inset:0;
+  background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-base) 55%);
+  transition:background .8s cubic-bezier(.22,1,.36,1);
+}
+
+/* 照片底：两张同构图，一亮一暗，主题切换 = 交叉淡化 */
+.bg-photo{ position:absolute; inset:-3%; will-change:transform; opacity:0; animation:photo-in 2.2s cubic-bezier(.22,1,.36,1) 1.2s forwards; }
+@keyframes photo-in{ to{ opacity:1; } }
+.bg-photo img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  transition:opacity .8s cubic-bezier(.22,1,.36,1);
+}
+.bg-photo .photo-dark{ opacity:0; }
+html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
+
+/* 纱罩：统一色调 + 保证文字可读 + 底部溶入正文底色 */
+.scrim{
+  position:absolute; inset:0; transition:background .8s cubic-bezier(.22,1,.36,1);
+  background:
+    var(--scrim-text),
+    linear-gradient(180deg,
+      var(--scrim-top) 0%,
+      var(--scrim-mid) 35%,
+      var(--scrim-mid) 62%,
+      var(--scrim-bottom) 97%);
+  /* 雾灯：灯位处纱罩变薄，洞内照片露清晰（规范 §8.5） */
+  -webkit-mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,.04),#000 72%);
+  mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,.04),#000 72%);
+}
+
+/* 雾灯伴生层：浅色 = 洞外沿的雾墙白环；暗色 = 月光微光 */
+.lantern-rim,.lantern-glow{ position:absolute; inset:0; opacity:0; transition:opacity .6s cubic-bezier(.22,1,.36,1); }
+.scene.lantern-on .lantern-rim,
+.scene.lantern-on .lantern-glow{ opacity:1; }
+.lantern-rim{
+  background:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),
+    transparent 52%, rgba(255,255,255,.45) 68%, transparent 82%);
+}
+html[data-theme="dark"] .lantern-rim{ display:none; }
+.lantern-glow{ display:none; }
+html[data-theme="dark"] .lantern-glow{
+  display:block;
+  background:radial-gradient(circle 230px at var(--lx,-999px) var(--ly,-999px),
+    rgba(188,207,196,.12), transparent 70%);
+}
+
+/* 中景雾带：照片之上再飘一层"会动的雾"（§1.4 登记的第二种模糊：极大极淡） */
+.mist-band{
+  position:absolute; left:-30vw; width:160vw; border-radius:50%; opacity:.75;
+  background:linear-gradient(90deg,transparent,var(--mist) 30%,var(--mist) 70%,transparent);
+  filter:blur(28px); will-change:transform;
+}
+.mist-band.b1{ top:22vh; height:14vh; animation:mist-drift 75s linear infinite alternate; }
+.mist-band.b2{ top:55vh; height:18vh; animation:mist-drift 95s linear -30s infinite alternate-reverse; }
+.mist-band.b3{ top:85vh; height:12vh; animation:mist-drift 65s linear -55s infinite alternate; }
+html[data-phase="dawn"] .mist-band{ opacity:1; }   /* 清晨雾最浓；day/night 回落到 .75 */
+@keyframes mist-drift{ from{ transform:translateX(-6vw); } to{ transform:translateX(6vw); } }
+
+/* 萤火虫：仅夜林 / 深夜 */
+.firefly{
+  position:absolute; width:3px; height:3px; border-radius:50%;
+  background:var(--firefly);
+  box-shadow:0 0 8px 2px rgba(169,196,160,.5);
+  opacity:0; will-change:transform,opacity;
+}
+
+/* 颗粒：去掉数码感 */
+.grain{
+  position:fixed; inset:-50%; z-index:3; pointer-events:none; opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain-shift 1.2s steps(4) infinite;
+}
+@keyframes grain-shift{
+  0%{ transform:translate(0,0); } 25%{ transform:translate(-2%,1%); }
+  50%{ transform:translate(1%,-2%); } 75%{ transform:translate(-1%,2%); } 100%{ transform:translate(0,0); }
+}
+
+/* ============ 导航：雾面玻璃胶囊 ============ */
+.nav{
+  position:fixed; top:16px; left:50%; transform:translate(-50%,-8px);
+  z-index:10; display:flex; align-items:center; gap:28px; flex-wrap:nowrap;
+  padding:10px 22px; border-radius:999px;
+  background:var(--glass);
+  border:1px solid var(--glass-border);
+  backdrop-filter:blur(18px) saturate(1.1);
+  -webkit-backdrop-filter:blur(18px) saturate(1.1);
+  box-shadow:var(--shadow);
+  opacity:0; animation:nav-in .6s cubic-bezier(.22,1,.36,1) 1.4s forwards;
+  transition:background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
+  max-width:calc(100vw - 32px);
+}
+@keyframes nav-in{ to{ opacity:1; transform:translate(-50%,0); } }
+.nav-clock{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em;
+  color:var(--ink-2); white-space:nowrap; display:flex; align-items:center; gap:8px;
+}
+/* §6 时钟零动效：状态点是实心的，不呼吸 */
+.nav-clock .dot{ width:5px; height:5px; border-radius:50%; background:var(--moss); flex:none; }
+.nav-links{ display:flex; align-items:center; gap:22px; flex-wrap:nowrap; }
+.nav-links a{
+  position:relative; font-size:13px; letter-spacing:.14em; color:var(--ink-2);
+  padding:2px 0; transition:color .3s cubic-bezier(.22,1,.36,1); white-space:nowrap;
+}
+.nav-links a::after{
+  content:""; position:absolute; left:0; bottom:-2px; width:0; height:2px;
+  background:var(--moss); transition:width .35s cubic-bezier(.22,1,.36,1);
+}
+.nav-links a:hover{ color:var(--ink); }
+.nav-links a:hover::after{ width:100%; }
+.nav-links a.here{ color:var(--ink); }
+.nav-links a.here::after{ width:100%; }
+.theme-toggle{
+  display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
+  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
+  color:var(--ink-2);
+  transition:color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
+}
+.theme-toggle:hover{ color:var(--ink); transform:rotate(180deg); }
+.theme-toggle:active{ transform:rotate(180deg) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+.theme-toggle svg{ width:15px; height:15px; }
+
+/* ============ Hero ============ */
+.hero{
+  position:relative; z-index:5; min-height:100vh;
+  display:flex; flex-direction:column; justify-content:center;
+  padding:0 8vw 18vh; max-width:1120px;
+}
+.hero-title{
+  font-family:"Noto Serif SC","Songti SC","STSong",serif;
+  font-size:clamp(38px,6vw,68px); font-weight:600; line-height:1.32;
+  letter-spacing:.02em; color:var(--ink);
+  text-shadow:0 1px 28px var(--halo);
+}
+.hero-name{
+  font-family:"Fraunces","Noto Serif SC","Songti SC",serif; font-style:normal;
+  font-size:15px; font-weight:600; letter-spacing:.5em; color:var(--ink-2);
+  margin-bottom:28px; text-shadow:0 1px 12px var(--halo),0 0 24px var(--halo);
+  opacity:0; animation:rise .7s cubic-bezier(.22,1,.36,1) .2s forwards;
+}
+.hero-title .line{ display:block; overflow:hidden; }
+.hero-title .line > span{
+  display:inline-block; transform:translateY(110%);
+  animation:line-rise .8s cubic-bezier(.22,1,.36,1) forwards;
+}
+.hero-title .line:nth-child(1) > span{ animation-delay:.5s; }
+.hero-title .line:nth-child(2) > span{ animation-delay:.62s; }
+.hero-title em{
+  font-weight:300; letter-spacing:-.015em; color:var(--moss-deep);
+  opacity:0; animation:fade-in 1s cubic-bezier(.22,1,.36,1) 1.5s forwards;
+}
+html[data-theme="dark"] .hero-title em{ color:var(--moss); }
+/* 傍晚：枯草金唯一当主角的时段（§2.3），用掉本屏 2 处里的 1 处 */
+html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); }
+@keyframes line-rise{ to{ transform:translateY(0); } }
+@keyframes rise{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes fade-in{ to{ opacity:1; } }
+
+.hero-log{
+  margin-top:44px;
+  font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.12em;
+  color:var(--ink-2); text-shadow:0 1px 12px var(--halo),0 0 22px var(--halo);
+  opacity:0; animation:rise .7s cubic-bezier(.22,1,.36,1) .9s forwards;
+}
+.hero-log b{ font-weight:500; color:var(--ink); }
+.hero-log .sep{ margin:0 14px; opacity:.5; }
+
+/* ============ 区块通用（滚动入场：规范 §8.7） ============ */
+.reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); }
+.reveal.in{ opacity:1; transform:none; }
+
+/* ============ 页脚：渐深一档 + 大号文字链接 + last walk + 200px 空白 ============ */
+.footer{
+  position:relative; z-index:5; margin-top:22vh; overflow:hidden;
+  border-top:1px solid var(--line); background:var(--footer-bg);
+  transition:background-color .8s cubic-bezier(.22,1,.36,1);
+}
+#fireflies-footer{ position:absolute; inset:0; pointer-events:none; }
+.footer-inner{ position:relative; max-width:1120px; margin:0 auto; padding:96px 8vw 0; }
+.footer-links{ display:flex; flex-direction:column; gap:28px; margin-bottom:80px; }
+.footer-links a{
+  position:relative; width:fit-content; padding-left:0;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:32px; font-weight:600;
+  transition:padding-left .35s cubic-bezier(.22,1,.36,1),color .3s cubic-bezier(.22,1,.36,1);
+}
+.footer-links a::before{
+  content:"→"; position:absolute; left:0; top:10px; font-size:20px;
+  color:var(--moss); opacity:0; transition:opacity .3s cubic-bezier(.22,1,.36,1);
+}
+.footer-links a:hover{ padding-left:34px; color:var(--moss-deep); }
+html[data-theme="dark"] .footer-links a:hover{ color:var(--moss); }
+.footer-links a:hover::before{ opacity:1; }
+.footer-links a:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+.last-walk{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
+}
+.footer-blank{ height:200px; }
+
+/* ============ 移动端 ============ */
+@media (max-width:720px){
+  .nav{ gap:14px; padding:9px 16px; }
+  .nav-clock{ display:none; }
+  .nav-links{ gap:12px; }
+  .nav-links a{ font-size:12px; }
+  .hero{ padding:0 7vw 16vh; }
+  .hero-title{ font-size:clamp(34px,9.5vw,44px); }
+  /* §8.2 的行内 mask 只在"一行真是一行"时成立；窄屏折行会让两视觉行同升，降级为整行升起 */
+  .hero-title .line{ overflow:visible; }
+  .hero-title .line > span{
+    display:block; transform:none; opacity:0; text-wrap:balance;
+    animation:rise .8s cubic-bezier(.22,1,.36,1) forwards;
+  }
+  .hero-name{ letter-spacing:.35em; }
+  .hero-log .sep{ margin:0 8px; }
+  .footer-inner{ padding:72px 7vw 0; }
+  .footer-links a{ font-size:24px; }
+  .footer-links a::before{ top:5px; }
+}
+
+/* ============ 减弱动态偏好：落到终态，一个循环都不留（§1 预算表末行） ============ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation:none !important; transition-duration:.01s !important; transition-delay:0s !important; }
+  html{ scroll-behavior:auto; }
+  .hero-title .line > span{ transform:none; opacity:1; }
+  .hero-title em,.hero-name,.hero-log,.nav,.bg-photo{ opacity:1 !important; }
+  .reveal{ opacity:1; transform:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 背景：照片底 + 动的氛围 ===== -->
+<div class="scene" aria-hidden="true">
+  <div class="bg-gradient"></div>
+
+  <!-- 两张同构图照片：亮 / 暗，主题切换 = 交叉淡化 -->
+  <div class="bg-photo" data-depth="0.02">
+    <img class="photo-light" src="assets/bg-light.jpg" alt="" draggable="false">
+    <img class="photo-dark" src="assets/bg-dark.jpg" alt="" draggable="false">
+  </div>
+
+  <div class="scrim"></div>
+  <div class="lantern-rim"></div>
+  <div class="lantern-glow"></div>
+
+  <!-- 会动的雾 -->
+  <div class="mist-band b1" data-depth="0.12"></div>
+  <div class="mist-band b2" data-depth="0.12"></div>
+  <div class="mist-band b3" data-depth="0.12"></div>
+
+  <div id="fireflies"></div>
+</div>
+
+<div class="grain" aria-hidden="true"></div>
+
+<!-- ===== 导航 ===== -->
+<header class="nav">
+  <div class="nav-clock">
+    <span class="dot"></span>
+    <span id="clock">--:--</span>
+    <span>·</span>
+    <span>mistwood</span>
+    <span class="weather">· <span id="weather-word">light</span></span>
+  </div>
+  <nav class="nav-links">
+    <a href="index.html" class="here">首页</a>
+    <a href="essays.html">文章</a>
+    <a href="things.html">小东西</a>
+    <a href="about.html">关于</a>
+    <a href="notes.html">notes</a>
+    <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">
+      <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+      </svg>
+      <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>
+      </svg>
+    </button>
+  </nav>
+</header>
+
+<!-- ===== Hero ===== -->
+<main class="hero">
+  <!-- 替换为你的名字 -->
+  <p class="hero-name">Alyssumira</p>
+  <h1 class="hero-title">
+    <span class="line"><span>在森林与代码之间，</span></span>
+    <span class="line"><span>收集微风、<em>light</em> 和好文章。</span></span>
+  </h1>
+  <!-- 观察日志：数字由 assets/content.js 真实条数自动填 -->
+  <p class="hero-log"><b data-count="essays">--</b> essays<span class="sep">·</span><b data-count="things">--</b> things<span class="sep">·</span><b data-count="notes">--</b> notes</p>
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="footer">
+  <div id="fireflies-footer" aria-hidden="true"></div>
+  <div class="footer-inner">
+    <nav class="footer-links reveal">
+      <!-- 替换为真实联系方式 -->
+      <a href="mailto:chidanta_suki@qq.com">email</a>
+      <a href="#" rel="noopener">github</a>
+      <a href="notes.html">notes</a>
+    </nav>
+    <p class="last-walk reveal">last walk · 2026.09.25 · weather: light rain</p>
+  </div>
+  <div class="footer-blank" aria-hidden="true"></div>
+</footer>
+
+<script src="assets/content.js"></script>
+<script>
+(function(){
+  const root = document.documentElement;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* 观察日志数字 = content.js 真实条数 */
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const k = el.dataset.count;
+    if (window.CONTENT && CONTENT[k]) el.textContent = String(CONTENT[k].length).padStart(2,'0');
+  });
+
+  /* ---------- 主题 ---------- */
+  const toggle = document.getElementById('theme-toggle');
+  const iconSun = document.getElementById('icon-sun');
+  const iconMoon = document.getElementById('icon-moon');
+  const saved = localStorage.getItem('mistwood-theme');
+  const systemDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  let theme = saved || (systemDark ? 'dark' : 'light');
+
+  function applyTheme(t){
+    theme = t;
+    root.setAttribute('data-theme', t);
+    iconSun.style.display  = t === 'light' ? 'block' : 'none';
+    iconMoon.style.display = t === 'dark'  ? 'block' : 'none';
+    syncFireflies();
+  }
+  toggle.addEventListener('click', () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('mistwood-theme', next);
+    applyTheme(next);
+  });
+
+  /* ---------- 时间感知：时钟 + 时段 + 天气词 ---------- */
+  const clockEl = document.getElementById('clock');
+  const weatherEl = document.getElementById('weather-word');
+  let phase = 'day';
+
+  function phaseOf(h){
+    if (h >= 5  && h < 9)  return 'dawn';
+    if (h >= 9  && h < 17) return 'day';
+    if (h >= 17 && h < 20) return 'dusk';
+    return 'night';
+  }
+  const weatherWord = { dawn:'fog', day:'light', dusk:'dusk', night:'night' };
+
+  function tick(){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    clockEl.textContent = hh + ':' + mm;
+    const p = phaseOf(now.getHours());
+    if (p !== phase){
+      phase = p;
+      root.setAttribute('data-phase', p);
+      weatherEl.textContent = weatherWord[p];
+      syncFireflies();
+    }
+  }
+
+  /* ---------- 萤火虫：仅夜林 / 深夜，且只在桌面上岗（§11 移动砍） ---------- */
+  const fireflyBox = document.getElementById('fireflies');
+  const footBox = document.getElementById('fireflies-footer');
+  const narrow = matchMedia('(max-width:720px)');
+  function spawnFireflies(box, count, topMin, topSpan){
+    for (let i = 0; i < count; i++){
+      const f = document.createElement('span');
+      f.className = 'firefly';
+      f.style.left = (8 + Math.random() * 84) + 'vw';
+      f.style.top  = (topMin + Math.random() * topSpan) + '%';
+      const dur = 16 + Math.random() * 8;   /* 常驻循环周期 ≥15s（§1.3） */
+      f.style.animation = `firefly-live ${dur}s linear ${-Math.random()*dur}s infinite`;
+      f.dataset.base = f.style.cssText;   /* 惊起后归位用（规范 §8.6） */
+      box.appendChild(f);
+    }
+  }
+  function syncFireflies(){
+    fireflyBox.innerHTML = '';
+    footBox.innerHTML = '';
+    if (reduceMotion || narrow.matches) return;
+    const count = theme === 'dark' ? 6 : (phase === 'night' ? 3 : 0);
+    spawnFireflies(fireflyBox, count, 55, 35);
+    if (theme === 'dark') spawnFireflies(footBox, 3, 15, 70);
+  }
+  narrow.addEventListener('change', syncFireflies);
+  const style = document.createElement('style');
+  style.textContent = `@keyframes firefly-live{
+    0%,100%{ opacity:0; transform:translate(0,0); }
+    12%{ opacity:.9; } 22%{ opacity:.15; }
+    38%{ opacity:.7; transform:translate(2.5vw,-3vh); }
+    55%{ opacity:.1; } 72%{ opacity:.85; transform:translate(-2vw,-5vh); }
+    88%{ opacity:.05; }
+  }`;
+  document.head.appendChild(style);
+
+  /* ---------- 惊起萤火虫：快速划过 → 熄灭 → 逃逸 → 重新亮起（规范 §8.6） ---------- */
+  function startle(f, awayX, awayY){
+    if (f.dataset.busy) return;
+    f.dataset.busy = '1';
+    const r = f.getBoundingClientRect();
+    f.style.animation = 'none';
+    const b = f.getBoundingClientRect();           /* 杀掉动画后的基准位 */
+    const dx = r.left - b.left, dy = r.top - b.top;
+    f.style.transform = `translate(${dx}px,${dy}px)`;   /* 原地冻结，不跳 */
+    f.style.transition = 'opacity .25s cubic-bezier(.22,1,.36,1)';
+    f.style.opacity = '0';
+    setTimeout(() => {                               /* 熄了再逃：第一段横着弹开 */
+      f.style.transition = 'transform .5s cubic-bezier(.22,1,.36,1)';
+      f.style.transform = `translate(${dx + awayX * .72}px,${dy + awayY * .3}px)`;
+    }, 260);
+    setTimeout(() => {                               /* 第二段向上飘出去，两段合起来才是"弧线" */
+      f.style.transition = 'transform .9s cubic-bezier(.22,1,.36,1)';
+      f.style.transform = `translate(${dx + awayX}px,${dy + awayY}px)`;
+    }, 760);
+    setTimeout(() => {                               /* 逃逸途中重新亮起 */
+      f.style.transition = 'opacity .8s cubic-bezier(.22,1,.36,1)';
+      f.style.opacity = '.85';
+    }, 1200);
+    setTimeout(() => {                               /* 隐去，准备回到原节律 */
+      f.style.transition = 'opacity .4s cubic-bezier(.22,1,.36,1)';
+      f.style.opacity = '0';
+    }, 3600);
+    setTimeout(() => {
+      f.style.cssText = f.dataset.base;
+      delete f.dataset.busy;
+    }, 4050);
+  }
+  function maybeStartle(mx, my){
+    const flies = document.querySelectorAll('.firefly');
+    if (!flies.length) return;
+    let active = 0;
+    for (const f of flies) if (f.dataset.busy) active++;
+    for (const f of flies){
+      if (active >= 3) break;                      /* 同屏至多惊起 3 颗 */
+      if (f.dataset.busy) continue;
+      const r = f.getBoundingClientRect();
+      const fx = r.left + 1.5, fy = r.top + 1.5;
+      const d = Math.hypot(fx - mx, fy - my);
+      if (d < 130){
+        const m = (60 + Math.random() * 50) / (d || 1);
+        startle(f, (fx - mx) * m, (fy - my) * m - 30);   /* 背离光标，略向上 */
+        active++;
+      }
+    }
+  }
+
+  /* ---------- 鼠标：全景视差 + 雾灯（共用 rAF） ---------- */
+  if (!reduceMotion && matchMedia('(pointer: fine)').matches){
+    const layers = Array.from(document.querySelectorAll('[data-depth]'));
+    const scene = document.querySelector('.scene');
+    let tx = 0, ty = 0, cx = 0, cy = 0;
+    let tlx = 0, tly = 0, lx = 0, ly = 0, lanternOn = false;
+    let lastX = 0, lastY = 0, lastT = 0;
+    addEventListener('mousemove', e => {
+      tx = (e.clientX / innerWidth  - .5) * 2;
+      ty = (e.clientY / innerHeight - .5) * 2;
+      tlx = e.clientX;  tly = e.clientY + scrollY;
+      if (!lanternOn){
+        lanternOn = true;
+        lx = tlx;  ly = tly;              /* 首次点亮：灯直接出现在手边，不飞过来 */
+        scene.classList.add('lantern-on');
+      }
+      const now = performance.now();
+      if (lastT){
+        const v = Math.hypot(e.clientX - lastX, e.clientY - lastY) / (now - lastT);
+        if (v > 1.2) maybeStartle(e.clientX, e.clientY);   /* 快速划过才惊动 */
+      }
+      lastX = e.clientX;  lastY = e.clientY;  lastT = now;
+    });
+    (function loop(){
+      cx += (tx - cx) * .04;  cy += (ty - cy) * .04;
+      for (const el of layers){
+        const d = parseFloat(el.dataset.depth);
+        el.style.transform = `translate(${cx * d * 100}px, ${cy * d * 60}px)`;
+      }
+      if (lanternOn){
+        lx += (tlx - lx) * .06;  ly += (tly - ly) * .06;   /* 灯比手慢半拍 */
+        scene.style.setProperty('--lx', lx.toFixed(1) + 'px');
+        scene.style.setProperty('--ly', ly.toFixed(1) + 'px');
+      }
+      requestAnimationFrame(loop);
+    })();
+  }
+
+  /* ---------- 内容区滚动入场：升起 16px，错落 80ms，只演一次（规范 §8.7） ---------- */
+  const revealEls = Array.from(document.querySelectorAll('.reveal'));
+  if (reduceMotion){
+    revealEls.forEach(el => el.classList.add('in'));
+  } else {
+    const io = new IntersectionObserver(entries => {
+      const batch = entries.filter(e => e.isIntersecting);
+      batch.forEach((e, i) => {
+        e.target.style.transitionDelay = (i * 80) + 'ms';
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      });
+    }, { threshold: .15 });
+    revealEls.forEach(el => io.observe(el));
+  }
+
+  /* ---------- 启动 ---------- */
+  applyTheme(theme);
+  phase = phaseOf(new Date().getHours());
+  root.setAttribute('data-phase', phase);
+  weatherEl.textContent = weatherWord[phase];
+  tick();
+  syncFireflies();
+  setInterval(tick, 15000);   /* 15s 校准一次，显示粒度是分钟 */
+})();
+</script>
+</body>
+</html>
