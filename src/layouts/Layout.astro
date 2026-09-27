@@ -1,5 +1,6 @@
 ---
 import '../styles/mistwood.css';
+import { fonts, FONT_HOST } from '../data/site.js';
 
 const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '' } = Astro.props;
 const links = [
@@ -9,7 +10,7 @@ const links = [
   ['/about/', '关于', 'about'],
   ['/notes/', 'notes', 'notes'],
 ];
-const FONTS = 'https://fonts.loli.net/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap';
+const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&display=swap`;
 ---
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" data-phase="day">
@@ -18,7 +19,7 @@ const FONTS = 'https://fonts.loli.net/css2?family=Fraunces:ital,opsz,wght@0,9..1
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
 <meta name="description" content={desc}>
-<link rel="preconnect" href="https://fonts.loli.net">
+<link rel="preconnect" href={FONT_HOST}>
 <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
 <link href={FONTS} rel="stylesheet">
 <link rel="alternate" type="application/rss+xml" title="mistwood" href="/rss.xml">

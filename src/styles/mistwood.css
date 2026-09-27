@@ -292,6 +292,25 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
 }
 
+/* ============ 关于页：站点档案 colophon ============ */
+/* 每一行都能从仓库里复算，所以这里没有"访问量"。整块用一条发丝线封口，而不是再立一张卡：
+   colophon 在印刷书里就是书页末尾那几行小字，它不该比正文更像界面。 */
+.colophon{ margin-top:8px; padding-top:30px; border-top:1px solid var(--line); }
+.col-title{ display:flex; align-items:baseline; gap:10px; font-size:18px; font-weight:600; }
+.col-title span{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-3);
+}
+.col-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 32px; margin:24px 0 0; }
+.col-grid > div{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+.col-grid dt{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-2); }
+.col-grid dd{ margin:0; font-size:14px; line-height:1.65; }
+.col-note{ margin-top:26px; max-width:56ch; font-size:14px; line-height:1.8; color:var(--ink-2); }
+.col-visit{
+  margin-top:14px;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
+}
+.col-visit::before{ content:""; display:inline-block; width:5px; height:5px; margin-right:8px; border-radius:50%; background:var(--moss); vertical-align:2px; }
+
 /* ============ 移动端 ============ */
 @media (max-width:720px){
   .nav{ gap:14px; padding:9px 16px; }
@@ -311,6 +330,9 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .contact{ margin-top:72px; }
   .contact-links a{ font-size:24px; }
   .contact-links a::before{ top:5px; }
+  /* colophon 两栏在 375px 上会把 "12 个页面模板" 挤成断行，直接单栏：这是清单不是版面 */
+  .col-grid{ grid-template-columns:1fr; gap:16px; }
+  .col-note{ font-size:13px; }
 }
 
 /* ============ 跨页转场：跨文档 view transition（§8.3"页面切换"档） ============ */

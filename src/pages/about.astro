@@ -1,6 +1,21 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+import { siteFacts } from '../lib/stats.js';
+import { fonts, notes } from '../data/site.js';
+
 const EMAIL = 'mailto:chidanta_suki@qq.com';
+const f = siteFacts(await getCollection('posts'));
+const fontNames = fonts.map(x => x.name).join(' · ');
+
+/* 仓库两头的日期同一天时不必写成一个区间——"2026.09.27 → 2026.09.27" 看起来像坏了 */
+const tended = !f.tended ? ''
+  : f.tended.first === f.tended.last
+    ? `${f.commits} 次提交 · 最早的一次就在 ${f.tended.first}`
+    : `${f.commits} 次提交 · ${f.tended.first} → ${f.tended.last}`;
+
+/* 最近一次散步不在这行字里手写第二遍：它就是 notes 的最新一条 */
+const walk = notes[0];
 ---
 <Layout title="关于 · mistwood" desc="写代码的人，住在城市边缘，心在森林里。" here="about">
   <main class="wrap">
@@ -22,8 +37,43 @@ const EMAIL = 'mailto:chidanta_suki@qq.com';
           <a href={EMAIL}>email</a>
           <a href="#" rel="noopener">github</a>
         </nav>
-        <p class="last-walk">last walk · 2026.09.25 · weather: light rain</p>
+        <p class="last-walk">last walk · {walk.date} · weather: {walk.weather}</p>
       </div>
+
+      <!-- 站点档案：数字全部在构建期从仓库里数出来。没有"访问量"这一栏，因为本站没有服务端 ⇒ 拿不到 -->
+      <section class="colophon reveal" aria-labelledby="colophon-title">
+        <h2 class="col-title" id="colophon-title">站点档案 <span>colophon</span></h2>
+        <dl class="col-grid">
+          <div>
+            <dt>文章</dt>
+            <dd>{f.posts} 篇 · 约 {f.words} 字 · 通读 {f.minutes} 分钟</dd>
+          </div>
+          <div>
+            <dt>构成</dt>
+            <dd>{f.templates} 个页面模板 · {f.cssFiles} 份样式表（源码 {f.cssKb} KB）</dd>
+          </div>
+          <div>
+            <dt>字体</dt>
+            <dd>{fontNames}</dd>
+          </div>
+          {tended ? (
+            <div>
+              <dt>打理</dt>
+              <dd>{tended}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>构建于</dt>
+            <dd>{f.built}</dd>
+          </div>
+        </dl>
+        <p class="col-note">
+          这是一份纯静态站点：没有服务端、没有 cookie、没有第三方统计脚本。
+          所以这里不放"访问量"——那个数字我们真的拿不到，写一个出来就是假的。
+          你的浏览器里只存了两行本地数据：主题偏好，和下面这个打开次数。清掉它们，这个网站不会少一块。
+        </p>
+        <p class="col-visit" id="col-visit" hidden></p>
+      </section>
     </div>
   </main>
 </Layout>

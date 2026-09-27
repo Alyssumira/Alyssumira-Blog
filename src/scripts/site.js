@@ -120,6 +120,20 @@
     revealEls.forEach(el => io.observe(el));
   }
 
+  /* ---------- 本机载入次数：关于页那一行数字的唯一来源 ----------
+     全站每次文档载入 +1（站内跳转也算），只在 /about/ 上有地方显示。
+     读不到就当没有——隐私模式里显示"第 0 次"是个假数字（§12），整行不出现才是对的。 */
+  let opens = null;
+  try {
+    opens = Number(localStorage.getItem('mistwood-opens') || 0) + 1;
+    localStorage.setItem('mistwood-opens', String(opens));
+  } catch (e) { opens = null; }
+  const visitEl = document.getElementById('col-visit');
+  if (visitEl && opens) {
+    visitEl.textContent = `本机 · 第 ${opens} 次载入（站内跳转也算一次）`;
+    visitEl.hidden = false;
+  }
+
   /* ---------- 启动 ---------- */
   applyTheme(theme);
   phase = phaseOf(new Date().getHours());

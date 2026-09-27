@@ -1,3 +1,14 @@
+/* 字体清单只写这一份：Layout 从它拼出 Google Fonts 的请求 URL，关于页的"站点档案"列的是同一批条目。
+   以前 URL 手写在工作流里、档案再抄一遍，加一个字体要改两处，迟早对不上。
+   q 是 css2 的 family= 查询片段，逐字符照原 URL，别顺手"美化"——改了就是换字体。 */
+export const FONT_HOST = 'https://fonts.loli.net';
+export const fonts = [
+  { name: 'Fraunces',      q: 'Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400' },
+  { name: 'Noto Serif SC', q: 'Noto+Serif+SC:wght@400;600;700' },
+  { name: 'Noto Sans SC',  q: 'Noto+Sans+SC:wght@400;500' },
+  { name: 'IBM Plex Mono', q: 'IBM+Plex+Mono:ital,wght@0,400;0,500;1,400' },
+];
+
 /* 小东西与碎碎念：从旧版 assets/content.js 搬来，页面在构建期读它 */
 export const things = [
   {

@@ -2,18 +2,12 @@
 import Layout from '../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import { fmtDate, root } from '../../lib/markdown.js';
+import { readMinutes } from '../../lib/stats.js';
 
 const posts = (await getCollection('posts')).sort((a, b) => b.data.date - a.data.date);
 const pad = n => String(n).padStart(2, '0');
 
-/* 阅读时长是构建期真算的（§15）：中日韩字按 400 字/分，拉丁词按 220 词/分，向上取整到分钟。
-   宁可算得保守，也不要一个好看的整数——§12 禁假数字。 */
-const CJK = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g;
-const minutes = body => {
-  const cjk = (body.match(CJK) || []).length;
-  const words = (body.replace(CJK, ' ').match(/[A-Za-z0-9''-]+/g) || []).length;
-  return Math.max(1, Math.ceil(cjk / 400 + words / 220));   /* 向上取整：宁可报长也不报短 */
-};
+/* 阅读时长的算法在 lib/stats.js：列表页与关于页的"总计"必须是同一把尺子，不能各算各的 */
 
 /* 密度条：最近 12 个月每月几篇。空月份也画，一条刻度尺比三根柱子诚实 */
 const now = new Date();
@@ -68,7 +62,7 @@ let folio = 0;
                   </span>
                   <span class="row-side">
                     <time>{fmtDate(d).slice(5)}</time>
-                    <span class="row-min">{minutes(p.body)} min</span>
+                    <span class="row-min">{readMinutes(p.body)} min</span>
                   </span>
                 </a>
               </li>
