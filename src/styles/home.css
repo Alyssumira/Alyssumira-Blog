@@ -102,8 +102,8 @@ html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
     linear-gradient(180deg,
       var(--scrim-top) 0%,
       var(--scrim-mid) 35%,
-      var(--scrim-mid) 62%,
-      var(--scrim-bottom) 97%);
+      var(--scrim-mid) 68%,
+      var(--scrim-bottom) 100%);
   /* 雾灯：灯位处纱罩变薄，洞内照片露清晰（规范 §8.5）。--hole=1 即"雾合上"，等于没有洞 */
   -webkit-mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,var(--hole,1)),#000 72%);
   mask-image:radial-gradient(circle 200px at var(--lx,-999px) var(--ly,-999px),rgba(0,0,0,var(--hole,1)),#000 72%);
@@ -212,7 +212,7 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
 .hero{
   position:relative; z-index:5; min-height:100vh;
   display:flex; flex-direction:column; justify-content:center;
-  padding:0 8vw 18vh; max-width:1120px;
+  padding:0 8vw 12vh; max-width:1120px;
 }
 .hero-title{
   font-family:"Noto Serif SC","Songti SC","STSong",serif;
@@ -267,7 +267,7 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
   .nav-clock{ display:none; }
   .nav-links{ gap:12px; }
   .nav-links a{ font-size:12px; }
-  .hero{ padding:0 7vw 16vh; }
+  .hero{ padding:0 7vw 12vh; }
   .hero-title{ font-size:clamp(34px,9.5vw,44px); }
   /* mask 已改成词级，折行天然按词断开、每词自带升起窗——旧的"整行升起"降级随之删除。
      只剩 text-wrap:balance 收拾折行后的两视觉行，别甩出三字孤行 */
