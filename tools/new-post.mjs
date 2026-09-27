@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { safe } from '../src/lib/markdown.js';   /* 锚点归一化只有一份实现，检查脚本不许自己再猜一遍 */
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const POSTS = join(ROOT, 'src', 'content', 'posts');
@@ -64,6 +65,19 @@ async function check() {
     const relImgs = [...body.matchAll(/!\[[^\]]*\]\((?!\/|\s)(?![a-z][a-z0-9+.\-]*:)([^)\s]*)/gi)].map(m => m[1]);
     if (relImgs.length) { console.log(`✗ ${f}：图片路径少了开头的斜杠，build 会失败：${relImgs.slice(0, 3).map(p => `(${p})`).join(' ')}`); bad++; }
     if (!body.trim()) { console.log(`· ${f}：正文还是空的（骨架状态，能构建，但列表里的摘要会是 front matter 那句）`); }
+    /* 脚注配对：引用了没定义 ⇒ 页面上只剩一个不带链接的星号；定义了没引用 ⇒ 那条注永远不出现。
+       两种都是"作者写了但读者看不见"，必须在这里说破，不能留给渲染器兜底 */
+    const refs = new Set([...body.matchAll(/\[\^([^\]]+)\](?!:)/g)].map(m => m[1]));
+    const defs = [...body.matchAll(/^\[\^([^\]]+)\]:/gm)].map(m => m[1]);
+    for (const r of refs) if (!defs.includes(r)) { console.log(`✗ ${f}：[^${r}] 被引用了，但文末没有 [^${r}]: 定义`); bad++; }
+    for (const d of defs) if (!refs.has(d)) { console.log(`✗ ${f}：[^${d}] 定义了却没被引用，这条注不会出现在页面上`); bad++; }
+    /* id 会先归一化再进 href 与 id 属性：两个不同的写法撞成同一个键时，两条注会合并成一条 */
+    const keyed = new Map();
+    for (const d of defs) {
+      const k = safe(d);
+      if (keyed.has(k)) { console.log(`✗ ${f}：[^${keyed.get(k)}] 与 [^${d}] 归一化后都成 "${k}"，锚点会撞车`); bad++; }
+      keyed.set(k, d);
+    }
   }
   /* 数量直接 import 来数：site.js 是真模块，按文本猜格式会静默读成 0 */
   const { things, notes } = await import(pathToFileURL(DATA).href);
@@ -112,6 +126,22 @@ function create() {
     '## 二级标题',
     '',
     '二级标题会进右侧目录（>1240px 时）。',
+    '',
+    '### 三级标题',
+    '',
+    '三级标题矮一档、不进目录。列表、引用、分隔线现在都能用了：',
+    '',
+    '- 苔',
+    '- 雾',
+    '',
+    '> 引用一句。',
+    '> —— 署名会渲染成小字',
+    '',
+    '---',
+    '',
+    '脚注写在这里[^1]，边注写在这里^[宽屏浮到正文左缘，窄屏就地留在句间，不会被藏起来]。',
+    '',
+    '[^1]: 脚注定义写在文末，一行一条；引用号按正文里第一次出现排，不按这里的顺序。',
     '',
   ].join('\n'));
 

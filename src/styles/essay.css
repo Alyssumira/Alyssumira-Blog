@@ -56,8 +56,73 @@
   padding:2px 7px; border-radius:6px;
 }
 
-/* 正文链接：下划线加深 + 变粗 1px，不做滑入（§8.3）；颜色走正文级档 --moss-ink */
-.post-body a{
+/* ===== 这轮补进来的正文词汇（§15）：h3 / 列表 / 引用 / 分隔线 / 脚注 / 边注 ===== */
+
+/* h3 矮一档，且不带苔绿短线——那条短线是"章"的记号，一章里不该出现两次 */
+.post-body h3{ font-size:22px; font-weight:600; margin:48px 0 18px; letter-spacing:.02em; }
+
+/* 列表：marker 上苔绿并换成等宽，数字与项目符号都跟正文同呼吸 */
+.post-body ul,.post-body ol{ margin:0 0 28px; padding-left:1.7em; }
+.post-body li{ margin-bottom:10px; }
+.post-body li::marker{ color:var(--moss); font-family:"IBM Plex Mono",monospace; font-size:.82em; }
+
+/* 引用：一条苔绿竖线贴着左缘（不是灰框、不是底色，避免又生出第四种材质） */
+.post-body blockquote{ position:relative; margin:40px 0; padding-left:28px; color:var(--ink-2); }
+.post-body blockquote::before{
+  content:""; position:absolute; left:0; top:.5em; bottom:.5em; width:1px;
+  background:var(--moss); opacity:.55;
+}
+.post-body blockquote p{ margin-bottom:14px; }
+.post-body blockquote p:last-of-type{ margin-bottom:0; }
+.post-body blockquote footer{
+  margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
+}
+
+/* 分隔线用三个点，不用横线：横线已经被 h2 的短线和 .post-nav 占去了语义 */
+.post-body hr{
+  border:0; background:none; height:auto; margin:56px auto; text-align:center; overflow:visible;
+}
+.post-body hr::before{
+  content:"· · ·"; font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.5em; color:var(--ink-3);
+}
+
+/* 脚注：正文里一个上标号，文末一条 ↩，:target 让跳过去的落点亮起来（零 JS） */
+.post-body sup.fnref{ font-family:"IBM Plex Mono",monospace; font-size:.6em; line-height:0; margin-left:2px; }
+.post-body sup.fnref a{ color:var(--moss-ink); text-decoration:none; }
+.post-body sup.fnref a:hover{ text-decoration:underline; }
+.post-body sup.fn-missing{ color:var(--ink-3); }   /* 门禁会拦下不配对的引用，这里只兜底不崩版式 */
+.footnotes{ margin-top:72px; padding-top:28px; border-top:1px solid var(--line); }
+.footnotes .fn-title{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:500; letter-spacing:.14em;
+  color:var(--ink-3); margin:0 0 18px;
+}
+.footnotes .fn-title::before{ content:none; }      /* 不吃 .post-body h2 的苔绿短线 */
+.footnotes ol{ margin:0; padding-left:1.9em; font-size:14px; line-height:1.85; color:var(--ink-2); }
+.footnotes li{ margin-bottom:8px; scroll-margin-top:88px; }
+.footnotes li::marker{ font-size:.78em; color:var(--moss); }
+.footnotes li:target{ color:var(--ink); }
+.footnotes .backref{ margin-left:6px; text-decoration:none; color:var(--moss-ink); }
+
+/* 边注：一个元素两种落位，内容永远只有一份——
+   窄屏（默认）就地留在句间，用全角括号隔开正文；≥1240px 浮进 680 栏左侧的留白（§4 的"边注栏"） */
+.post-body .sidenote{ font-size:.78em; color:var(--ink-2); }
+.post-body .sn-mark{
+  font-family:"IBM Plex Mono",monospace; font-size:.72em; color:var(--moss-ink);
+  vertical-align:super; margin:0 2px 0 5px;
+}
+.post-body .sn-mark::before{ content:"（"; font-size:1.2em; vertical-align:baseline; }
+.post-body .sidenote::after{ content:"）"; }
+@media (min-width:1240px){
+  .post-body .sidenote{
+    float:left; clear:left; width:200px; margin:2px 0 20px -232px;
+    font-size:14px; line-height:1.75; color:var(--ink-2); text-align:left;
+  }
+  .post-body .sidenote::after{ content:none; }
+  .post-body .sn-mark{ float:left; vertical-align:baseline; margin:2px 8px 0 0; }
+  .post-body .sn-mark::before{ content:none; }
+}
+
+/* 正文链接：下划线加深 + 变粗 1px，不做滑入（§8.3）；颜色走正文级档 --moss-ink */.post-body a{
   color:var(--moss-ink); text-underline-offset:3px;
   text-decoration-line:underline; text-decoration-thickness:1px;
   text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);

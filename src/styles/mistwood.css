@@ -138,45 +138,82 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 .sec-label b{ color:var(--ink-2); font-weight:500; }
 .page-head .sec-label{ display:block; margin-top:16px; }
 
-/* 滚动入场（规范 §8.7） */
-.reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); }
+/* 滚动入场（规范 §8.7）：错落节拍住在 CSS 里，JS 只给 --cascade 序号 */
+.reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); transition-delay:calc(var(--cascade,0) * 80ms); }
 .reveal.in{ opacity:1; transform:none; }
 
-/* ============ 文章卡：B 横条 / C 纯文字（列表页主力） ============ */
-.essay-list{ display:flex; flex-direction:column; gap:80px; padding-bottom:16vh; }
-.essay-card{ display:block; transition:transform .5s cubic-bezier(.22,1,.36,1); }
-.essay-card:hover{ transform:translateY(-4px); }
-.essay-card:active{ transform:translateY(-4px) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
-.essay-card:hover .cover{ box-shadow:var(--shadow); }
-.essay-card:hover .cover img{ transform:scale(1.03); }
-.essay-card h3{
+/* ============ 文章目录（/essays/）：编号 + 细线，指过去才长出摘要 ============ */
+/* 原先是三版式卡片墙，而封面位全是空槽。文字型列表的正解是"目录"不是"卡片墙"——
+   三家的做法收敛到同一形状（marginalia 的 table、Rachel Andrew 的 hairline flex 行、阮一峰的日期前置），
+   所以 §9 的 B/C 卡一并撤下，有封面时缩略图挂在编号右边。 */
+.year-block{ margin-bottom:96px; }
+.year-mark{
+  font-family:"IBM Plex Mono",monospace; font-size:13px; font-weight:500; letter-spacing:.14em;
+  color:var(--ink-2); margin-bottom:6px;
+}
+.essay-index{ list-style:none; margin:0 0 24px; padding:0; }
+.essay-index li{ border-top:1px solid var(--line); }
+.essay-index li:last-child{ border-bottom:1px solid var(--line); }
+.row{
+  display:flex; align-items:baseline; gap:24px; padding:26px 0;
+  transition:transform .5s cubic-bezier(.22,1,.36,1);
+}
+.row:hover{ transform:translateX(6px); }
+.row:active{ transform:translateX(6px) scale(.995); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+.folio{
+  flex:none; width:26px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.1em;
+  color:var(--ink-3); transition:color .3s cubic-bezier(.22,1,.36,1);
+}
+.row:hover .folio{ color:var(--moss); }
+.row-main{ flex:1 1 auto; min-width:0; }
+.row h3{
   font-family:"Noto Serif SC","Songti SC","STSong",serif; font-weight:600;
-  transition:color .3s cubic-bezier(.22,1,.36,1);
+  font-size:24px; line-height:1.45; letter-spacing:.02em;
 }
-.essay-card:hover h3{ color:var(--moss-deep); }
-html[data-theme="dark"] .essay-card:hover h3{ color:var(--moss); }
-.essay-card p{ color:var(--ink-2); font-size:15px; }
-.essay-card time{
-  display:block; margin-top:18px; font-family:"IBM Plex Mono",monospace;
-  font-size:12px; letter-spacing:.1em; color:var(--ink-3);
+/* 摘要常驻自己的两行位置，只切透明度：悬停不许重排（§8.8 属性口径） */
+.row-ex{
+  margin-top:8px; font-size:15px; line-height:1.7; color:var(--ink-2); min-height:3.4em;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  opacity:0; transition:opacity .35s cubic-bezier(.22,1,.36,1);
 }
+.row:hover .row-ex,.row:focus-visible .row-ex{ opacity:1; }
+.row-ex:empty{ display:none; }   /* 没写摘要的文章不占那两行——空槽就是这次要改掉的东西本身 */
+@media (hover:none){ .row-ex{ opacity:1; } }   /* 触屏没有 hover，摘要就常开 */
+/* 日期是要被读到的信息，走次要档 --ink-2；编号 01 只是路径感，留在装饰档 */
+.row-side{
+  flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:6px;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.1em; color:var(--ink-2);
+}
+
+/* 密度条：最近 12 个月每月几篇，构建期算好画成 SVG。空月份也画刻度——一把尺子比三根柱子诚实 */
+.density-wrap{ display:flex; align-items:center; gap:12px; margin-top:18px; }
+.density{ display:block; }
+.density rect{ fill:var(--moss); opacity:.5; }
+.density rect.nil{ fill:var(--ink-3); opacity:.22; }
+.density-cap{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档 */
+
+/* ============ 404：把真实存在的地址一次性列全（零请求，也不留死锚点） ============ */
+.lost{ padding-bottom:22vh; }
+.lost-note{ margin:0 0 40px; color:var(--ink-2); font-size:15px; }
+.lost-list{ list-style:none; margin:0; padding:0; }
+.lost-list li{ border-top:1px solid var(--line); }
+.lost-list li:last-child{ border-bottom:1px solid var(--line); }
+.lost-list a{
+  display:flex; align-items:baseline; gap:18px; padding:20px 0;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:22px; font-weight:600; letter-spacing:.02em;
+  transition:transform .5s cubic-bezier(.22,1,.36,1);
+}
+.lost-list a:hover{ transform:translateX(6px); }
+.lost-list span{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:400; letter-spacing:.1em; color:var(--ink-2);
+}
+
 .cover{
   position:relative; overflow:hidden; border-radius:16px;
   border:1px solid var(--glass-border);
   background:linear-gradient(150deg,var(--bg-top),var(--glass));
-  transition:box-shadow .5s cubic-bezier(.22,1,.36,1);
 }
-.cover:not(:has(img))::after{
-  content:"封面 → 替换为照片"; position:absolute; inset:0; display:grid; place-items:center;
-  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.14em; color:var(--ink-3);
-}
-.card-b{ display:flex; align-items:center; gap:32px; max-width:76%; }
-.card-b:nth-child(even){ align-self:flex-end; }
-.card-b .cover{ flex:none; width:33%; aspect-ratio:4/3; }
-.card-b h3{ font-size:24px; margin-bottom:10px; }
-.card-c{ max-width:520px; margin-left:60px; }   /* §9：C 卡向右让开 60px，移动也不清零 */
-.card-c h3{ font-size:26px; }
-.card-c h3::before{ content:""; display:block; width:32px; height:1px; background:var(--moss); margin-bottom:18px; }
+.row .cover{ flex:none; width:92px; aspect-ratio:4/3; align-self:center; border-radius:10px; }
 
 /* 内容位照片：先雾后清晰（§8.4）+ 褪色处理（§10.5）；夜林里另打一次光（§2.2） */
 .cover img,.thing .shot,.portrait img,.post-body img{
@@ -262,9 +299,11 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .nav-links{ gap:12px; }
   .nav-links a{ font-size:12px; }
   .page-head{ padding:18vh 0 48px; }
-  .essay-list{ gap:56px; }
-  .card-b{ max-width:100%; flex-direction:column; align-items:flex-start; gap:20px; }
-  .card-b .cover{ width:100%; }
+  .row{ gap:14px; padding:20px 0; }
+  .folio{ width:20px; }
+  .row h3{ font-size:19px; }
+  .row .cover{ display:none; }   /* §11：窄屏放不下缩略图，编号和日期留住就够了 */
+  .year-block{ margin-bottom:64px; }
   .things-grid{ grid-template-columns:1fr; }
   /* §11：移动卡片改实色+软影，模糊是性能杀手 ⇒ 入场虚焦只在桌面上演 */
   .thing-bar{ background:var(--surface); box-shadow:var(--shadow); -webkit-backdrop-filter:none;backdrop-filter:none; }

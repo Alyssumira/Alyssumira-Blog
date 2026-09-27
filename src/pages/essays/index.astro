@@ -5,30 +5,77 @@ import { fmtDate, root } from '../../lib/markdown.js';
 
 const posts = (await getCollection('posts')).sort((a, b) => b.data.date - a.data.date);
 const pad = n => String(n).padStart(2, '0');
+
+/* 阅读时长是构建期真算的（§15）：中日韩字按 400 字/分，拉丁词按 220 词/分，向上取整到分钟。
+   宁可算得保守，也不要一个好看的整数——§12 禁假数字。 */
+const CJK = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g;
+const minutes = body => {
+  const cjk = (body.match(CJK) || []).length;
+  const words = (body.replace(CJK, ' ').match(/[A-Za-z0-9''-]+/g) || []).length;
+  return Math.max(1, Math.ceil(cjk / 400 + words / 220));   /* 向上取整：宁可报长也不报短 */
+};
+
+/* 密度条：最近 12 个月每月几篇。空月份也画，一条刻度尺比三根柱子诚实 */
+const now = new Date();
+const months = Array.from({ length: 12 }, (_, i) => {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11 + i, 1));
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() };
+});
+const perMonth = months.map(({ y, m }) => posts.filter(p => p.data.date.getUTCFullYear() === y && p.data.date.getUTCMonth() === m).length);
+const peak = Math.max(1, ...perMonth);
+
+/* 按年分节；年份只写一次，行内就剩 MM.DD（Rachel Andrew 那套去噪法） */
+const byYear = [];
+for (const p of posts) {
+  const y = String(p.data.date.getUTCFullYear());
+  let g = byYear.find(b => b.y === y);
+  if (!g) byYear.push(g = { y, items: [] });
+  g.items.push(p);
+}
+let folio = 0;
 ---
 <Layout title="文章 · mistwood" desc="经得起重读的东西。" here="essays">
   <main class="wrap">
     <header class="page-head reveal">
       <h1 class="page-title">文章</h1>
       <span class="sec-label">essays — <b>{pad(posts.length)}</b> →</span>
+      <span class="density-wrap">
+        <svg class="density" viewBox="0 0 132 20" width="132" height="20" aria-hidden="true">
+          {perMonth.map((c, i) => {
+            const h = c ? 3 + (c / peak) * 12 : 1;   /* 最高 15/20：给条子留一口气，别顶到标题底 */
+            return <rect class:list={[{ nil: !c }]} x={i * 11 + 2} y={20 - h} width="6" height={h} rx="0.5"></rect>;
+          })}
+        </svg>
+        <span class="density-cap">近 12 个月</span>
+      </span>
     </header>
 
-    <div class="essay-list">
-      {posts.map(p => p.data.excerpt ? (
-        <a class="essay-card card-b reveal" href={`/essays/${p.id}/`}>
-          <div class="cover">{p.data.cover && <img src={root(p.data.cover)} alt="" loading="lazy">}</div>
-          <div>
-            <h3>{p.data.title}</h3>
-            <p>{p.data.excerpt}</p>
-            <time>{fmtDate(p.data.date)}</time>
-          </div>
-        </a>
-      ) : (
-        <a class="essay-card card-c reveal" href={`/essays/${p.id}/`}>
-          <h3>{p.data.title}</h3>
-          <time>{fmtDate(p.data.date)}</time>
-        </a>
-      ))}
-    </div>
+    {byYear.map(g => (
+      <section class="year-block reveal">
+        <h2 class="year-mark">{g.y}</h2>
+        <ol class="essay-index">
+          {g.items.map(p => {
+            const n = ++folio;
+            const d = p.data.date;
+            return (
+              <li>
+                <a class="row" href={`/essays/${p.id}/`}>
+                  <span class="folio">{pad(n)}</span>
+                  {p.data.cover ? <span class="cover"><img src={root(p.data.cover)} alt="" loading="lazy"></span> : null}
+                  <span class="row-main">
+                    <h3>{p.data.title}</h3>
+                    <p class="row-ex">{p.data.excerpt}</p>
+                  </span>
+                  <span class="row-side">
+                    <time>{fmtDate(d).slice(5)}</time>
+                    <span class="row-min">{minutes(p.body)} min</span>
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    ))}
   </main>
 </Layout>

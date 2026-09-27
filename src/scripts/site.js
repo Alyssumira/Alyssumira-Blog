@@ -78,7 +78,7 @@
 
   function buildToc(){
     if (!toc || !postBody) return;
-    const heads = Array.from(postBody.querySelectorAll('h2'));
+    const heads = Array.from(postBody.querySelectorAll('h2:not(.fn-title)'));
     heads.forEach((h, i) => {
       if (!h.id) h.id = 'sec-' + i;
       const a = document.createElement('a');
@@ -111,7 +111,8 @@
     const io = new IntersectionObserver(entries => {
       const batch = entries.filter(e => e.isIntersecting);
       batch.forEach((e, i) => {
-        e.target.style.transitionDelay = (i * 80) + 'ms';
+        /* JS 只交序号，节拍交给 CSS：80ms 这个值写在 .reveal 的 calc 里（§8.7） */
+        e.target.style.setProperty('--cascade', i);
         e.target.classList.add('in');
         io.unobserve(e.target);
       });

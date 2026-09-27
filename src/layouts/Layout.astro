@@ -22,6 +22,11 @@ const FONTS = 'https://fonts.loli.net/css2?family=Fraunces:ital,opsz,wght@0,9..1
 <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
 <link href={FONTS} rel="stylesheet">
 <link rel="alternate" type="application/rss+xml" title="mistwood" href="/rss.xml">
+<!-- 原生预取（零 JS）：把目标文档在悬停时就备好，跨页转场（§8.3）才不会因为新文档还没加载完
+     而退化成瞬时导航。conservative = 有真实交互意图才预取，不会一进来就把五个页面全拉下来 -->
+<script type="speculationrules" is:inline>
+{"prerender":[{"where":{"href_matches":["/*"]},"eagerness":"conservative"}]}
+</script>
 <script is:inline>
 (function(){try{var t=localStorage.getItem('mistwood-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
