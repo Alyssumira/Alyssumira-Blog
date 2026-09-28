@@ -25,8 +25,11 @@ function whenOf(d, hour){
 }
 const when = whenOf(post.data.date, post.data.hour);
 ---
-<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays">
+<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays" type="article">
   <div id="progress" aria-hidden="true"></div>
+  <!-- 章节刻度（§6.3）：同一批 H2 在这条线上的位置。右侧目录给名字，这一排给形状——
+       窄屏没有目录，刻度还在。aria-hidden：它是这一篇结构的图形化重述，读屏已经有目录 -->
+  <div id="progress-marks" aria-hidden="true"></div>
   <nav id="toc" aria-label="目录"></nav>
 
   <main class="wrap">

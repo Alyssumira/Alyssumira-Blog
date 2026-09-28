@@ -11,6 +11,16 @@
   background:linear-gradient(90deg,var(--moss) 0%,var(--moss) 58%,transparent 100%);
   transform:scaleX(0); transform-origin:0 50%;
 }
+/* 章节刻度（§6.3）：每枚 1px×6px，挂在 2px 那条线下面 4px——线是"走了多远"，刻度是"这篇有几章"。
+   颜色走 --moss + opacity .42，与时钟那枚苔时弧（§6）同一档装饰读数，不是新色。
+   z-index 21 压在进度线之上：**线走过不改变刻度**，它不是"已读"的记号，是结构的记号。
+   .on＝当前章（§7.1①，随滚动更新的属性，零 animation、零新监听，和苔时弧同族）。
+   ⚠️ 一屏就读完的稿子整排撤掉（.off）：那时"总高−视口"接近 0，刻度会全部叠在右端——
+   宁可不画，不画一排糊在一起的东西。 */
+#progress-marks{ position:fixed; top:0; left:0; right:0; height:6px; z-index:21; pointer-events:none; }
+#progress-marks.off{ display:none; }
+#progress-marks span{ position:absolute; top:0; width:1px; height:6px; background:var(--moss); opacity:.42; }
+#progress-marks span.on{ opacity:.95; }
 
 /* 盖章（§15）：分享＝把这一篇收进手记，回执是一行字、不是一枚图形。
    画一枚圆章要新造一套符号语言（描边圆＋环排文字），那是第四种材质；排印能做到的事不另开材质。 */

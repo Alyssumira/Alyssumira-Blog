@@ -2,7 +2,11 @@
 import '../styles/mistwood.css';
 import { fonts, FONT_HOST } from '../data/site.js';
 
-const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read' } = Astro.props;
+const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website' } = Astro.props;
+/* 绝对地址：社交卡与 og:url 拿的是访客之外第三双眼睛看到的 URL，相对路径在那边不成立。
+   Astro.site 现在是占位域名（§16），改了 astro.config.mjs 这两行跟着变，不另抄一份 */
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL('/og.png', Astro.site);
 const links = [
   ['/', '首页', 'home'],
   ['/essays/', '文章', 'essays'],
@@ -19,6 +23,26 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
 <meta name="description" content={desc}>
+<!-- 身份件（§13a）：林线两版按系统外观分文件，不靠 SVG 里的 @media——那条在部分浏览器只在载入时算一次。
+     系统外壳的颜色归系统管，和站内那枚日/月开关是两件事，所以这里不读 localStorage。
+     theme-color 只写亮色一档：无 JS 时 <html data-theme> 本来就是 light，写两版反而在骗无脚本的访客。
+     真切成夜林时由下面那段内联脚本改它（首帧之前），点开关时 site.js 再改一次 -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/favicon-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F4EF">
+<meta property="og:type" content={type}>
+<meta property="og:site_name" content="mistwood">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:url" content={canonical.href}>
+<meta property="og:title" content={title}>
+<meta property="og:description" content={desc}>
+<meta property="og:image" content={ogImage.href}>
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content={title}>
+<meta name="twitter:description" content={desc}>
+<meta name="twitter:image" content={ogImage.href}>
 <link rel="preconnect" href={FONT_HOST}>
 <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
 <link href={FONTS} rel="stylesheet">
@@ -29,7 +53,7 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
 {"prerender":[{"where":{"href_matches":["/*"]},"eagerness":"conservative"}]}
 </script>
 <script is:inline>
-(function(){try{var t=localStorage.getItem('mistwood-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+(function(){try{var t=localStorage.getItem('mistwood-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m&&t==='dark')m.setAttribute('content','#0E130D');}catch(e){}})();
 /* 显示偏好先落地再首帧：雾和颗粒是"看得见的面"，等模块脚本跑完再改会闪一下 */
 (function(){var r=document.documentElement,d={};try{d=JSON.parse(localStorage.getItem('mistwood-display'))||{};}catch(e){}
  var enter=d.enter||'auto';r.setAttribute('data-fog',d.fog||'normal');r.setAttribute('data-grain',d.grain||'on');r.setAttribute('data-fireflies',d.fireflies||'on');r.setAttribute('data-enter',enter);

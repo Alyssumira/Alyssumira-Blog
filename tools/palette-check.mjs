@@ -7,7 +7,12 @@
    ① 不只读 `:root{}` 与 `html[data-theme="dark"]{}` ——**所有带 `data-phase` / `data-moon` 的块都过闸**，
       按"主题底 + 该时段覆盖"合成有效色板再算对比度。以前时段块里的色板是完全没扫过的。
    ② 两份样式表（mistwood.css / home.css）里的**同名 hex 令牌必须逐字符相同**——不同就红。
-      §16 记的那条隐患（"改一处忘另一处就静默分叉，而工具只读 mistwood.css"）从今天起由机器守，不靠记性。 */
+      §16 记的那条隐患（"改一处忘另一处就静默分叉，而工具只读 mistwood.css"）从今天起由机器守，不靠记性。
+   ⚠️ 2026-09-28 加第三件：**方向光**（§2.1，子页背景上那盏随时段转的灯）。判法是"最坏假设"——
+      不量半径也不量方位，直接把 `--lit` 合成进有效底顶、当作铺满整页，再复算一遍地板。
+      这样几何只管"在哪儿看得见"，而"哪怕它铺满全页也不许破可读性地板"由这一条兜住。
+      ⚠️ 它自带防空转：`--lit` 缺失或 α=0 直接红，并且末尾打印"复算 N 档"——N=0 就是这盏灯根本没进过闸。
+      （§16 那条"rgba 漂移检查静默空转、退出码 0、长得像全绿"就是这么被抓出来的，新判据一律先学它。） */
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -82,8 +87,9 @@ function allBlocks(src){
 }
 function readSheets(){
   const per = SHEETS.map(f => ({ file: f.split(/[\\/]/).pop(), blocks: allBlocks(readFileSync(f, 'utf8')) }));
-  const base = name => { const b = per.flatMap(p => p.blocks).find(x => x.sel === name); return b ? b.toks : {}; };
-  return { per, light: base(':root'), dark: base('html[data-theme="dark"]') };
+  const find = name => per.flatMap(p => p.blocks).find(x => x.sel === name);
+  const b = find(':root'), d = find('html[data-theme="dark"]');
+  return { per, light: b ? b.toks : {}, dark: d ? d.toks : {}, lightFn: b ? b.fn : {}, darkFn: d ? d.fn : {} };
 }
 /* 条件块 = 选择器里带 data-phase / data-moon 的那些（data-theme 单独出现不算，那是基础板） */
 function variants(per){
@@ -99,7 +105,7 @@ const TIERS = [7, 4.5, 3];
 const PHASES = ['dawn', 'day', 'dusk', 'night'], MOONS = ['*', 'full'];
 
 const args = process.argv.slice(2);
-const { per, light, dark } = readSheets();
+const { per, light, dark, lightFn, darkFn } = readSheets();
 const themes = [['亮色', light], ['暗色', dark]];
 
 if (args[0] === '--need'){
@@ -165,33 +171,62 @@ let drift = 0;
   console.log(`  ${drift ? '✗ ' + drift + ' 处分叉' : '✓'} 两份表同时声明的 ${shared} 个色板令牌 + ${sharedFn} 个 rgba 令牌（面/影/纱）取值一致`);
 }
 
-/* ---------- ② 时段 / 月相块：随时间变的色板也要过闸 ---------- */
+/* ---------- ② 时段 / 月相块 + ③ 方向光：随时间变的色板与照度也要过闸 ---------- */
+/* 方向光（§2.1）判的是**最坏假设**：不量半径、不量方位，直接假设整页都泡在这一档光里最亮的那一点上，
+   把 --lit 合成进有效底再复算一次档位。几何只决定"你在哪儿看得见它"，不决定安全——
+   安全由这一条兜住：**哪怕它铺满全页，正文与次要档仍然在地板上**。
+   ⚠️ 判据不许空转：--lit 缺失或 α 为 0 都算红。§16 那条"rgba 漂移检查静默空转、长得像全绿"就是前车之鉴。 */
+const RGBA_RE = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/;
+const parsePaint = v => { const m = v && RGBA_RE.exec(v); return m ? { r:+m[1], g:+m[2], b:+m[3], a: m[4] === undefined ? 1 : +m[4] } : null; };
+const overHex = (bg, p) => { const [r, g, b] = hexToRgb(bg); const mix = (d, s) => Math.round(d * (1 - p.a) + s * p.a);
+  return '#' + [mix(r, p.r), mix(g, p.g), mix(b, p.b)].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase(); };
+
 const vs = variants(per);
 console.log('\n=== 条件块（data-phase / data-moon）过闸 ===');
 if (!vs.length) console.log('  （没有条件块，跳过）');
-let bad2 = 0;
-for (const [tName, tBase] of [['light', light], ['dark', dark]]){
+let bad2 = 0, litChecked = 0;
+function stateLine(label, eff, effFn, coverNote){
+  const bgB = eff['--bg-base'], bgT = eff['--bg-top'];
+  let line = `  ${label}：底 ${bgB} 顶 ${bgT}${coverNote ? `（覆盖 ${coverNote}）` : ''}`;
+  let ok = true;
+  for (const [k, floor] of Object.entries(FLOOR)){
+    const w = Math.min(ratio(eff[k], bgB), ratio(eff[k], bgT));
+    if (w < floor){ ok = false; bad2++; line += `\n    ✗ ${k} ${eff[k]} 只剩 ${w.toFixed(2)}:1，应 ≥${floor}`; }
+    else line += `  ${k} ${w.toFixed(2)}✓`;
+  }
+  /* 方向光那一档：把 --lit 当"整页最亮处"合成进底，再复算一次同样的地板 */
+  const lit = parsePaint(effFn['--lit']);
+  if (!lit){ bad2++; console.log(line + `\n    ✗ ${label} 没有 --lit —— 方向光的判据正在空转`); return; }
+  if (lit.a === 0){ bad2++; console.log(line + `\n    ✗ ${label} 的 --lit α=0 —— 这盏灯根本没亮，判据空转`); return; }
+  litChecked++;
+  const litB = overHex(bgB, lit), litT = overHex(bgT, lit);
+  let tight = Infinity, wk = '', wok = true;
+  for (const [k, floor] of Object.entries(FLOOR)){
+    const w = Math.min(ratio(eff[k], litB), ratio(eff[k], litT));
+    if (w < floor) wok = false;
+    if (w - floor < tight){ tight = w - floor; wk = `${k} ${w.toFixed(2)}（地板 ${floor}）`; }
+  }
+  if (!wok){ bad2++; line += `  光 α${lit.a} → ✗ 铺满全页时有档位跌破地板，最紧一档 ${wk}`; }
+  else line += `  光 α${lit.a} → 底${litB} 顶${litT}，最紧一档 ${wk}✓`;
+  console.log(line + (ok && wok ? '  ⇒ 全过' : ''));
+}
+for (const [tName, tBase, tFn] of [['light', light, lightFn], ['dark', dark, darkFn]]){
+  /* 基准档 = :root / [data-theme=dark] 自己：亮色的 day、两主题的无月之夜 */
+  stateLine(`${tName} day（基准）`, { ...tBase }, { ...tFn }, null);
   for (const phase of PHASES) for (const moon of MOONS){
     /* 没点名 data-theme 的块按"亮色专用"处理——§2.3 明写暗色不随时段变色，
        所以一条裸 [data-phase] 规则套到夜林头上同样算分叉 */
     const usable = vs.filter(v => (v.attrs.theme || 'light') === tName)
                      .filter(v => (!v.attrs.phase || v.attrs.phase === phase) && (!v.attrs.moon || v.attrs.moon === moon));
-    const eff = { ...tBase };
-    const from = [];
+    const eff = { ...tBase }, effFn = { ...tFn }, from = [];
     for (const v of usable) for (const [k, val] of Object.entries(v.toks)){ if (eff[k] !== val) from.push(`${k}←${v.file}`); eff[k] = val; }
-    if (!from.length) continue;                       // 这个组合不覆盖任何色板令牌，不必报
-    const bgB = eff['--bg-base'], bgT = eff['--bg-top'];
-    let line = `  ${tName} ${phase}${moon === 'full' ? '+满月' : ''}：底 ${bgB} 顶 ${bgT}（覆盖 ${from.join('、')}）`;
-    let ok = true;
-    for (const [k, floor] of Object.entries(FLOOR)){
-      const w = Math.min(ratio(eff[k], bgB), ratio(eff[k], bgT));
-      if (w < floor){ ok = false; bad2++; line += `\n    ✗ ${k} ${eff[k]} 只剩 ${w.toFixed(2)}:1，应 ≥${floor}`; }
-      else line += `  ${k} ${w.toFixed(2)}✓`;
-    }
-    console.log(line + (ok ? '  ⇒ 全过' : ''));
+    for (const v of usable) for (const [k, val] of Object.entries(v.fn)){ if (effFn[k] !== val) from.push(`${k}←${v.file}`); effFn[k] = val; }
+    if (!from.length) continue;                       // 这个组合一个令牌都不覆盖，不必报
+    stateLine(`${tName} ${phase}${moon === 'full' ? '+满月' : ''}`, eff, effFn, from.join('、'));
   }
 }
-if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段与月相没有把任何一档推下它的地板');
+console.log(`  方向光复算 ${litChecked} 档（0 档＝这盏灯没进过闸）`);
+if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相与方向光都没有把任何一档推下它的地板');
 
-if (bad || bad2 || drift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相读数、${drift} 处双表漂移跌破登记值`); process.exit(1); }
+if (bad || bad2 || drift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处双表漂移跌破登记值`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');

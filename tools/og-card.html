@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<!-- 社交预览图的源文件：public/og.png 由这一页出，1200×630 一寸不差。
+     出图命令（Edge 无头；内置浏览器视口只有 724px 宽，够不到 1200，用它出不了图）：
+       "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
+         --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+         --window-size=1200,630 --user-data-dir=<一个空目录> --virtual-time-budget=20000 \
+         --screenshot=<仓库根>/public/og.png "file:///<仓库根>/tools/og-card.html"
+     --virtual-time-budget 那 20 秒是给 fonts.loli.net 那四个字体落地的，砍掉会拿到系统默认字。
+     取值口径（为什么是这两句字面量、为什么不用照片）登记在 docs/设计规范.md §13a。
+     这张页不进构建、不对外服务，只是素材的出处。 -->
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<link href="https://fonts.loli.net/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Noto+Serif+SC:wght@400;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0}
+  .card{position:relative;width:1200px;height:630px;overflow:hidden;
+    background:linear-gradient(180deg,#EDE9DD 0%,#F2F4EF 45%);
+    font-family:"Noto Serif SC","Songti SC",serif;-webkit-font-smoothing:antialiased}
+  .pad{position:absolute;left:110px;top:150px;right:110px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:20px;letter-spacing:.14em;color:#5A675E}
+  h1{margin:26px 0 0;font-size:62px;font-weight:600;line-height:1.32;letter-spacing:.02em;color:#232B25}
+  h1 em{font-family:"Fraunces",serif;font-style:italic;font-weight:300;letter-spacing:-.015em;
+    color:#5F7D63;margin:0 .12em}
+  .trees{position:absolute;left:0;bottom:0;width:1200px;height:200px;display:block}
+</style></head>
+<body>
+<div class="card">
+  <div class="pad">
+    <p class="eyebrow">mistwood · 晨雾森林</p>
+    <h1>在森林与代码之间，<br>收集微风、<em>light</em> 和好文章。</h1>
+  </div>
+  <svg class="trees" viewBox="0 0 1200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <linearGradient id="fogNear" x1="0" y1="0" x2="0" y2="200" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#5F7D63" stop-opacity="1"/>
+        <stop offset=".82" stop-color="#5F7D63" stop-opacity="1"/>
+        <stop offset="1" stop-color="#5F7D63" stop-opacity=".28"/>
+      </linearGradient>
+      <linearGradient id="fogFar" x1="0" y1="0" x2="0" y2="168" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#7C9A80" stop-opacity=".5"/>
+        <stop offset=".8" stop-color="#7C9A80" stop-opacity=".5"/>
+        <stop offset="1" stop-color="#7C9A80" stop-opacity=".14"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#fogFar)" d="M50 116 76 168 24 168Z M110 94 142 168 78 168Z M170 108 194 168 146 168Z M230 82 266 168 194 168Z M290 112 318 168 262 168Z M350 100 380 168 320 168Z M410 78 444 168 376 168Z M470 106 496 168 444 168Z M530 90 562 168 498 168Z M590 118 614 168 566 168Z M650 84 680 168 620 168Z M710 102 738 168 682 168Z M770 110 804 168 736 168Z M830 88 856 168 804 168Z M890 98 922 168 858 168Z M950 112 978 168 922 168Z M1010 92 1040 168 980 168Z M1070 116 1094 168 1046 168Z M1130 104 1162 168 1098 168Z M1190 110 1216 168 1164 168Z"/>
+    <path fill="url(#fogNear)" d="M20 130 54 200 -14 200Z M80 90 124 200 36 200Z M140 116 178 200 102 200Z M200 70 248 200 152 200Z M260 124 296 200 224 200Z M320 100 362 200 278 200Z M380 60 430 200 330 200Z M440 112 478 200 402 200Z M500 80 544 200 456 200Z M560 128 594 200 526 200Z M620 68 666 200 574 200Z M680 104 720 200 640 200Z M740 120 776 200 704 200Z M800 74 848 200 752 200Z M860 96 902 200 818 200Z M920 114 958 200 882 200Z M980 82 1024 200 936 200Z M1040 126 1076 200 1004 200Z M1100 102 1142 200 1058 200Z M1160 110 1198 200 1122 200Z"/>
+  </svg>
+</div>
+</body></html>

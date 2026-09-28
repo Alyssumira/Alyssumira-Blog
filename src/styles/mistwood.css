@@ -22,6 +22,13 @@
   --halo:rgba(242,244,239,.55);
   --shadow:0 12px 24px -8px rgba(95,125,99,.12);
   --photo-look:saturate(.85) brightness(1.04);   /* §10.5 褪色：降饱和 15% + 提黑位 */
+  /* 方向光（§2.1）：子页背景上的同一盏灯。方位是常量（左上，被首屏照片的亮部钉死，§5 实测），
+     随时段转的是仰角与暖度——太阳低＝光铺得更深更长，太阳高＝收得紧。
+     ⚠️ 它是"底"不是"纱"：画在 .wrap::before（z-index:-1），永远在文字之下，
+     所以亮色里提亮局部底是把深色字的对比度**抬上去**，不是压下来。暗色反过来，天花板见 §2.4。 */
+  --lit:rgba(255,250,236,.10);
+  --lit-at:-14% -10%;
+  --lit-r:56vmax;
 }
 html[data-theme="dark"]{
   --bg-base:#0E130D;
@@ -41,6 +48,11 @@ html[data-theme="dark"]{
   --halo:rgba(14,19,13,.6);
   --shadow:0 12px 28px -8px rgba(14,19,13,.55);
   --photo-look:saturate(.8) brightness(.78);      /* 夜林：原图直出会刺眼，照片也重新打光 */
+  /* 夜林没有太阳（§2.2），这盏是月亮：同一枚方位（照片的亮部也在左），色取 --moon，
+     且不随时间转——"暗色不参与日循环"那条一个字没改。α 的上限由 §2.4 的 --ink-2 那一格守着 */
+  --lit:rgba(188,207,196,.05);
+  --lit-at:-14% -10%;
+  --lit-r:56vmax;
 }
 /* 光的方向（§2.3）：**只转"仰角/长度"，不转"方位"**。
    方位被那张照片钉死了——§5 实测亮部在左（暗色标题区横向三分 左.076/中.069/右.059，亮色 .83/.73/.58），
@@ -48,10 +60,18 @@ html[data-theme="dark"]{
    所以：清晨低角度＝长影、正午高角度＝短影（= :root 的基准值）、傍晚＝全年最长、夜里＝几乎无影。
    ⚠️ 三条硬约束：① 4 处 text-shadow 全是 `0 1px`（那是"字抬起来"不是光照方向），**光晕不参与**，跟着转会变成歪影；
    ② `box-shadow` 只在**换档那一刻**离散改值，不给它加 transition——它不在 §8.8 白名单里，淡一个 24px 的投影就是每帧重绘一次阴影；
-   ③ 暗色**不参与日循环**（§2.2 夜林是"另一个时刻"，它没有太阳）——夜里的影子归月相管，见下面那块。 */
-html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; --shadow:0 20px 32px -12px rgba(95,125,99,.13); }
-html[data-phase="dusk"][data-theme="light"]{ --bg-top:#EDE4D2; --shadow:0 26px 38px -14px rgba(95,125,99,.14); }
-html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7DE; --shadow:0 6px 16px -10px rgba(95,125,99,.10); }
+   ③ 暗色的**投影**不参与日循环（§2.2 夜林没有太阳）——夜里的影子归月相管，见下面那块。⚠️ 2026-09-28 起这一句只管影子：暗色的**色温**开始随时段转了，见下面那两行。 */
+html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; --shadow:0 20px 32px -12px rgba(95,125,99,.13); --lit:rgba(255,243,216,.13); --lit-at:-18% -2%; --lit-r:64vmax; }
+html[data-phase="dusk"][data-theme="light"]{ --bg-top:#EDE4D2; --shadow:0 26px 38px -14px rgba(95,125,99,.14); --lit:rgba(255,232,194,.15); --lit-at:-20% 4%; --lit-r:70vmax; }
+html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7DE; --shadow:0 6px 16px -10px rgba(95,125,99,.10); --lit:rgba(233,245,246,.07); --lit-at:-12% -14%; --lit-r:46vmax; }
+/* ⚠️ 暗色的三段色温（§2.3，路线图 #11，2026-09-28 落地）：夜林不再只是"一个时刻"，它自己有夜里的时间轴。
+   傍晚留一点枯草金的余温、凌晨天将亮时极淡青、21 点到 4 点仍旧是签过字那版最冷最静（＝基准，不出块）。
+   **只转色相、不转亮度**：两枚底各自锁在自己的 OKLCH L（.179 / .196）上只挪 H，WCAG 相对亮度差 ≤0.14/1000
+   ——所以 §12 那条明暗突跳禁令与 §2.3"幅度小于能说清的阈值"都还在原地。
+   两个方向都停在**站里已有的色相**上：暖端朝枯草金 82.4° 走但停在 H 108，冷端正好落在月光 160.5°（H 157.6），
+   没有第三个 hue 进站。⚠️ 暗色的**投影仍旧不参与日循环**（下面月相那块管它）——转的是空气，不是光源。 */
+html[data-phase="dusk"][data-theme="dark"]{ --bg-base:#121208; --bg-top:#16160C; }
+html[data-phase="dawn"][data-theme="dark"]{ --bg-base:#0A140E; --bg-top:#0E1812; }
 
 /* 夜林里影子归月相管（§6）：无月之夜是这套暗色的身份，它没有方向光，所以基准那版投影又短又软。
    满月那一晚"有月之夜"成立——影子回来一点（更长、更实）。**只动 shadow 与灯，绝不动照片底**：
@@ -270,6 +290,25 @@ html[data-grain="off"] .grain{ display:none; }
 
 /* ============ 区块通用 ============ */
 .wrap{ position:relative; z-index:5; max-width:1120px; margin:0 auto; padding:0 8vw; }
+/* ============ 方向光（§2.1）：子页也站在同一盏灯下 ============ */
+/* 首页那屏是被照亮的，子页原先是一张没打光的平纸：body 那条 40vh 渐变落地之后就只剩一整片平色。
+   这一层把首屏那枚**实测钉死的方位常量**（左上，§5）接到子页背景上，仰角与暖度随 data-phase 转，
+   和 §2.3 的投影是同一盏灯、同一个日循环。
+   ⚠️ 为什么挂在 `.wrap::before` 而不是 body：
+      ① `.wrap` 只有五个子页有（首页是 `.hero`），选择器自己就把首页排除在外——首页已经有照片和纱罩，
+         再叠一盏就是两束光；
+      ② home.css 里另有一份 `body{}`，写 body 的话"谁赢"要看打包顺序（§8.8 那句"那是运气不是设计"）；
+      ③ `z-index:-1` 让它在文字之下绘制，和 §15 那条"气必须在 -1"同一个理由：**不许蒙在正在读的字上**。
+   ⚠️ 它是"底"不是"纱"：不是蒙在内容上的一层半透明，而是地面本身换了个照度——所以
+      `prefers-reduced-transparency` 不撤它（那条管的是玻璃与雾这类"隔着一层看"的材质，地面不在其内）。
+   ⚠️ 静态渐变：零 animation、零 filter、零新模糊（§1.4 三种模糊一个都没多）、不占 §1 常驻预算。
+   全出血用 left:50% + width:100vw，和 §15 那条气同一个理由（.wrap 有 1120 上限，负内边距会切出竖直断边）。 */
+.wrap::before{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  top:0; height:100vh;
+  left:50%; width:100vw; transform:translateX(-50%);
+  background:radial-gradient(var(--lit-r) var(--lit-r) at var(--lit-at), var(--lit), transparent 72%);
+}
 /* ============ 子页开场：三档横幅 + 一层静止的气 ============ */
 /* 原先子页第一屏就是一行标题压在空底上——阅读动线没有"进场"这回事。现在开场由三层组成：
    底（body 那条 40vh 渐变，已有）· 气（这一条 --mist 横向雾带，静态、零循环、零新模糊）· 字（标题与 sec-label）。
@@ -373,10 +412,18 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 }
 
 /* 密度条：最近 12 个月每月几篇，构建期算好画成 SVG。空月份也画刻度——一把尺子比三根柱子诚实 */
-.density-wrap{ display:flex; align-items:center; gap:12px; margin-top:18px; }
-.density{ display:block; }
-.density rect{ fill:var(--moss); opacity:.5; }
+.density-wrap{ display:flex; align-items:flex-end; gap:14px; margin-top:22px; }
+.density{ display:block; width:min(300px,100%); height:auto; }   /* 窄屏等比缩，不裁：320px 设备上 .wrap 只剩 269px 可用 */
+.density .axis{ stroke:var(--line); stroke-width:1; shape-rendering:crispEdges; }
+.density rect{ fill:var(--moss); opacity:.55; }
 .density rect.nil{ fill:var(--ink-3); opacity:.22; }
+/* 当前月那一根：写没写过都是 moss——它说的是"你在这儿"，不是"这个月有货"（§12 不造假语义） */
+.density g.now rect{ fill:var(--moss); opacity:.95; }
+/* 月份刻度走 --ink-2 不走 --ink-3：读不出月份就读不出这排柱子的横轴，
+   和下面 .density-cap 那句"图例是看得懂刻度的前提"同一个理由（次要档，不是装饰档） */
+.density text{ font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.06em;
+  fill:var(--ink-2); text-anchor:middle; }
+.density g.now text{ fill:var(--moss-ink); }
 .density-cap{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档 */
 
 /* ============ 404：把真实存在的地址一次性列全（零请求，也不留死锚点） ============ */
@@ -417,15 +464,17 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   position:relative; display:block; aspect-ratio:4/3; border-radius:16px; overflow:hidden;
   border:1px solid var(--glass-border);
   background:linear-gradient(150deg,var(--bg-top),var(--glass));
-  transition:transform .5s cubic-bezier(.22,1,.36,1),box-shadow .5s cubic-bezier(.22,1,.36,1);
 }
-.thing:not(:has(.shot))::after{
-  content:"截图 → 替换"; position:absolute; inset:0; display:grid; place-items:center;
-  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.14em; color:var(--ink-3);
-}
-.thing:hover{ transform:translateY(-4px); box-shadow:var(--shadow); }
-.thing:hover .shot{ transform:scale(1.03); }
-.thing:active{ transform:translateY(-4px) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+/* ⚠️ 2026-09-28：那句"截图 → 替换"撤了。全站唯一还写着"没做完"的三个字，和 essays 已经做到的
+   "空槽即不存在"（§15：没有封面就不画那个盒子）是两套口径。撤掉之后空卡剩的是 §8.4 登记过的
+   占位雾（`linear-gradient(150deg,--bg-top,--glass)`，本来就在），不是空白——
+   §8.4 那句话在这儿照样成立："留一块永久雾比留一个空位更糟"。所以 4:3 的框留着：
+   它量的是真截图要占的位置，截图填进 `site.js` 的 `shot` 就长出来，版式不跳。
+   反馈也一起收：没有 `href` 的卡不是链接，不该有链接的手感（§8.3 每个**可点**元素 1 个主反馈）。 */
+.thing[href]{ transition:transform .5s cubic-bezier(.22,1,.36,1),box-shadow .5s cubic-bezier(.22,1,.36,1); }
+.thing[href]:hover{ transform:translateY(-4px); box-shadow:var(--shadow); }
+.thing[href]:hover .shot{ transform:scale(1.03); }
+.thing[href]:active{ transform:translateY(-4px) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 .thing-bar{
   position:absolute; left:12px; right:12px; bottom:12px; z-index:2;
   display:flex; align-items:center; justify-content:space-between; gap:16px;
@@ -438,6 +487,19 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 
 /* ============ 关于：窄栏 680px（/about/） ============ */
 .about-inner{ max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:40px; padding-bottom:16vh; }
+/* 关于页的"空"首先是版式，不是颜色（§6.1，2026-09-28）：1440 桌面下这一页原本是一条 680 的窄带、
+   两侧大片空，220px 的人像独自坐在列里，下面才是文字——像把手机布局拉到桌面。
+   现在 ≥1024 把人像与简介并成两栏，读起来像手记扉页。三条例外要说清：
+   ① 窄屏那一层包装**什么都不改**（.about-lede 在媒体查询外是 flex 竖排、gap 与父级同值 40px）；
+   ② 容器放宽到 880 只为了这一行，**阅读度量不跟着放**——其余各块 max-width 收回 680、左缘对齐人像，
+      所以 §4 那句"正文阅读区收窄 680"仍然对整页成立，essays 的 680 更是一个字没动；
+   ③ 简介是*构图*不是*长文*（两句），它不配占用长文度量那条律。 */
+.about-lede{ display:flex; flex-direction:column; gap:40px; }
+@media (min-width:1024px){
+  .about-inner{ max-width:880px; }
+  .about-inner > :not(.about-lede){ max-width:680px; }
+  .about-lede{ display:grid; grid-template-columns:220px 1fr; column-gap:60px; align-items:start; }
+}
 .portrait{
   /* 276×276 的圆头像：框跟着图走，不裁。⚠️ 原先 4/5 竖框会把圆盘左右各切掉约 27px（≈20% 宽度），
      而这张图的四个角本来就是透明的——透明角正好让下面那条雾渐变透出来，"从雾里露出一张脸"

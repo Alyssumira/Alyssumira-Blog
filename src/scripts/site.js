@@ -15,6 +15,10 @@
   function applyTheme(t){
     theme = t;
     root.setAttribute('data-theme', t);
+    /* 浏览器外壳那一条色带跟着改：Layout 里的 theme-color 写的是亮色基准，内联脚本只在首帧之前
+       按系统偏好对一次，用户手动开关是第三个场合——漏掉它就会出现"夜林页面配着晨雾顶栏" */
+    const tc = document.querySelector('meta[name="theme-color"]');
+    if (tc) tc.setAttribute('content', t === 'dark' ? '#0E130D' : '#F2F4EF');
     if (iconSun) iconSun.style.display = t === 'light' ? 'block' : 'none';
     if (iconMoon) iconMoon.style.display = t === 'dark' ? 'block' : 'none';
     announce();
@@ -144,6 +148,11 @@
   const postBody = document.getElementById('post-body');
   const progress = document.getElementById('progress');
   const toc = document.getElementById('toc');
+  /* 章节刻度（§6.3 + §7.1①）：右侧目录给名字，这一排给形状。位置只在 `total` 变了的时候重排
+     （换视口、图片落地），每帧只判一次"当前章换了没有"——两把尺子必须是同一把，
+     所以刻度位置直接拿进度线用的那个 done/total 来换算，不另起一套测量 */
+  const marks = document.getElementById('progress-marks');
+  let markEls = [], markAt = [], lastTotal = -1, lastMark = -2;
 
   function updateProgress(){
     if (!postBody) return;
@@ -151,6 +160,31 @@
     const total = Math.max(r.height - innerHeight, 1);
     const done = Math.min(Math.max(-r.top, 0), total);
     if (progress) progress.style.transform = `scaleX(${done / total})`;
+    if (markEls.length){
+      const short = r.height <= innerHeight + 120;   /* 一屏就读完的稿子没有"走过的一段"，刻度会全挤在右端 */
+      marks.classList.toggle('off', short);
+      if (!short){
+        /* ⚠️ 刻度用**正文总高**这把尺子，不是进度线那把（`总高 − 视口`）。不是省事，是后者算不出来：
+           一篇 1283px 的稿子在 819px 视口里，最后三章的 offsetTop 是 264 / 659 / 987，
+           除以 total=464 得到 57% / **142% / 213%**——两枚刻度落在屏幕外（实测）。
+           "章节走到视口顶"这件事对最后 819px 里的内容**永远不发生**。
+           所以：**刻度是地图（这一章占全文的哪一段），点亮才是进度**。两件事分开，各自成立。 */
+        if (r.height !== lastTotal){
+          lastTotal = r.height;
+          for (let i = 0; i < markEls.length; i++) markEls[i].style.left = (markAt[i] / r.height * 100).toFixed(3) + '%';
+        }
+        let cur = -1;
+        /* ⚠️ 用**没被夹过的** raw，不用上面那个 `done`：`done` 的上限是 `total`（正文高 − 视口），
+           而滚到底时正文最后 819px 是"在屏幕里"而不是"在视口顶之上"——拿夹过的值算阅读线，
+           最后一章永远点不亮（实测：到底时 raw=804 而 done=464，第三章在 987 处，线只到 710）。 */
+        const line = Math.max(-r.top, 0) + innerHeight * .30;   /* 阅读线：视口 30% 那一行，与 §8.7 身后那条雾同一个位置 */
+        for (let i = 0; i < markAt.length; i++) if (markAt[i] <= line) cur = i;
+        if (cur !== lastMark){
+          lastMark = cur;
+          for (let i = 0; i < markEls.length; i++) markEls[i].classList.toggle('on', i === cur);
+        }
+      }
+    }
     /* 身后的雾（§8.7）：雾线钉在视口 30% 那一行（阅读位置之上），换算成正文自己坐标系里的 px 写进 --read-fog。
        坡道从这条线往上游 100vh 才淡到底（那一段已经在屏幕外），所以**屏幕上的最坏值是恒定的**：
        屏顶 5.03:1（亮色正文），到雾线处回到 13.13——正在读的那一屏一个字都不蒙。
@@ -190,6 +224,26 @@
     heads.forEach(h => spy.observe(h));
   }
   buildToc();
+
+  /* 刻度的那一排 span：与目录同一批 H2、同一个选择器（`h2:not(.fn-title)`，文末那个"注"字不算章） */
+  function measureMarks(){
+    if (!marks || !postBody) return;
+    const base = postBody.getBoundingClientRect().top + scrollY;
+    markAt = Array.from(postBody.querySelectorAll('h2:not(.fn-title)'))
+      .map(h => h.getBoundingClientRect().top + scrollY - base);
+    lastTotal = -1;                       /* 逼一次重排：图落地之后位置会变 */
+  }
+  if (marks && postBody){
+    markEls = Array.from(postBody.querySelectorAll('h2:not(.fn-title)')).map(() => {
+      const m = document.createElement('span');
+      marks.appendChild(m);
+      return m;
+    });
+    measureMarks();
+    updateProgress();                     /* 首帧：上面那次调用还在 markEls 为空的时候，补一次 */
+    /* 内容图把正文撑长之后刻度位置会漂：load 在模块脚本之后触发，正好补这一次 */
+    addEventListener('load', measureMarks, { once:true });
+  }
 
   /* ---------- 内容位照片：载入完成后散开雾（§8.4），取不到图也放行 ---------- */
   document.querySelectorAll('.cover img,.thing .shot,.portrait img,.post-body img').forEach(img => {

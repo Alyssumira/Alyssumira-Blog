@@ -28,10 +28,14 @@ const walk = notes[0];
 
     <!-- 人像已到位（public/assets/portrait.png，276×276 透明角）；文案仍是这一页的作者口吻 -->
     <div class="about-inner">
-      <div class="portrait reveal"><img src="/assets/portrait.png" alt="Alyssumira" width="276" height="276"></div>
-      <div class="about-text reveal">
-        <p>写代码的人，住在城市边缘，心在森林里。白天修 bug，傍晚散步，夜里把这个网站当作营地慢慢打理。</p>
-        <p>这里不追热点，只收集经得起重读的东西。</p>
+      <!-- 桌面 ≥1024 这两块左右排（人像左、简介右）——简介只有两句，不是长阅读，
+           所以它走"构图"的度量，不占 §4 那 680 的长文阅读度量；essays 的 680 一个字不动 -->
+      <div class="about-lede">
+        <div class="portrait reveal"><img src="/assets/portrait.png" alt="Alyssumira" width="276" height="276"></div>
+        <div class="about-text reveal">
+          <p>写代码的人，住在城市边缘，心在森林里。白天修 bug，傍晚散步，夜里把这个网站当作营地慢慢打理。</p>
+          <p>这里不追热点，只收集经得起重读的东西。</p>
+        </div>
       </div>
       <!-- 整行是可点开的披露件：那一枚点只是记号，命中区是这一整行（§15）。
            展开的内容不新写——就是 notes 最近几条，"这一周在做什么"的答案本来就在日志本里 -->
