@@ -4,9 +4,6 @@
    浏览器跑它、`tools/phase-check.mjs` 也跑它，差值表里的数和访客看到的档子是同一份代码出的。
    搬去别处写（尤其是搬进 CSS 之外的运行时自定义属性）会拆掉 palette-check 的方向光复算——见 §2.3 末。 */
 import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
-/* 搜索的检索口径与构建期那份是**同一份代码**（`lib/search.js` 文件头第①条讲的三处同跑），
-   这里只吃它两个函数：比对、以及标出字面连续的那几枚字。 */
-import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.js';
 
 (function(){
   const root = document.documentElement;
@@ -56,11 +53,6 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     sPanel.classList.toggle('open', v);
     sBtn.setAttribute('aria-expanded', String(v));
     if (v) sPanel.removeAttribute('inert'); else sPanel.setAttribute('inert','');
-    /* 两枚弹层同向、不许同开：它们都靠 right:0 挂在各自那枚钮的右缘下面，宽度同一份 236px，
-       并排的两枚钮之间只差 40px ⇒ 一起开着就是两块玻璃叠在一起，读起来像画坏了。
-       setSearchOpen 是同一作用域里的函数声明（提升），所以这里能直接叫它；
-       它只在真开的时候才反手叫回来（v 为假不叫），两条路都不构成回环。 */
-    if (v) setSearchOpen(false);
   }
   paintSettings();
   if (sBtn && sPanel){
@@ -79,148 +71,6 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     addEventListener('click', e => {
       if (!sPanel.classList.contains('open') || e.target.closest('.display')) return;
       setOpen(false);   /* 点外面只收抽屉，不抢焦点：焦点原地不动比跳回去少一次跳动 */
-    });
-  }
-
-  /* ---------- 站内搜索（§9 在册组件，第十一轮）----------
-     三条口径写在这里，因为它们都是"看不见但一毁就全毁"的那类：
-     ① **入口只由这段显形**：`<div class="search">` 在静态产物里带 `hidden`，而 `.search` 自己写了
-        `display:flex`（压得过 UA 那条 `[hidden]{display:none}`），所以 `base.css:163` 那条
-        `.search[hidden]{display:none}` 是"没有脚本就没有这一格"的唯一承重点。口径抄自
-        `[slug].astro` 那枚 post-focus（显形只由打包脚本做，见上面 :348 那段）——
-        无 JS / 这段没跑 ⇒ 页面上不存在一枚点了没反应的放大镜（§12）。
-     ② **检索不住在这里**：切词、比对、标高亮全在 `lib/search.js` 那一处，构建期与门禁跑的是同一份。
-        这里只做三件事：取 JSON、把结果画成 DOM、把状态说清楚。
-     ③ **说明行不许空着**：没输东西 / 零条 / 输入里没有可搜的字 / 索引没取到，四种场合各一句实话。
-        空白不是"还没搜"，是 §12 刚在 404 那格否决过的"许愿输入框"——回车什么都不发生。 */
-  const searchWrap = document.getElementById('search');
-  const seBtn = document.getElementById('search-toggle');
-  const sePanel = document.getElementById('search-panel');
-  const seInput = document.getElementById('search-input');
-  const seHint = document.getElementById('search-hint');
-  const seList = document.getElementById('search-results');
-  const INDEX_URL = '/search.json';
-  let seIndex = null;            // 取到过一次就留着：抽屉开合与逐字输入都不该再发第二次请求
-  let seLoading = null;          // 同一个请求只发一次（并发 input 事件会同时进来）
-  let seSeq = 0;                 // 只认最后一次输入的读数：慢回来的那一批必须被丢掉
-
-  function setSearchOpen(v){
-    if (!sePanel || !seBtn) return;
-    sePanel.classList.toggle('open', v);
-    seBtn.setAttribute('aria-expanded', String(v));
-    if (v) sePanel.removeAttribute('inert'); else sePanel.setAttribute('inert','');
-    if (v){
-      seInput.focus();
-      if (sPanel && sPanel.classList.contains('open')) setOpen(false);   /* 与上面 setOpen 里那一条成对 */
-    }
-  }
-
-  function loadIndex(){
-    if (seIndex) return Promise.resolve(seIndex);
-    /* ⚠️ 失败要把 seLoading 清空：否则第一次网络失败会永久留下一个已 reject 的 promise，
-       这个会话里再也不会重发——那一档就是"搜索框永远搜不到东西"，而它看起来只是没结果。 */
-    seLoading ??= fetch(INDEX_URL)
-      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(j => {
-        /* 形状不对就算红，不算"零条"：一枚空的、上一轮留下的、或者被 CDN 换成首页 HTML 的响应，
-           在 `searchDoc()` 里都会干干净净地返回 [] —— 那时"没有这一篇稿子"和"索引坏了"
-           长得一模一样，而只有后者需要报告。 */
-        if (!j || j.v !== INDEX_VERSION || !Array.isArray(j.docs) || !j.docs.length)
-          throw new Error('shape v=' + (j && j.v) + ' n=' + (j && j.docs && j.docs.length));
-        seIndex = j.docs;
-        return seIndex;
-      })
-      .catch(e => { seLoading = null; throw e; });
-    return seLoading;
-  }
-
-  /* 命中高亮：只把**字面连着出现过**的那几段裹进 <mark>（`markRanges` 里那条口径）。
-     走 createTextNode / createElement ⇒ 标题与摘要里的任何尖括号都只是字，永远闭不掉这一格的壳。 */
-  function markedInto(node, text, query){
-    let at = 0;
-    for (const [a, b] of markRanges(text, query)){
-      if (a > at) node.appendChild(document.createTextNode(text.slice(at, a)));
-      const m = document.createElement('mark');
-      m.textContent = text.slice(a, b);
-      node.appendChild(m);
-      at = b;
-    }
-    if (at < text.length) node.appendChild(document.createTextNode(text.slice(at)));
-  }
-
-  function paintHits(hits, query){
-    seList.textContent = '';
-    for (const h of hits){
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.className = 'search-row';
-      a.href = h.u;
-      const t = document.createElement('span');
-      t.className = 'search-row-t';
-      markedInto(t, h.t, query);
-      a.appendChild(t);
-      if (h.e){
-        const e = document.createElement('span');
-        e.className = 'search-row-e';
-        markedInto(e, h.e, query);
-        a.appendChild(e);
-      }
-      li.appendChild(a);
-      seList.appendChild(li);
-    }
-  }
-
-  function runSearch(){
-    const q = seInput.value.trim();
-    const mine = ++seSeq;
-    if (!q){
-      seList.textContent = '';
-      seHint.textContent = seIndex ? `${seIndex.length} 篇可搜 · 标题 / 摘要 / 正文` : '正在取索引…';
-      return;
-    }
-    loadIndex().then(docs => {
-      if (mine !== seSeq) return;                     /* 已经有更新的一次输入在跑了 */
-      /* 输入里一个可搜的字都没有（整串是标点 / 空白 / emoji）——这不是"查无此词"，是"没查"。
-         两种场合必须分两句说：拿"没有一篇里出现过「…」"去回一句根本没被切出词元的输入，
-         就是把一次失败读成一次成功的零结果，而这两种下一步要做的事完全相反。 */
-      if (!queryTerms(q).want.length){
-        seList.textContent = '';
-        seHint.textContent = `「${q}」里没有可搜的字：要至少一个字或一个字母`;
-        return;
-      }
-      const hits = searchDoc(docs, q);
-      paintHits(hits, q);
-      /* 零条那一句必须**带着访客刚打的那串字**：只说"没有找到"读起来像没搜，
-         而把查询词回显出来才说明"搜过了，搜的就是这几个字"。 */
-      seHint.textContent = hits.length
-        ? `${hits.length} 篇命中`
-        : `没有一篇里出现过「${q}」`;
-    }).catch(() => {
-      if (mine !== seSeq) return;
-      seList.textContent = '';
-      seHint.textContent = '索引没取到，这一格现在搜不了。刷新一次试试。';
-    });
-  }
-
-  if (searchWrap && seBtn && sePanel && seInput && seHint && seList){
-    searchWrap.hidden = false;          /* ← 入口在这一步才存在，见本节开头那条① */
-    seBtn.addEventListener('click', () => setSearchOpen(!sePanel.classList.contains('open')));
-    seInput.addEventListener('input', runSearch);
-    /* 回车要有事可做：只有一条命中的时候，回车就是"去那一页"。
-       多条命中时回车不做跳转——跳哪一篇都是替访客决定，那时该做的是把清单摆在他面前。 */
-    seInput.addEventListener('keydown', e => {
-      if (e.key !== 'Enter') return;
-      e.preventDefault();
-      const only = seList.children.length === 1 && seList.firstElementChild.firstElementChild;
-      if (only) only.click();   /* 走那枚真 <a> 的 click，不写 location.href：语义同一件事，
-          但测试面能把这一次导航截下来读数（tools/search-check.mjs 第 ⑤ 格） */
-    });
-    addEventListener('keydown', e => {
-      if (e.key === 'Escape' && sePanel.classList.contains('open')){ setSearchOpen(false); seBtn.focus(); }
-    });
-    addEventListener('click', e => {
-      if (!sePanel.classList.contains('open') || e.target.closest('.search')) return;
-      setSearchOpen(false);   /* 点外面只收面板，不抢焦点——与抽屉同一条（:73 那句） */
     });
   }
 
