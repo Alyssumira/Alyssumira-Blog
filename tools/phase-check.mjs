@@ -79,17 +79,21 @@ const CELL_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦'];
 /* 反例清单（selftest 的期望数）。⚠️ 它与 CELL_IDS 内容相同是**巧合**，不是派生关系：
    两枚分开写，删一格时要同时删两处才不被发现——这就是"期望数不许由 registry 派生"的落点。 */
 const CONTRA_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦'];
-/* 第四份清单在**另一份文件**里：规范 §16 那行机器可读登记表。它是签字文档，动它会在 diff 里显形。
+/* 第四份清单在**另一份文件**里：规范 §16 那枚 bullet。它是签字文档，动它会在 diff 里显形。
+   ⚠️ 认的是"以 `- **phase-check 登记表**` 开头的那一行"（bullet 本体），不是"哪一行提到了这个词"——
+   规范正文里引用这个短语的地方不止一处，用 includes 会挑到错的那一行（本卡实测挑到过 §14 的论述）。
    ⚠️ 读不到、或读到了但一个 id 都没有 ⇒ 红（fail closed），绝不"跳过这一格"。 */
 const SPEC_MARK = 'phase-check 登记表';
+const SPEC_HEAD = `- **${SPEC_MARK}**`;
 const CIRCLED = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
 function specRegistry() {
   const file = new URL('../docs/设计规范.md', import.meta.url);
   let text;
   try { text = readFileSync(file, 'utf8'); } catch (e) { return { ids: [], why: `读不到 docs/设计规范.md（${e.message}）` }; }
-  const line = text.split(/\r?\n/).find(l => l.includes(SPEC_MARK));   /* ⚠️ CRLF 工作树：按 includes 找行，别用 $ 锚 */
-  if (!line) return { ids: [], why: `docs/设计规范.md 里没有「${SPEC_MARK}」那一行（⑦ 的第四份清单丢了）` };
-  const ids = CIRCLED.filter(c => line.split(`${SPEC_MARK}`)[1].includes(c));
+  const lines = text.split(/\r?\n/);
+  const line = lines.find(l => l.startsWith(SPEC_HEAD));      /* ⚠️ CRLF 工作树：按行首匹配，别用 $ 锚 */
+  if (!line) return { ids: [], why: `docs/设计规范.md 里没有以「${SPEC_HEAD}」开头的那一行（⑦ 的第四份清单丢了；这一枚 bullet 的形状是判据读得到的唯一前提）` };
+  const ids = CIRCLED.filter(c => line.split(SPEC_MARK)[1].includes(c));
   if (!ids.length) return { ids: [], why: `「${SPEC_MARK}」那一行里一个 id 都没有（清单被掏空 = 空转的另一副面孔）` };
   return { ids, why: '' };
 }
