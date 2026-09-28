@@ -372,9 +372,10 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:22px; font-weight:600; letter-spacing:.02em;
   transition:transform .5s cubic-bezier(.22,1,.36,1);
 }
-/* 「退回你来处」那一枚（§15 第九轮，`site.js` 现场造）是 `<button>`——`history.back()` 不是一个地址，
-   写成 `href="#"` 就是 §12 那枚死锚点。这一小块**只脱 UA 那套**（取法同 §15 盖章 `.post-stamp` 那条
-   background/border/cursor 一族），字与呼吸全在上面那个共用声明块里 ⇒ 不是第二种按钮语言。
+/* 「退回你来处」那一枚（§15 第九轮（404），`site.js` 现场造）是 `<button>`——`history.back()` 不是一个地址，
+   写成 `href="#"` 就是 §12 那枚死锚点。这一小块**只脱 UA 那套**（取法同 §15 详情页"盖章"那枚 `<button>`
+   已有的同一条脱法：`background:none / border:0 / padding:0 / cursor:pointer / font:inherit` 那一族），
+   字与呼吸全在上面那个共用声明块里 ⇒ 不是第二种按钮语言。
    ⚠️ `line-height:inherit` 不是可有可无：按钮的 UA 行高是 `normal`，链接那六条从 body 继承 1.85（按 22px 字号重算成 40.7px），
    不写这一行同一排里就会出现两种行高——实测摘掉它按钮盒高 80.69→71、那一行 li 81.69→72，写回来 80.69/81.69 逐位对上链接。
    ⚠️ 悬停只动 `transform` 一枚属性（§8.3 每可点元素 1 个主反馈、§8.8 白名单），与那六条同一个 0.5s 吐纳。 */
