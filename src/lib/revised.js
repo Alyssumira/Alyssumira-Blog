@@ -65,8 +65,11 @@ export async function lastRevisionDate(relPath){
 /* front matter 的 `date` 在站上是一个**日历日**、没有时刻（YAML 日期落成 UTC 零点，全站按 getUTC* 读，
    见 markdown.js 的 fmtDate 与 §7 的 whenOf），git 给的是提交自己那个时区里的日历日。
    ⚠️ 两边都当字符串比，不做时区换算：换一次算就会把"同一个九月的夜晚"劈成两天，
-   而这一格要的判据只是"改于是不是晚于写于那一天"。 */
-const publishISO = d => (d instanceof Date && !Number.isNaN(d.getTime()))
+   而这一格要的判据只是"改于是不是晚于写于那一天"。
+   ⚠️ `export` 是给 `Seo.astro` 复用同一个日历日口径（§13a 结构化数据）：JSON-LD 的 datePublished 要 ISO 形状，
+   页面那行要点分形状（`whenLine`）——两件事一把尺子，别在组件里再写一遍 getUTC* 的拼法。这一行只多 `export` 六个字母，
+   `revisedOn` / `whenLine` 的输出一个字没动。 */
+export const publishISO = d => (d instanceof Date && !Number.isNaN(d.getTime()))
   ? [d.getUTCFullYear(), String(d.getUTCMonth() + 1).padStart(2, '0'), String(d.getUTCDate()).padStart(2, '0')].join('-')
   : '';
 

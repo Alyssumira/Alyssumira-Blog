@@ -1,13 +1,10 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
 import { fmtDate, root } from '../../lib/markdown.js';
-import { visiblePosts } from '../../lib/posts.js';
 import { readMinutes } from '../../lib/stats.js';
 
-/* 草稿不在这一页（也不在详情页、订阅源、关于页那几个数里）——filter 只住在 lib/posts.js 那一份。
-   顺序：置顶在最前，其余按日期倒序；下面的"按年分节"与 folio 都吃这个数组的顺序，
-   ⚠️ 所以置顶那篇会在它自己那一年的最前面、门牌仍旧连续（folio 只跟着渲染顺序加，不参与排序）。 */
-const posts = await visiblePosts();
+const posts = (await getCollection('posts')).sort((a, b) => b.data.date - a.data.date);
 const pad = n => String(n).padStart(2, '0');
 
 /* 阅读时长的算法在 lib/stats.js：列表页与关于页的"总计"必须是同一把尺子，不能各算各的 */
