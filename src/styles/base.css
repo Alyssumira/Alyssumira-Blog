@@ -126,8 +126,13 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 .reveal.in{ opacity:1; transform:none; }
 
 /* ============ 移动端：导航壳在窄屏收起时钟（§11）============ */
-/* ⚠️ 只有 `.nav-clock` 归并了。同一条媒体查询里的 `.nav{gap;padding}` 两份表**取值不同**
-   （子页 9px 14px / 首页 9px 16px），那是版面不是漂移，合并等于改其中一页的字距。 */
+/* ⚠️ 只有 `.nav-clock` 归并了。同一条媒体查询里的 `.nav{gap;padding}` 两份表**字面取值不同**
+   （子页 9px 14px / 首页 9px 16px），留两份是分层不是漂移。
+   ⚠️ 但"字面不同"不等于"读数不同"：2026-09-28 走 CDP 实测，首页窄屏生效的 padding 是 **14px**——
+   `Layout.css`（base + mistwood）排在页面 CSS 之后，同权重后写的赢，首页那条 16px 从来没落到像素上。
+   所以改窄屏 `.nav` 的 padding 时**两份都要改**（`mistwood.css` 那份现在说话算数，
+   `home.css` 那份是防顺序翻回来的保险），别以为只改 `mistwood.css` 就漏了首页、
+   也别以为只改 `home.css` 就修了首页。320px 那一档（≤340）就是这么写的两份。 */
 @media (max-width:720px){
   .nav-clock{ display:none; }
 }

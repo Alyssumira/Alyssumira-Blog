@@ -554,6 +554,29 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .col-note{ font-size:13px; }
 }
 
+/* ============ 320px 那一档：只收布局量 ============ */
+/* 上一档（≤720）收到 gap 10 / padding 14 之后，320px 上胶囊仍然夹不住内容：
+   实测 `.nav-links` 282px，加左右 padding 28 与描边 2 ⇒ 胶囊需要 312px，
+   而 `max-width:calc(100vw-32px)` 在 320px 上只给 288px。被夹住的是**盒子**、不是内容
+   （`.nav-links` 是 nowrap 的 flex 容器，min-content 就是它自己那 282px，缩不动），
+   于是最后一项（主题钮）右缘落在 313.48px、胶囊右缘 304px ⇒ **内容伸出玻璃面 9.48px**（截图对得上）。
+   ⚠️ 顺带纠一处登记错的旧话：规范 §11 原写"被 `body{overflow-x:hidden}` 裁掉"——实测裁不到，
+   `documentElement.scrollWidth` 在 320/340/360 上恒等于 `innerWidth`，从来没有整页横向溢出；
+   坏的是"内容出盒"，看得见的是那枚钮悬在胶囊外面。
+   这一档只收两枚布局量：gap 10→8（六段间距省 12px）、横向 padding 14→12（省 4px）。
+   改后实测 `.nav-links` 270px、胶囊需要 296px、仍比 288 宽 8px ⇒ **那 8px 全塌在右内边距上**：
+   左右名义 12px，实测左 13.00 / 右 4.52（都含 1px 描边）。内容右缘 299.48 已在胶囊右缘 304 之内
+   （出盒量 +9.48 → -4.52），"内容出盒"的破口点从 330px 挪到 316px（316 实测 -0.52、315 实测 +0.48）。
+   ⚠️ 不许动 `flex-wrap:nowrap`（§11 已签字：胶囊不折行，这是设计选择不是 bug）、
+   不许隐藏任何一项（会撞 `.here` 那枚当前页记号，§9 为"同一个符号两种状态"改过一次）、
+   不许改字号、不许加 `text-overflow`、不许碰 `body{overflow-x:hidden}` 去遮。
+   ⚠️ 这里**一条颜色声明都不许出现**：`palette-check` 现在认"同一个色板令牌出现在第二份表里就红"。
+   首页那一档在 `home.css` 里同值重写了一份，理由写在那边。 */
+@media (max-width:340px){
+  .nav{ padding:9px 12px; }
+  .nav-links{ gap:8px; }
+}
+
 /* ============ 跨页转场：跨文档 view transition（§8.3"页面切换"档） ============ */
 /* 零 JS：打开 @view-transition 之后，同源跳转由浏览器接管快照，跨页也能续上动画。
    Chrome / Edge 生效；Firefox、Safari 认不出这个 at-rule 与这组伪元素，直接退成瞬时导航
