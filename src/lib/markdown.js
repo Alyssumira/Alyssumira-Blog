@@ -1,5 +1,6 @@
 /* 正文排版白名单（§15）：段落 / ## H2 / ### H3 / - 与 1. 列表 / > 引用 / --- 分隔线 /
-   *em* / `code` / [文字](链接) / ![alt](src "图注") / [^id] 脚注 / ^[文字] 边注
+   *em* 与 **strong** 与 ***粗斜*** / `code` / 围栏代码块 ```lang / |a|b| 表格 / [文字](链接) /
+   ![alt](src "图注") / [^id] 脚注 / ^[文字] 边注
    解析器从旧版 assets/mistwood.js 原样搬来，规范里的"不超纲"就靠它 */
 function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -85,7 +86,7 @@ function footnotes(){
   return `<section class="footnotes"><h2 class="fn-title">注</h2><ol>${items}</ol></section>`;
 }
 
-function inlineMd(s){              /* 行内：`code` · *em* · [文字](链接) · [^id] · ^[注]。图片是块级，不走这里 */
+function inlineMd(s){              /* 行内：`code` · *em* · **strong** · [文字](链接) · [^id] · ^[注]。图片是块级，不走这里 */
   /* 反引号先摘出来占位：不这么做，`[^1]` 会在自己被渲染成 code 之前就被当脚注引用吃掉，
      `[a](url)` 也一样——code 里的东西必须按字面出现（§15） */
   const kept = [];
@@ -94,6 +95,12 @@ function inlineMd(s){              /* 行内：`code` · *em* · [文字](链接
     /* 边注与脚注必须赶在 LINK_RE 之前：`^[x](y)` 会被链接规则当成 [x](y) 吃掉 */
     .replace(/\^\[([^\]]*)\]/g, (m, t) => (allowRefs ? sideNote(t) : m))
     .replace(/\[\^([^\]]+)\]/g, (m, id) => (allowRefs ? fnRef(id) : m))
+    /* 加粗必须赶在斜体之前，而且分两枚模式：先 `***粗斜***`（它含着一枚 `**`，晚一步就被下面那条劈开），
+       再 `**粗**`。倒过来的旧行为是：`**加粗**` 从第 2 枚星号起被斜体吃掉一半、屏幕上剩一枚裸 `*`。
+       惰性 `[\s\S]+?` 不写 `[^*]+`——后者撞上 `**a *b* c**` 里那对单星号就断在半路，整条粗体匹配不上，
+       剩下的 `**` 又会落回斜体那一枚规则里（§15 两侧格子各钉一条）。 */
+    .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(LINK_RE, (m, text, h) => link(text, h))
     .replace(/\u0000(\d+)\u0000/g, (m, i) => kept[i]);
@@ -118,8 +125,102 @@ function quoteMd(t){
        + (who ? `<footer>${inlineMd(who[1].trim())}</footer>` : '') + '</blockquote>';
 }
 
-function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引用 / 分隔线 / 图片行（整段是图、图包在链接里也算） */
-  /* 行尾不许是输入的一部分：下面整份解析器以 '\n' 为唯一行分隔（/\n{2,}/ 切块、split('\n') 拆引用），
+/* ---- 围栏代码块 ```lang：整块只过 esc()，一枚字节都不许进 inlineMd ----
+   和行内 `code` 同一条理由（§15"code 里的东西一律按字面出现"），只是范围扩到整块：
+   围栏里写 [^1]、写 **x**、写 |a|b| 都必须原样落进 <pre>，因为它们是"被读的代码"不是"被排版的散文"。 */
+const FENCE_IN = /^ {0,3}(`{3,})[ \t]*([^\n]*)$/;     /* 开栏：至多三枚前导空格（第四枚就进代码了） */
+const FENCE_OUT = /^(`{3,})[ \t]*([^\n]*)\n?([\s\S]*?)(?:\n {0,3}`{3,}[ \t]*)?$/;
+function codeMd(t){
+  const m = t.match(FENCE_OUT);
+  if (!m) return null;
+  /* 语言标识要进 data-lang（后面那张卡靠它挂复制钮），所以只收白名单形状：
+     收不下就整个不要这一枚属性——宁可没有标签，不许拿作者的说明串去拼属性 */
+  const one = m[2].trim().split(/\s+/)[0];
+  const lang = /^[A-Za-z0-9._+-]{1,24}$/.test(one) ? one.toLowerCase() : '';   /* 小写：§12 禁大写标签 */
+  /* 未闭合的围栏一路吃到文末（CommonMark 同一口径），尾随空行不算内容 */
+  const body = m[3].replace(/\n+$/, '');
+  return `<div class="codeblock"${lang ? ` data-lang="${lang}"` : ''}>`
+       + `<pre class="code"><code>${esc(body)}</code></pre></div>`;
+}
+
+/* ---- 表格 |a|b| + 分隔行 ----
+   认不认一枚块，判据全在第二行：那一行必须含竖线、且每一格都是 `:?-+:?`。
+   含竖线这一条有牙——`标题\n---` 那种 setext 写法（白名单里没有）不许被重新解释成一列表格，
+   那等于把作者的一行标题换成一块空表。 */
+const T_CELL = /^:?-+:?$/;
+function splitRow(line){
+  let s = line.trim();
+  if (s.startsWith('|')) s = s.slice(1);
+  if (s.endsWith('|') && !s.endsWith('\\|')) s = s.slice(0, -1);
+  const out = [];
+  let buf = '';
+  for (let i = 0; i < s.length; i++){
+    if (s[i] === '\\' && s[i + 1] === '|'){ buf += '|'; i++; continue; }   /* \| 是内容里的竖线，不是分格 */
+    if (s[i] === '|'){ out.push(buf); buf = ''; continue; }
+    buf += s[i];
+  }
+  out.push(buf);
+  return out;
+}
+function sepCols(line){
+  if (!line.includes('|')) return null;
+  const cols = splitRow(line).map(c => c.trim());
+  if (!cols.length || !cols.every(c => T_CELL.test(c))) return null;
+  /* 对齐只由冒号的位置决定：`:---:` 中、`---:` 右、`---` 与 `:---` 左。
+     `:---` 不落 class——左对齐是这张表的默认读法，写它等于什么都不改。 */
+  return cols.map(c => {
+    const l = c.startsWith(':'), r = c.endsWith(':');
+    return l && r ? 'c' : r ? 'r' : '';
+  });
+}
+function tableMd(t){
+  const lines = t.split('\n');
+  if (lines.length < 2) return null;                  /* 只有表头没有分隔行 ⇒ 不是表格，退回段落 */
+  const cols = sepCols(lines[1]);
+  if (!cols) return null;
+  const head = splitRow(lines[0]);
+  if (head.length !== cols.length) return null;       /* 表头与分隔行格数不等：作者写坏了，不猜 */
+  const cells = line => {
+    const c = splitRow(line);
+    return c.length > cols.length ? c.slice(0, cols.length) : c.concat(Array(cols.length - c.length).fill(''));
+  };
+  const row = (arr, tag) => '<tr>' + arr.map((c, i) => {
+    const al = cols[i] === 'c' ? ' class="al-c"' : cols[i] === 'r' ? ' class="al-r"' : '';
+    return `<${tag}${al}>${inlineMd(c.trim())}</${tag}>`;      /* 格子里要能放链接与行内 code，所以走 inlineMd */
+  }).join('') + '</tr>';
+  const body = lines.slice(2).map(cells).filter(r => r.some(c => c.trim() !== ''))
+                    .map(r => row(r, 'td')).join('');
+  return `<div class="tablewrap"><table><thead>${row(head, 'th')}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+/* ---- 块切分：围栏之内不切 ----
+   原先这里是一句 `md.split(/\n{2,}/)`，而代码块内部**允许有空行**，一枚围栏会被劈成两半、
+   前半尾巴上还带着那枚裸 ``` 上屏。改成逐行游标：空行只有在"不在围栏里"时才算分块。
+   ⚠️ 它是 `split(/\n{2,}/)` 的**替身不是改写**——交回给上层的那串块，在没有围栏的稿子里与旧写法
+   逐块相同（check-markdown 第四轮拿三篇 fixture 逐元素比过），所以下面那两趟 collectDefs
+   （脚注定义习惯写在文末、引用却在开头）读的块序列一个字没变，脚注编号与缺号判据都不受牵动。
+   归一 CRLF 之后才走这里：围栏识别按 '\n' 分行，'\r' 会把 ` ``` ` 那行读成带尾字符的一行。 */
+function splitBlocks(md){
+  const out = [];
+  let buf = [], fence = 0;
+  for (const line of md.split('\n')){
+    if (fence){                                       /* 在栏里：空行不算分块，只有同等长度的反引号独行才关栏 */
+      buf.push(line);
+      const c = line.match(/^ {0,3}(`+)\s*$/);
+      if (c && c[1].length >= fence) fence = 0;
+      continue;
+    }
+    const open = line.match(FENCE_IN);
+    if (open){ buf.push(line); fence = open[1].length; continue; }
+    if (line === ''){ if (buf.length){ out.push(buf.join('\n')); buf = []; } continue; }
+    buf.push(line);
+  }
+  if (buf.length) out.push(buf.join('\n'));
+  return out;
+}
+
+function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引用 / 分隔线 / 代码围栏 / 表格 / 图片行（整段是图、图包在链接里也算） */
+  /* 行尾不许是输入的一部分：下面整份解析器以 '\n' 为唯一行分隔（splitBlocks 切块、split('\n') 拆引用），
      而 `core.autocrlf=true` 的机器上 `git clone` 会把稿件落成 CRLF —— 那时 '\r\n\r\n' 里两个 '\n' 不相连，
      一篇稿子塌成一整枚 <p>、'## ' 以字面量上屏，而 build 全绿。new-post.mjs 的 read() 早已为同一个坑
      归一成 LF，渲染器漏了：检查归一、渲染不归一 ⇒ 门禁绿得恰恰因为它赦免了同一件事。 */
@@ -127,13 +228,16 @@ function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引�
   fnDefs.clear(); fnOrder.length = 0; anchored.clear(); sn.n = 0; allowRefs = true;
   /* 两趟：脚注定义习惯写在文末，可引用在开头——先收完定义再渲染，否则第一处引用会当成缺号 */
   const blocks = [];
-  for (const raw of md.split(/\n{2,}/)){
+  for (const raw of splitBlocks(md)){
     const t = raw.trim();
     if (!t) continue;
     if (FN_LINE.test(t)) { collectDefs(t); continue; }   /* 一整块都是定义：一行一条，续行接上一条 */
     blocks.push(t);
   }
-  const html = blocks.map(t => {    if (t.startsWith('### ')) return '<h3>' + inlineMd(t.slice(4)) + '</h3>';
+  const html = blocks.map(t => {    if (t.startsWith('```')) { const code = codeMd(t); if (code) return code; }
+    const tbl = tableMd(t);
+    if (tbl) return tbl;
+    if (t.startsWith('### ')) return '<h3>' + inlineMd(t.slice(4)) + '</h3>';
     if (t.startsWith('## ')) return '<h2>' + inlineMd(t.slice(3)) + '</h2>';
     if (/^(?:-{3,}|\*{3,})$/.test(t)) return '<hr>';
     const lines = t.split('\n');
@@ -159,4 +263,4 @@ function fmtDate(d){
   return [d.getUTCFullYear(), String(d.getUTCMonth() + 1).padStart(2, '0'), String(d.getUTCDate()).padStart(2, '0')].join('.');
 }
 
-export { renderMd, inlineMd, fmtDate, root, safe };
+export { renderMd, inlineMd, fmtDate, root, safe, splitBlocks };
