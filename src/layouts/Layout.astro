@@ -1,7 +1,7 @@
 ---
 import '../styles/base.css';
 import '../styles/mistwood.css';
-import { fonts, FONT_HOST } from '../data/site.js';
+import { fonts, FONT_HOST, FONT_FILE_HOST } from '../data/site.js';
 
 const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website' } = Astro.props;
 /* 绝对地址：社交卡与 og:url 拿的是访客之外第三双眼睛看到的 URL，相对路径在那边不成立。
@@ -45,7 +45,7 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
 <meta name="twitter:description" content={desc}>
 <meta name="twitter:image" content={ogImage.href}>
 <link rel="preconnect" href={FONT_HOST}>
-<link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
+<link rel="preconnect" href={FONT_FILE_HOST} crossorigin>
 <link href={FONTS} rel="stylesheet">
 <link rel="alternate" type="application/rss+xml" title="mistwood" href="/rss.xml">
 <!-- 原生预取（零 JS）：把目标文档在悬停时就备好，跨页转场（§8.3）才不会因为新文档还没加载完
