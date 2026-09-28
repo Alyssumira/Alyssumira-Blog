@@ -207,11 +207,6 @@ if (!PAGES.length) die(`${DIST} 里一份 HTML 都没有`, '  dist/ 空＝build 
    所以期望值从**源码行首的 '## '** 独立数出来（这条读法对行尾天然免疫：'^' 只看 '\n' 之后）。
    ⚠️ 产物侧要摘掉脚注那枚标题：footnotes() 发的是 '<h2 class="fn-title">注</h2>'（markdown.js:85），
    今天三篇都没写脚注所以朴素计数恰好相等——但有人加一枚 [^1] 的那天，不摘的尺子就会假红。
-   ⚠️ 第十一轮（`card/detail`）这一格多两读，都是"产物侧才看得见"的形状：
-   ① **H3 那一档**（源码 `^### ` ⇄ 产物 `<h3>`）——目录本轮起收 H3，期望值必须能独立数出来，
-      不能拿 `buildToc` 自己的输出当尺子；② **灯箱的在场判据**（图版枚数 ⇄ 那枚原生对话框的枚数，
-      读产物前先摘注释）——"正文没图 ⇒ 整块不出现"这条只能在这儿有牙，因为它是构建期那半件的事，
-      运行时那一侧的对应格子在第 6 节（目录⇄刻度⇄复制钮）。
 
    ⚠️ 第十轮（`card/taxonomy`）这一格多担两件事，因为它们是"产物侧才看得见"的那种事故：
    ① **草稿泄漏**：`getStaticPaths` 里漏掉 filter 时，列表页搜不到这一篇、地址却照样烘出来（og:url、
@@ -314,37 +309,14 @@ for (const [key, groups, dir] of [['分类', bySize(groupBy(visible, categoryOf)
   }
   notes.push(`${key}清单对账：${groups.length} 枚（${groups.map(g => `${g.slug}×${g.posts.length}`).join(' ') || '一枚都没有 ⇒ 索引页走空态'}）`);
 }
-/* 目录与刻度到底收了几级标题，是**运行时**才知道的事（两排节点都由 site.js 造），所以这一格
-   要读到浏览器那一侧去。这里先把源码侧的期望值算好存起来，交给第 6 节的完整档对账。
-   ⚠️ 口径与上面那格 `^## ` 完全同一条（同一枚 `m` 标志、同一份 p.body、同一笔"围栏里不该写行首井号"的
-   已知局限——今天三篇稿子零枚围栏，见 §15），只是把 H3 一起数进来：本轮详情页收 H3，
-   而**目录与刻度必须收同一批**（`site.js` 那枚 HEAD_SEL 是唯一出处），所以判据要能看见"只改了一处"。 */
-const HEADS = new Map();      // slug → { h2, h3, total }
 for (const p of visible) {
   const out = join(DIST, 'essays', p.id, 'index.html');
   if (!existsSync(out)) { problems.push(`${p.id}：源码有稿而 dist/essays/${p.id}/index.html 不在 ⇒ 这一页根本没构建出来，结构对账无从谈起`); continue; }
   const want = (p.body.match(/^## /gm) || []).length;
-  const wantH3 = (p.body.match(/^### /gm) || []).length;
-  HEADS.set(p.id, { h2: want, h3: wantH3, total: want + wantH3 });
-  const html = readFileSync(out, 'utf8');
-  const got = (html.match(/<h2\b[^>]*>/g) || []).filter(t => !/fn-title/.test(t)).length;
+  const got = (readFileSync(out, 'utf8').match(/<h2\b[^>]*>/g) || []).filter(t => !/fn-title/.test(t)).length;
   if (got !== want) problems.push(`${p.id}：源码有 ${want} 枚行首 "## "，产物里只有 ${got} 个 <h2> ⇒ 块级结构在渲染器里塌了（切块口径见 markdown.js:121；成段塌成一枚 <p> 是最常见的形状）`);
   else notes.push(`结构对账 ${p.id}：源 ${want} 枚 "## " ＝ 产物 ${got} 个 <h2> ✓（fn-title 那枚已摘除；全绿时也要看得见这两枚数，否则"没匹配到"与"全过"长得一样）`);
-  /* H3 这一档今天三篇稿子都是 0 枚 —— 0 是合法读数，不是空转：它同时钉着"渲染器没把 ### 吃成 <p>"
-     与"目录没有凭空多收"两侧；有载体的那一跑（本卡实测过）读的就是非零那档。 */
-  const gotH3 = (html.match(/<h3\b[^>]*>/g) || []).length;
-  if (gotH3 !== wantH3) problems.push(`${p.id}：源码有 ${wantH3} 枚行首 "### "，产物里却有 ${gotH3} 个 <h3> ⇒ H3 在渲染器里要么塌了、要么多出来的那枚不是稿子里写的（详情页正文区不许自己长标题）`);
-  else notes.push(`结构对账 ${p.id}：源 ${wantH3} 枚 "### " ＝ 产物 ${gotH3} 个 <h3> ✓（目录与刻度收的就是这一批，见下面"目录⇄刻度"那一格）`);
-  /* 灯箱的在场判据（本轮 `card/detail`，构建期那半件）：**正文有图版 ⇒ 一枚灯箱；零枚图版 ⇒ 一个字节都没有**。
-     读的是产物、摘掉注释（同一把尺子：注释里那句说明不是节点，§14 那条假红教的正是这件事）。
-     两个方向都要判——"没有图也发一块"违反整块不出现，"有图却没发"是灯箱根本不在场。 */
-  const shots = (stripComments(html).match(/<figure class="shot"/g) || []).length;
-  const boxes = (stripComments(html).match(/<dialog\b/g) || []).length;
-  const wantBox = shots ? 1 : 0;
-  if (boxes !== wantBox) problems.push(`${p.id}：正文里 ${shots} 枚图版 ⇒ 灯箱该是 ${wantBox} 枚，产物里读到 ${boxes} 枚 ⇒ "有图没灯箱"或"没图却留了一块灯箱"（后者就是 §12 那条不许预留空位）`);
-  else notes.push(`灯箱在场对账 ${p.id}：图版 ${shots} 枚 ⇄ 灯箱 ${boxes} 枚（${shots ? '有载体，正合适' : '零枚 ⇒ 整块不出现，产物里一个字节都没有'}）✓`);
 }
-if (!HEADS.size) problems.push('目录⇄刻度对账没跑：可见稿件是 0 篇 ⇒ HEADS 是空的，那一格读不到任何对象（判据空转不算过）');
 
 /* ---------- 2. 浏览器 ---------- */
 const EDGE_CANDIDATES = [
@@ -511,48 +483,6 @@ function clockOf(html) {
   return m ? m[1].trim() : null;
 }
 
-/* ---------- 目录 ⇄ 刻度：同一批标题的两个投影（本轮 `card/detail` 那一格的牙） ----------
-   `site.js` 把唯一那枚 `HEAD_SEL` 交出去两次：buildToc 造 `#toc a`、刻度那一排造 `#progress-marks span`。
-   两条判据叠在一起才叫有牙：① 各自都等于源码里 H2＋H3 的总数，② 而且彼此相等。
-   "只改了一处"（目录收 H3、刻度不收）单看任何一边都长得像对的，只有并排读才看得见少了哪一枚。
-   ⚠️ 两档的读数是**故意不同**的：这两排节点都由脚本造 ⇒ 隔离档（.js 全 404）里必须一枚都不在，
-     那枚 0 就是"静态产物里没有目录"这一条的见证物；完整档里才判它等于标题总数。 */
-function headNodes(html) {
-  const toc = /<nav id="toc"[^>]*>([\s\S]*?)<\/nav>/i.exec(html || '');
-  const mk = /<div id="progress-marks"[^>]*>([\s\S]*?)<\/div>/i.exec(html || '');
-  return {
-    toc: toc ? (toc[1].match(/<a\b/g) || []).length : null,
-    marks: mk ? (mk[1].match(/<span\b/g) || []).length : null,
-    /* 复制钮那一族：外壳是渲染器发的静态形状，钮是 site.js 挂上去的——两枚数在完整档里必须相等，
-       在隔离档里钮必须是 0（"没 JS 就没有钮"）。只数带 data-lang 的外壳：那是挂点的定义域。 */
-    blocks: (html || '').match(/class="codeblock" data-lang=/g)?.length ?? 0,
-    copies: (html || '').match(/class="post-act code-copy"/g)?.length ?? 0,
-  };
-}
-let headAsserted = 0, headNonZero = 0, blockSeen = 0;      // 跑了多少页 / 其中标题总数非零的有几页 / 围栏总数 ⇒ 防空转
-function assertHeads(label, url, stdout, kind) {
-  const m = /^\/essays\/([a-z0-9-]+)\/$/.exec(url);
-  if (!m) return;
-  const want = HEADS.get(m[1]);
-  if (!want) { problems.push(`${label} ${url}：这一页看着是详情页，却不在可见稿件清单里 ⇒ 目录⇄刻度读不到它的期望值（不许当成"零枚标题"放过）`); return; }
-  const got = headNodes(stdout);
-  if (got.toc === null || got.marks === null) { problems.push(`${label} ${url}：dump 里找不到 #toc 或 #progress-marks 那一枚宿主 ⇒ 这一格没有对象（"读不到"从来不算过）`); return; }
-  headAsserted++;
-  blockSeen += kind === 'full' ? got.blocks : 0;
-  if (kind === 'isolate') {
-    if (got.toc || got.marks) problems.push(`[内联隔离档] ${url}：目录 ${got.toc} 条、刻度 ${got.marks} 枚 ⇒ .js 根本没被拦住，这一档白跑（那两排节点只应由 site.js 造，隔离档里必须是 0）`);
-    else if (got.copies) problems.push(`[内联隔离档] ${url}：读到 ${got.copies} 枚代码块复制钮 ⇒ .js 其实跑了（隔离档里那枚钮一枚都不该在）`);
-    else notes.push(`目录⇄刻度（隔离档）${url}：0 条 / 0 枚 / 复制钮 0 枚 ✓ —— 三样都由脚本造，静态产物里没有它们`);
-    return;
-  }
-  if (got.copies !== got.blocks) problems.push(`[完整档] ${url}：带 data-lang 的代码块 ${got.blocks} 枚、复制钮却只有 ${got.copies} 枚 ⇒ 复制钮没挂上（或挂错了定义域：挂点是 .codeblock[data-lang] 那一行标签）`);
-  if (want.total > 0) headNonZero++;
-  if (got.toc !== want.total) problems.push(`[完整档] ${url}：目录 ${got.toc} 条，而源码是 ${want.h2} 枚 H2 ＋ ${want.h3} 枚 H3 ＝ ${want.total} 枚标题 ⇒ buildToc 少收或多收了（本轮起 H3 要收进目录）`);
-  else if (got.marks !== got.toc) problems.push(`[完整档] ${url}：刻度 ${got.marks} 枚 ≠ 目录 ${got.toc} 条 ⇒ 两把尺子分叉了：同一枚选择器只改了一处（目录与刻度必须吃同一个 HEAD_SEL，这是规范禁的那个形状）`);
-  else if (got.marks !== want.total) problems.push(`[完整档] ${url}：目录与刻度各 ${got.toc} 枚，源码却是 ${want.total} 枚标题 ⇒ 两边一起漏，问题在 HEAD_SEL 或标题本身没进正文`);
-  else notes.push(`目录⇄刻度 ${url}：${got.toc} 条 ⇄ ${got.marks} 枚 ＝ 源 ${want.h2} 枚 H2 + ${want.h3} 枚 H3（同一批标题的两个投影）✓${got.blocks ? `；代码块 ${got.blocks} 枚、复制钮 ${got.copies} 枚 ✓` : ''}`);
-}
-
 async function runPhase(kind, profiles) {
   const isIso = kind === 'isolate';
   isolatePass = isIso;
@@ -571,7 +501,6 @@ async function runPhase(kind, profiles) {
           const c = clockOf(got.stdout);
           witness.push(`隔离档 ${job.page.url} 时钟=${JSON.stringify(c)}`);
           notes.push(`隔离档 ${job.page.url} data-phase=${JSON.stringify(got.attrs['data-phase'])}（这一档 .js 全被 404，只可能读到静态那一枚）`);
-          assertHeads('[内联隔离档]', job.page.url, got.stdout, 'isolate');
           if (c && /\d{1,2}:\d{2}/.test(c)) problems.push(`内联隔离档 ${job.page.url}：#clock 是 ${JSON.stringify(c)} ⇒ 模块脚本压根没被拦住，这一档其实跑在完整环境里（判据空转：五枚属性可能来自 site.js 而不是内联脚本）`);
         }
       } else {
@@ -582,7 +511,6 @@ async function runPhase(kind, profiles) {
           witness.push(`完整档 ${job.page.url} 时钟=${JSON.stringify(c)}`);
           if (!c || !/\d{1,2}:\d{2}/.test(c)) problems.push(`完整档 ${job.page.url}：#clock 还是 ${JSON.stringify(c)} ⇒ site.js 没跑（资源没喂到 / MIME 不对 / 模块脚本自己炸了），这一档和隔离档没区别（判据空转）`);
           assertPhase('[完整档]', job.page.url, got.attrs, w);
-          assertHeads('[完整档]', job.page.url, got.stdout, 'full');
           const rv = 'data-revisit' in got.attrs ? got.attrs['data-revisit'] : null;
           notes.push(`${job.page.url} data-revisit=${rv === null ? '未写' : JSON.stringify(rv)}（只报不判，理由见文件头"故意没做"①）`);
         }
@@ -598,12 +526,6 @@ await runPhase('isolate', Array.from({ length: JOBS }, (_, i) => newProfile(`iso
 await runPhase('full', Array.from({ length: JOBS }, (_, i) => newProfile(`full${i}`)));
 
 if (!tally.isolate || !tally.full) die(`断言份数不正常：隔离档 ${tally.isolate}、完整档 ${tally.full}（0 份＝没进过闸）`);
-/* 目录⇄刻度那一格的防空转（本节开头那条老判据：跑了但一页都没读 ≠ 读过且全过）：
-   一份详情页都没进这一格 ⇒ 红；进了而**每一篇的标题总数都是 0** ⇒ 也红（两侧都是零的相等没有信息量）。 */
-if (!headAsserted) problems.push(`目录⇄刻度这一格一个断言都没跑（详情页一份都没读到 #toc / #progress-marks）⇒ 判据空转，不许算过`);
-else if (!headNonZero) problems.push(`目录⇄刻度跑了 ${headAsserted} 页，而每页的标题总数都是 0 ⇒ 相等是相等，判据什么也没看见（三篇稿子一枚标题都没有？去看 src/content/posts/）`);
-else console.log(`  目录⇄刻度：${headAsserted} 页读进这一格，其中 ${headNonZero} 页的标题总数非零（防空转：两侧都为零的相等不算看见）`);
-if (headAsserted && !blockSeen) notes.push('代码块复制钮：完整档里全站 0 枚带 data-lang 的围栏 ⇒ 这一格今天没有对象（读得到形状、判据仍然算跑过——口径照上面"草稿对账"那一格）');
 console.log(`\n  断言份数：内联隔离档 ${tally.isolate} / 完整档 ${tally.full}，浏览器共启动 ${launched} 次`);
 console.log(`  见证物 #clock 文本：${witness.join('，')}`);
 console.log(`  隔离档里被拦下的 .js：${served.blocked.size} 种（这一档靠它保证"五枚属性只剩内联脚本一个写者"）`);

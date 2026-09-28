@@ -1,48 +1,169 @@
 <!DOCTYPE html>
-<!-- 社交预览图的源文件：public/og.png 由这一页出，1200×630 一寸不差。
-     出图命令（Edge 无头；内置浏览器视口只有 724px 宽，够不到 1200，用它出不了图）：
+<!-- 社交预览图的母题模板：站点级那张 public/og.png 与逐篇的 public/og/<slug>.png 都由这一页出，1200×630 一寸不差。
+     出图（`npm run og`，作者 2026-09-29 点头收进 package.json；命令本体就是下面这条，脚本只是替每篇稿子代跑一遍）：
        "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
          --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
          --window-size=1200,630 --user-data-dir=<一个空目录> --virtual-time-budget=20000 \
          --screenshot=<仓库根>/public/og.png "file:///<仓库根>/tools/og-card.html"
      --virtual-time-budget 那 20 秒是给 fonts.loli.net 那四个字体落地的，砍掉会拿到系统默认字。
+     ⚠️ 内置浏览器出不了这张图：实测视口最多 1086 设备像素宽，够不到 1200。
+     ⚠️ 这一页现在是**模板**，直接开它是没有颜色的：色值不在这里抄一份，由 tools/og-cards.mjs 在出图前从
+        `src/styles/base.css` 的 :root 现读现注入（注进 style 里那枚 OG:TOKENS 槽）。零枚新 hex 进这张卡——
+        §12:816 那枚"第五色"要作者签字才许破，这张卡一张也没破。文案槽是 h1 里那对 OG:TITLE 起止标记，
+        站点级的默认文案就写在它们中间：不替换它就是原来那张卡（`npm run og` 每次先拿它与 public/og.png
+        逐字节对账，对不上就当场停——那既是在验母题没被我改坏，也是**字体真的落地了**的证据：字没落地时
+        字形与字距都会变，md5 不可能还相等）。
+        ⚠️ 踩过的坑钉在这条注释里（与 §13a 那枚 SVG 注释禁 `--` 同族）：**这段注释里不许出现槽标记的字面量**。
+           头一回写这页时把 OG:TITLE 那两枚标记连尖括号一起抄进了注释，两件事同时坏：注释被中间那个
+           右尖括号提前关掉（关掉的那段变成页面上的字），而脚本的"只替换唯一一处"扑了空、把色板注进了注释里。
+           要指代槽就写名字，别写它的字面量。
+     标题多长都装得下——这条是规则不是运气（脚本读页面回报的 OGFIT 那行，不合格就不出图，绝不裁字）：
+       · 盒子：左右各 110px ⇒ 可用宽 980px；梯子的顶档就是站点卡那枚 62px，**再短的标题也不放大**，
+         卡片之间比的是同一把尺。
+       · 折行：中日韩逐字断行、拉丁整词不断词（浏览器的常规断行，没开 break-anywhere）；标题里显式的
+         <br> 照办（站点卡那句就靠它断成两行）。
+       · 梯度：62 → 52 → 44 → 38 四档，从大到小试；行高 1.32 跟着字号缩放，行距不另调。
+       · 让位：标题盒的底不得越过 412px（树线 630−200=430 之上再留 18px 空气），且不得超过 3 行。
+       · 四档的实测容量（这台机器、这套字体、2026-09-29 拿 --probe 逐档量出来的，不是估的）：
+           62px ⇒ 1–2 行，约 ≤31 字；52px ⇒ 2 行，约 ≤37 字；44px ⇒ 3 行，约 ≤65 字；38px ⇒ 3 行，约 ≤77 字。
+           三行这一档只有 44 / 38 够得到——62 与 52 的三行会越过 412 那条让位线，这就是"让位"在管的事。
+           29 字实测落在 62px/2 行、33 字落在 52px/2 行、45 与 60 字落在 44px/3 行、90 字报错。
+       · 溢出：**四档都不合格 ⇒ 报错、这一篇不出图**，不裁字、不缩到看不见、也不让字压在树上。
+         宁可少一张卡（那一页干净退回站点级 /og.png），也不能有一张"标题被悄悄切掉半句"的卡被转发出去。
+         超出 77 字就是这一篇的标题需要人重写，不需要机器硬塞。
+       · 长词：一个不可断的拉丁长词自己就宽过 980px 也算不合格（同一条"报错不出图"）。
      取值口径（为什么是这两句字面量、为什么不用照片）登记在 docs/设计规范.md §13a。
-     这张页不进构建、不对外服务，只是素材的出处。 -->
+     这张页不进构建、不对外服务，只是那几枚二进制的出处。 -->
 <html lang="zh-CN"><head><meta charset="UTF-8">
 <link href="https://fonts.loli.net/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Noto+Serif+SC:wght@400;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
+  /*OG:TOKENS*/
   html,body{margin:0;padding:0}
   .card{position:relative;width:1200px;height:630px;overflow:hidden;
-    background:linear-gradient(180deg,#EDE9DD 0%,#F2F4EF 45%);
+    background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-base) 45%);
     font-family:"Noto Serif SC","Songti SC",serif;-webkit-font-smoothing:antialiased}
   .pad{position:absolute;left:110px;top:150px;right:110px}
-  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:20px;letter-spacing:.14em;color:#5A675E}
-  h1{margin:26px 0 0;font-size:62px;font-weight:600;line-height:1.32;letter-spacing:.02em;color:#232B25}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:20px;letter-spacing:.14em;color:var(--ink-2)}
+  h1{margin:26px 0 0;font-size:62px;font-weight:600;line-height:1.32;letter-spacing:.02em;color:var(--ink)}
   h1 em{font-family:"Fraunces",serif;font-style:italic;font-weight:300;letter-spacing:-.015em;
-    color:#5F7D63;margin:0 .12em}
+    color:var(--moss-deep);margin:0 .12em}
   .trees{position:absolute;left:0;bottom:0;width:1200px;height:200px;display:block}
+  /* 回报那一行住在盒子外面：position:fixed 不参与版面，截图里一个像素都不占，
+     但它必须活着让脚本读到——出图前脚本先跑一遍 --dump-dom 拿这行，判不过就不截图。 */
+  #ogfit{position:fixed;left:-9999px;top:0;font:12px monospace;white-space:pre;color:var(--ink)}
 </style></head>
 <body>
 <div class="card">
   <div class="pad">
     <p class="eyebrow">mistwood · 晨雾森林</p>
-    <h1>在森林与代码之间，<br>收集微风、<em>light</em> 和好文章。</h1>
+    <h1><span class="tl"><!--OG:TITLE-->在森林与代码之间，<br>收集微风、<em>light</em> 和好文章。<!--OG:TITLE/--></span></h1>
   </div>
   <svg class="trees" viewBox="0 0 1200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <defs>
       <linearGradient id="fogNear" x1="0" y1="0" x2="0" y2="200" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#5F7D63" stop-opacity="1"/>
-        <stop offset=".82" stop-color="#5F7D63" stop-opacity="1"/>
-        <stop offset="1" stop-color="#5F7D63" stop-opacity=".28"/>
+        <stop offset="0" style="stop-color:var(--moss-deep)" stop-opacity="1"/>
+        <stop offset=".82" style="stop-color:var(--moss-deep)" stop-opacity="1"/>
+        <stop offset="1" style="stop-color:var(--moss-deep)" stop-opacity=".28"/>
       </linearGradient>
       <linearGradient id="fogFar" x1="0" y1="0" x2="0" y2="168" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#7C9A80" stop-opacity=".5"/>
-        <stop offset=".8" stop-color="#7C9A80" stop-opacity=".5"/>
-        <stop offset="1" stop-color="#7C9A80" stop-opacity=".14"/>
+        <stop offset="0" style="stop-color:var(--moss)" stop-opacity=".5"/>
+        <stop offset=".8" style="stop-color:var(--moss)" stop-opacity=".5"/>
+        <stop offset="1" style="stop-color:var(--moss)" stop-opacity=".14"/>
       </linearGradient>
     </defs>
     <path fill="url(#fogFar)" d="M50 116 76 168 24 168Z M110 94 142 168 78 168Z M170 108 194 168 146 168Z M230 82 266 168 194 168Z M290 112 318 168 262 168Z M350 100 380 168 320 168Z M410 78 444 168 376 168Z M470 106 496 168 444 168Z M530 90 562 168 498 168Z M590 118 614 168 566 168Z M650 84 680 168 620 168Z M710 102 738 168 682 168Z M770 110 804 168 736 168Z M830 88 856 168 804 168Z M890 98 922 168 858 168Z M950 112 978 168 922 168Z M1010 92 1040 168 980 168Z M1070 116 1094 168 1046 168Z M1130 104 1162 168 1098 168Z M1190 110 1216 168 1164 168Z"/>
     <path fill="url(#fogNear)" d="M20 130 54 200 -14 200Z M80 90 124 200 36 200Z M140 116 178 200 102 200Z M200 70 248 200 152 200Z M260 124 296 200 224 200Z M320 100 362 200 278 200Z M380 60 430 200 330 200Z M440 112 478 200 402 200Z M500 80 544 200 456 200Z M560 128 594 200 526 200Z M620 68 666 200 574 200Z M680 104 720 200 640 200Z M740 120 776 200 704 200Z M800 74 848 200 752 200Z M860 96 902 200 818 200Z M920 114 958 200 882 200Z M980 82 1024 200 936 200Z M1040 126 1076 200 1004 200Z M1100 102 1142 200 1058 200Z M1160 110 1198 200 1122 200Z"/>
   </svg>
 </div>
+<pre id="ogfit">OGFIT pending</pre>
+<script>
+/* 标题装不装得下，由**画这张卡的同一个引擎**量出来，不在 Node 里靠"一个汉字大约一 em"猜。
+   于是出图分两趟：这一页在 --dump-dom 那一趟把下面这行填好，脚本判过了才跑 --screenshot 那一趟。
+   两趟跑的是同一份 HTML、同一套 flag、同一个 1200×630 视口——量的那一台与画的那一台是同一台，
+   不存在"脚本算出三行、浏览器画成四行"那种分叉。回报的格式是 key=value，逐字段给脚本读。 */
+(function () {
+  var LADDER = [62, 52, 44, 38];   /* 字号梯度：顶档 = 站点卡那一档，见文件头 */
+  var MAX_LINES = 3;               /* 行数上限 */
+  var FLOOR = 412;                 /* 标题盒的底不得越过这里（树线 430 之上留 18px 空气） */
+  var h1 = document.querySelector('h1');
+  var tl = document.querySelector('h1 .tl');
+  var box = document.querySelector('.pad');
+  var out = document.getElementById('ogfit');
+  function report(r) {
+    var f = document.fonts;
+    var loaded = 0;
+    f.forEach(function (x) { if (x.status === 'loaded') loaded++; });
+    var text = (h1.textContent || '') + ' ' + (document.querySelector('.eyebrow').textContent || '');
+    /* check(spec, text) 问的是"画这句字要用到的那些 face 落地了没"，比 fonts.status 准：
+       status=loaded 只说"没有正在进行的加载"，一个字都没用过的 face 也算它完事了。 */
+    var noto = f.check('600 62px "Noto Serif SC"', text);
+    var mono = f.check('20px "IBM Plex Mono"', text);
+    var ems = h1.querySelectorAll('em');
+    var frac = true;
+    if (ems.length) {
+      var t = '';
+      for (var i = 0; i < ems.length; i++) t += ems[i].textContent;
+      frac = f.check('italic 300 62px Fraunces', t);
+    }
+    out.textContent = 'OGFIT status=' + r.status + ' size=' + r.size + ' lines=' + r.lines
+      + ' bottom=' + r.bottom + ' maxw=' + r.maxw + ' wordw=' + r.wordw + ' boxw=' + r.boxw
+      + ' floor=' + FLOOR + ' ladder=' + LADDER.join('/') + ' fontstatus=' + f.status
+      + ' faces=' + f.size + ' facesloaded=' + loaded + ' noto=' + noto + ' mono=' + mono
+      + ' fraunces=' + frac + (r.why ? ' why=' + r.why : '');
+  }
+  function widestRun(size) {
+    /* 不可断的长词：空格先切，然后 CJK **逐字**、拉丁连续段算一个词。⚠️ CJK 那一档不许写 + 号：
+       写了就把"九十个汉字"当成一枚不可断的长词去量，报出 word-wider-than-box 这种听着像真、
+       而引擎根本不会那么画的原因（第一版就踩了：朝宽那一测的 why 里混进了一句假原因）。
+       探针用正文那套衬线量，比 <em> 里的 Fraunces 斜体宽 ⇒ 上界，量出来不超就真不超。 */
+    var CJK = '\u2E80-\u9FFF\u3000-\u303F\uFF00-\uFFEF';
+    var re = new RegExp('[' + CJK + ']|[^' + CJK + ']+', 'g');
+    var p = document.createElement('span');
+    p.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:nowrap;display:inline-block;'
+      + 'font:600 ' + size + 'px "Noto Serif SC",serif;letter-spacing:.02em';
+    document.body.appendChild(p);
+    var runs = (h1.textContent || '').split(/\s+/).filter(Boolean);
+    var toks = [];
+    for (var i = 0; i < runs.length; i++) {
+      var m = runs[i].match(re);
+      if (m) toks = toks.concat(m);
+    }
+    var max = 0;
+    for (var j = 0; j < toks.length; j++) { p.textContent = toks[j]; max = Math.max(max, p.getBoundingClientRect().width); }
+    document.body.removeChild(p);
+    return max;
+  }
+  function fit() {
+    var boxw = box.getBoundingClientRect().width;
+    for (var i = 0; i < LADDER.length; i++) {
+      var s = LADDER[i];
+      h1.style.fontSize = s + 'px';
+      var rects = tl.getClientRects();
+      var lines = 0, maxw = 0;
+      for (var k = 0; k < rects.length; k++) { if (rects[k].width > 0.5) { lines++; maxw = Math.max(maxw, rects[k].width); } }
+      var b = h1.getBoundingClientRect();
+      if (lines >= 1 && lines <= MAX_LINES && b.bottom <= FLOOR && maxw <= boxw + 0.5) {
+        return { status: 'OK', size: s, lines: lines, bottom: +b.bottom.toFixed(1), maxw: +maxw.toFixed(1),
+                 wordw: +widestRun(s).toFixed(1), boxw: +boxw.toFixed(1), why: '' };
+      }
+    }
+    /* 四档都不合格：留在最小那一档（页面画成什么样脚本也不管了，反正这一篇不出图），
+       但把原因原样报回去——"报错而不是产出一张空图"这一条要靠这句才说得清。 */
+    var last = h1.getBoundingClientRect();
+    var rr = tl.getClientRects(), n = 0;
+    for (var q = 0; q < rr.length; q++) if (rr[q].width > 0.5) n++;
+    return { status: 'FAIL', size: LADDER[LADDER.length - 1], lines: n, bottom: +last.bottom.toFixed(1),
+             maxw: 0, wordw: +widestRun(LADDER[LADDER.length - 1]).toFixed(1), boxw: +boxw.toFixed(1),
+             why: (last.bottom > FLOOR ? 'over-tree-line;' : '') + (n > MAX_LINES ? 'more-than-3-lines;' : '')
+                + (widestRun(LADDER[LADDER.length - 1]) > boxw ? 'word-wider-than-box;' : '') };
+  }
+  function go() { try { report(fit()); } catch (e) { out.textContent = 'OGFIT status=ERROR why=' + e.message; } }
+  /* 字体先落地再量：没落地就量，拿到的是系统默认字的字距，选出来的档数与真实画出来的那一张不是同一张。
+     fonts.ready 万一永远不来（断网挂起），那 20 秒的 --virtual-time-budget 到点，回报停在 pending，
+     脚本读不到 OGFIT 的终态就当场报错——不会静默拿一张没量过的图。 */
+  if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+    document.fonts.ready.then(go).catch(go);
+  } else { go(); }
+})();
+</script>
 </body></html>

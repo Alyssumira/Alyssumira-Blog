@@ -405,23 +405,13 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 }
 .row .cover{ flex:none; width:92px; aspect-ratio:4/3; align-self:center; border-radius:10px; }
 
-/* 内容位照片：先雾后清晰（§8.4）+ 褪色处理（§10.5）；夜林里另打一次光（§2.2）
-   ⚠️ 这一组从**一条**拆成**两条**（几何 / 雾与褪色），拆的只是选择器名单的覆盖面，每一条里的声明
-      与取值一个字没动、权重同为 (0,1,1)、两组属性互不相交 ⇒ 原来那四枚宿主的 computed 逐位不变。
-      为什么要拆：详情页的灯箱大图要**同一把雾尺子**（§8.4 那句"从模糊到清晰 0.6s"），
-      但不要那一套 `position:absolute; inset:0; object-fit:cover` 的裁框几何（大图不许裁）。
-      并名单就是逼着第二个场合抄一遍那两行 `filter`/`transition`——两处数值迟早分叉；
-      拆开之后散雾这件事在全站仍然只有一处真值，第五个使用点只是走进同一行名单。
-      `.lightbox img` 的降级档跟着下面两处同名名单一起走（≤720 与 prefers-reduced-motion），
-      所以"移动与减弱偏好下不演散雾"这一条对它也是自动的。 */
+/* 内容位照片：先雾后清晰（§8.4）+ 褪色处理（§10.5）；夜林里另打一次光（§2.2） */
 .cover img,.thing .shot,.portrait img,.post-body img{
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-}
-.cover img,.thing .shot,.portrait img,.post-body img,.lightbox img{
   filter:var(--photo-look) blur(10px);
   transition:filter .6s cubic-bezier(.22,1,.36,1),transform .5s cubic-bezier(.22,1,.36,1);
 }
-.cover img.in,.thing .shot.in,.portrait img.in,.post-body img.in,.lightbox img.in{ filter:var(--photo-look); }
+.cover img.in,.thing .shot.in,.portrait img.in,.post-body img.in{ filter:var(--photo-look); }
 /* 正文图不裁框：essay.css 里把 position/尺寸改回原比例，只保留褪色与雾散开 */
 
 /* ============ 标签胶囊（§9 那条在册候选，第十轮 `card/taxonomy` 启用） ============ */
@@ -656,7 +646,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
      在实面上它只会读成一道多出来的描边（§0 磨砂不抛光）。窄屏那档的接触影仍然该有：
      那条玻璃条变成实色条，它还是压在照片上的一块面，还是要有贴地的那一下。 */
   .thing-bar{ background:var(--surface); box-shadow:var(--shadow-contact),var(--shadow); -webkit-backdrop-filter:none;backdrop-filter:none; }
-  .cover img,.thing .shot,.portrait img,.post-body img,.lightbox img{ filter:var(--photo-look); }   /* §11：灯箱大图同样不演散雾（名单与上面那条同源，这里不另写一份数） */
+  .cover img,.thing .shot,.portrait img,.post-body img{ filter:var(--photo-look); }
   .contact{ margin-top:72px; }
   .contact-links a{ font-size:24px; }
   .contact-links a::before{ top:5px; }
@@ -727,15 +717,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    谁先谁后都不改读数——这正是这次归并要买的东西。 */
 @media (prefers-reduced-motion:reduce){
   .nav{ opacity:1; transform:translate(-50%,0); }
-  /* ⚠️ `.lightbox img` 在这儿一起点名（§1:31 那句"凡是随输入更新的样式都要单独问一句它退成什么"的答）：
-     灯箱那张大图的"散雾"是一枚 **transition**（filter），不是 animation，所以 base.css 那条全局
-     `*{animation:none}` 管不到它；真正掐住它的是两件事叠在一起——① base.css 同档里那条
-     `transition-property:color,background-color,border-color,text-decoration-color,opacity !important`
-     把 `filter` 整个请出了可过渡名单（不在这个名单里的属性改了就是瞬时），② 就是下面这一行，
-     把**起手态**那枚 blur(10px) 也撤掉 ⇒ 减弱偏好下大图一开就是实的，不演那 0.6s。
-     灯箱其余各件（面板、`::backdrop` 那片雾、开关与图注）本来就没有 animation、没有 infinite，
-     开合是原生 `<dialog>` 的瞬时显隐 ⇒ 这一档里"退成什么"的答案是"退成静止态本身"，不是退成一段快放的动。 */
-  .cover img,.thing .shot,.portrait img,.post-body img,.lightbox img{ filter:var(--photo-look); }
+  .cover img,.thing .shot,.portrait img,.post-body img{ filter:var(--photo-look); }
   /* 转场伪元素树不在文档树里，上面那条 `*` 管不到它——跨页淡入淡出必须单独掐掉 */
   ::view-transition-old(root),::view-transition-new(root){ animation:none !important; }
 }
