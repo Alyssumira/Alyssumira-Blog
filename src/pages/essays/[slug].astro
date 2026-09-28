@@ -1,12 +1,16 @@
 ---
 import '../../styles/essay.css';
 import Layout from '../../layouts/Layout.astro';
-import { getCollection } from 'astro:content';
 import { renderMd, fmtDate } from '../../lib/markdown.js';
+import { visiblePosts } from '../../lib/posts.js';
+import { categoryOf, tagsOf, taxSlug } from '../../lib/taxonomy.js';
 import { lastRevisionDate, whenLine } from '../../lib/revised.js';
 
 export async function getStaticPaths(){
-  const posts = (await getCollection('posts')).sort((a, b) => b.data.date - a.data.date);
+  /* ⚠️ 这一格最容易漏：草稿过滤漏在 getStaticPaths 里，就是"列表搜不到、详情页照样能访问"那种最坏的假完成
+     ——地址、og:url、上一层 prev/next 全都会带着它。所以这里也只准调 visiblePosts()，不再各写一遍 filter。
+     顺序（置顶在最前）一并由它给，下面的 prev/next 邻居因此跟着新顺序走。 */
+  const posts = await visiblePosts();
   /* 「改于」向 git 要，不向 front matter 要（§15 详情页那一格）：一次并发问完，问不到的那篇退 undefined。
      ⚠️ 判据的来源是 post.filePath（glob loader 交的是"相对 config.root"的路径），不是从 slug 拼一串——
      拼出来的那串碰上子目录稿件就指到不相干的文件，宁可不显示也不许指错。 */
@@ -34,6 +38,11 @@ const when = whenOf(post.data.date, post.data.hour);
 /* 一行两读：when 来自 front matter 的 hour（可空），rev 来自 git（拿不到就 undefined）。
    两个都空 ⇒ 整块不出现，和第五轮那条"空着一个字都不显示"同一条路。 */
 const whenText = whenLine(when, post.data.date, revised);
+/* 分类与标签（§9 那枚在册候选今天启用）：**没填 ⇒ 这一整块不出现**，不是"出现一条空的"。
+   归一化与 slug 都在 lib/taxonomy.js——详情页的胶囊与分类/标签索引页必须是同一份清单，两处各算迟早分叉。 */
+const cat = categoryOf(post), catSlug = taxSlug(cat);
+const tags = tagsOf(post);
+const hasTax = !!catSlug || tags.length > 0;
 ---
 /* JSON-LD 要的这两枚就取自上面已经算好的 prop，不另问一次 git、也不从 slug 反推路径（:10-12 那条禁令同样管这里）：
    revised 是 git 里最后一次改动型提交的日历日（问不到＝undefined ⇒ Seo 那一键整块不写），date 是 front matter 那天。
@@ -51,6 +60,12 @@ const whenText = whenLine(when, post.data.date, revised);
       <h1 class="post-title">{post.data.title}</h1>
       {whenText && <p class="post-when">{whenText}</p>}
       {sub && <p class="post-sub">{sub}</p>}
+      {hasTax && (
+        <p class="chip-row">
+          {catSlug && <a class="chip" href={`/categories/${catSlug}/`}>{cat}</a>}
+          {tags.map(t => <a class="chip" href={`/tags/${taxSlug(t)}/`}>{t}</a>)}
+        </p>
+      )}
     </header>
 
     <!-- 正文走 §15 的排版白名单解析器，构建期落成静态 HTML -->

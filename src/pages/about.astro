@@ -1,14 +1,17 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getCollection } from 'astro:content';
 import { siteFacts, tone } from '../lib/stats.js';
 import { inlineMd } from '../lib/markdown.js';
+import { visiblePosts } from '../lib/posts.js';
 import { fonts, notes } from '../data/site.js';
 
 const EMAIL = 'mailto:chidanta_suki@qq.com';
 /* 站名与 GitHub 用户名是同一个字面量：这一行是全站唯一一处 github 地址（§13） */
 const GITHUB = 'https://github.com/Alyssumira';
-const f = siteFacts(await getCollection('posts'));
+/* ⚠️ 站点档案那几个数（篇数 / 字数 / 通读分钟）必须和列表页同一把尺子——尺子就是 visiblePosts()：
+   直接 getCollection('posts') 的话，一篇草稿会在关于页被数进去，而列表页搜不到它（stats.js 文件头那句
+   "列表页与关于页必须是同一把尺子"讲的正是这一族；runtime-check 拿产物对这一笔账）。 */
+const f = siteFacts(await visiblePosts());
 const fontNames = fonts.map(x => x.name).join(' · ');
 
 /* 仓库两头的日期同一天时不必写成一个区间——"2026.09.27 → 2026.09.27" 看起来像坏了 */

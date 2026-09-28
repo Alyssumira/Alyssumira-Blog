@@ -1,0 +1,29 @@
+---
+/* 一个分类页 /categories/<slug>/：这一类里有哪些稿子，一次性全列出来（零请求、零 JS）。
+   slug 由 lib/taxonomy.js 的 taxSlug() 给——它复用 markdown.js 的 safe()，所以中文分类名能过，
+   而清成空串的那种名字根本不会出现在这里（groupBy 把它丢了：没有地址的分类不配有页面，§12 死锚点）。
+   ⚠️ 地址与清单页同源：这一页只可能从 /categories/ 或详情页的胶囊抵达，两处用的都是同一个 slug 函数。 */
+import Layout from '../../layouts/Layout.astro';
+import PostRow from '../../components/PostRow.astro';
+import { visiblePosts } from '../../lib/posts.js';
+import { categoryOf, groupBy, bySize } from '../../lib/taxonomy.js';
+
+export async function getStaticPaths(){
+  const posts = await visiblePosts();                 /* 草稿的稿子不进 props，也就不进这一页 */
+  return bySize(groupBy(posts, categoryOf)).map(g => ({ params: { name: g.slug }, props: { group: g } }));
+}
+const { group } = Astro.props;
+const pad = n => String(n).padStart(2, '0');
+---
+<Layout title={`${group.name} · 分类 · mistwood`} desc={`分类「${group.name}」里的 ${group.posts.length} 篇。`}>
+  <main class="wrap">
+    <header class="page-head reveal">
+      <h1 class="page-title">{group.name}</h1>
+      <span class="sec-label">category — <b>{pad(group.posts.length)}</b> 篇 · <a class="tax-back" href="/categories/">全部分类</a></span>
+    </header>
+
+    <ol class="essay-index">
+      {group.posts.map((p, i) => <PostRow post={p} n={i + 1} />)}
+    </ol>
+  </main>
+</Layout>

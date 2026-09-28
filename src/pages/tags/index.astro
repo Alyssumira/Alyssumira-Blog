@@ -1,0 +1,36 @@
+---
+/* 标签索引（§9 那条在册候选"标签＝圆角胶囊、1px 描边、悬停填 8% 苔绿"今天启用）。
+   胶囊是指向 /tags/<slug>/ 的真 <a>：无 JS 也能用，键盘 Tab 得到、焦点环是 base.css 现成的那条。
+   ⚠️ 一枚都不许是死锚点：分组函数（lib/taxonomy.js 的 tagGroups）只收"归一化之后还有地址"的名字，
+      taxSlug() 清成空串那种直接丢——`[^注一]` 那一族先例写在 markdown.js 的注释里，白名单不是装饰。
+   ⚠️ 数与清单同源：这一页的篇数、详情页的胶囊、atom 的 <category> 读的都是同一份 visiblePosts()。 */
+import Layout from '../../layouts/Layout.astro';
+import { visiblePosts } from '../../lib/posts.js';
+import { tagGroups, bySize } from '../../lib/taxonomy.js';
+
+const pad = n => String(n).padStart(2, '0');
+const posts = await visiblePosts();
+const groups = bySize(tagGroups(posts));
+---
+<Layout title="标签 · mistwood" desc="随手贴的记号——同一个词在不同篇里指的是同一件事。">
+  <main class="wrap">
+    <header class="page-head reveal">
+      <h1 class="page-title">标签</h1>
+      <span class="sec-label">tags — <b>{pad(groups.length)}</b> →</span>
+    </header>
+
+    {groups.length ? (
+      <div class="chip-row">
+        {groups.map(g => (
+          <a class="chip" href={`/tags/${g.slug}/`}>{g.name}<span class="chip-n">{pad(g.posts.length)}</span></a>
+        ))}
+      </div>
+    ) : (
+      <p class="tax-empty">
+        还没有标签——这 {posts.length} 篇的 front matter 里，「tags」那一行都是空的。
+        标签是我写着写着才顺手加的记号，事先排整齐的那一套不算；
+        稿子都在 <a href="/essays/">文章</a> 那一页按时间排，分类 <a href="/categories/">这一栏</a> 也还空着，等我起名。
+      </p>
+    )}
+  </main>
+</Layout>

@@ -15,7 +15,7 @@
      X 纯块间距·在册偏差 ＝ 同一类里还没上 8 格的那些 → 不判 8 的倍数，判"枚数不许悄悄变"（要动就动那枚登记值，
                              那是 §16 说的三处同源：规范那一格 / 本文件字面量 / 盘上的声明）。
    在册枚数（顶部这一行、下面 `REGISTERED` 那枚字面量、§16 那一格、§4 那三行是同一句话的四处，动一处必红）：
-     **A 14 ／ B 10 ／ C 47 ／ X 62 ＝ 133 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
+     **A 14 ／ B 10 ／ C 49 ／ X 63 ＝ 136 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
    ⚠️ 防空转是硬要求（§16 记过一次"rgba 漂移检查静默空转、退出码 0、长得像全绿"）：
      注册表为空 ⇒ 红；扫描器一枚都没抓到 ⇒ 红并打印"判据正在空转"；
      注册表里一条盘上找不到（幻影）⇒ 红；盘上一枚没人认领 ⇒ 红；
@@ -33,8 +33,8 @@ const FILES = ['base.css', 'mistwood.css', 'home.css', 'essay.css', 'notes.css']
 const VPROPS = ['margin', 'margin-top', 'margin-bottom', 'padding', 'padding-top', 'padding-bottom', 'gap', 'row-gap'];
 const TIERS = { A: '视口比例', B: '行距派生', C: '纯块间距·已上格', X: '纯块间距·在册偏差' };
 /* ⚠️ 在册枚数（§16 那一格与 §4 那三行说的就是这几个数，三处同源，动一处必红）：
-   A 14 / B 10 / C 47 / X 62 ＝ 133 枚垂直间距槽位，覆盖 5 份样式表。 */
-const REGISTERED = { A: 14, B: 10, C: 47, X: 62 };
+   A 14 / B 10 / C 49 / X 63 ＝ 136 枚垂直间距槽位，覆盖 5 份样式表。 */
+const REGISTERED = { A: 14, B: 10, C: 49, X: 63 };
 /* needle：盘上扫不到这一条就是判据空转，不是"这一档刚好没东西" */
 const NEEDLE = ['essay.css', '', '.post-body h2', 'margin', '64px', 'C'];
 
@@ -78,6 +78,9 @@ const REGISTRY = [
   ['mistwood.css', '', '.lost-note', 'margin', '40px', 'C', '404 说明句与那串地址之间'],
   ['mistwood.css', '', '.lost-list a,.lost-list button', 'gap', '18px', 'X', '404 行内编号与地址之间，baseline 横排 ⇒ row 槽位不显形'],
   ['mistwood.css', '', '.lost-list a,.lost-list button', 'padding', '20px', 'X', '404 行上下内垫'],
+  ['mistwood.css', '', '.chip-row', 'gap', '8px', 'C', '标签胶囊之间（§9 那条在册候选第十轮启用）：单值 gap，row 那一半；与 .seg 的 8px 同一档'],
+  ['mistwood.css', '', '.chip-row', 'margin-top', '16px', 'C', '胶囊排与它上面那一块之间（详情页页头 / 分类索引页页头之下）：与 .page-head .sec-label 那枚 16px 同档'],
+  ['mistwood.css', '', '.chip', 'padding', '4px', 'X', '胶囊上下内垫（12px 等宽那一档）：撑命中与呼吸，不是留白档——与 .seg-c 的 5px、.nav-links a 的 2px 同一族'],
   ['mistwood.css', '', '.things-grid', 'gap', '32px', 'C', '图鉴卡间距——§4 那句"卡片间距 32"的真值就在这一行'],
   ['mistwood.css', '', '.things-grid', 'padding-bottom', '16vh', 'A', '/things/ 底部呼吸'],
   ['mistwood.css', '', '.thing-bar', 'gap', '16px', 'C', '玻璃条内标题与标签之间（space-between 横排）'],
