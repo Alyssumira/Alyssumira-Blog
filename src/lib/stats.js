@@ -1,9 +1,6 @@
 /* 构建期站点事实：关于页的"站点档案"和列表页的阅读时长共用这一份算法。
    铁律（§12 禁假数字）：这里只准出现**能从仓库里数出来**的东西。
-   访问量、UV、PV 一类没有数据来源的数字一律不写——本站没有服务端，也没有统计脚本。
-   ⚠️ 第十轮起还有一条：`siteFacts()` 吃进来的那份 posts 只准是 `lib/posts.js` 的 `visiblePosts()`。
-   这几个数（篇数 / 字数 / 通读分钟）和列表页报的是同一件事，喂整份集合进去就等于把草稿数进档案——
-   那一笔由 runtime-check 拿产物对账（关于页的"N 篇" ⇄ 可见稿件数）。 */
+   访问量、UV、PV 一类没有数据来源的数字一律不写——本站没有服务端，也没有统计脚本。 */
 import { execSync } from 'node:child_process';
 import { readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';

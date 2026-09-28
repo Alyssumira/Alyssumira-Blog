@@ -1,4 +1,4 @@
-import { renderMd, inlineMd, safe, root } from '../src/lib/markdown.js';
+import { renderMd, inlineMd, safe, root, splitBlocks } from '../src/lib/markdown.js';
 import assert from 'node:assert/strict';
 
 /* ---- 路径规整：详情页在 /essays/<slug>/，相对路径必须钉到站点根 ---- */
@@ -153,3 +153,126 @@ assert.equal(safe('x'.repeat(50)).length, 32, 'ids are capped so they cannot blo
 assert.equal(renderMd(md.replace(/\n/g, '\r\n')), html, 'CRLF input must render byte-identical to LF');
 
 console.log('\nmarkdown 3 OK  ghost-ref + unicode-id + code-literal + hyphen-quote + crlf-parity');
+
+/* ---- 第四轮：正文渲染器补进来的三件（``` 围栏代码块 / **加粗** / |a|b| 表格）----
+   每一格都是两侧的：朝宽（会破相的写法必须拦得住）＋朝窄（合法写法不许误红）。
+
+   先钉切块本身。`renderMd` 原先一句 `md.split(/\n{2,}/)` 就把整篇切成块，而**代码块内部允许有空行**，
+   那一枚围栏会被劈成两半、前半尾巴上还挂着裸 ` ``` ` 上屏。改成了逐行游标的 `splitBlocks`，
+   判据不是"围栏渲染对了"这种下游观察，而是**它是旧切块的替身**：在没有围栏的稿子里逐块相同。
+   这样下面那两趟 `collectDefs`（脚注定义写在文末、引用却在开头）读的块序列一个字都没变——
+   围栏不牵动脚注，是因为它只在"块怎么切"这一步插手，而这一步对无围栏输入是恒等的。 */
+for (const [name, src] of [['md', md], ['md2', md2], ['md3', md3],
+                           ['空行与空格行', 'a\n \nb\n\n\n\nc\n\n'],
+                           ['首尾空行', '\n\nfoo\nbar\n\n\n']]){
+  const norm = String(src).replace(/\r\n/g, '\n');
+  assert.deepEqual(splitBlocks(norm).map(s => s.trim()).filter(Boolean),
+                   norm.split(/\n{2,}/).map(s => s.trim()).filter(Boolean),
+                   `splitBlocks 与旧切块在「${name}」上不同 —— 两趟脚注扫的块序列被牵动了`);
+}
+
+/* 围栏：整段只过 esc()，一枚字节都不许进 inlineMd（§15 那句"`code` 里的东西一律按字面出现"扩到整块） */
+const mdFence = [
+  '正文里先引用 [^k]。',
+  '',
+  '```js',
+  'const 雾 = 1;',
+  '',
+  '// 中间这枚空行不许把围栏劈成两半',
+  '[^1] 与 *em* 与 **粗** 与 `反引号` 都按字面',
+  '[文字](https://evil.example/z) 与 ![图](/x.png "注") 与 ^[边注] 与 <script>alert(1)</script>',
+  '[^k]: 写在围栏里的这一行不是脚注定义。',
+  '```',
+  '',
+  '后面一段照常。',
+  '',
+  '[^k]: 真定义在文末。',
+].join('\n');
+const htmlF = renderMd(mdFence);
+const inside = /<pre class="code"><code>([\s\S]*?)<\/code><\/pre>/.exec(htmlF);
+assert.ok(inside, '围栏渲染出了 <pre class="code"><code>…</code></pre>');
+assert.equal((htmlF.match(/class="codeblock"/g) || []).length, 1, '一枚围栏＝一个代码块，内部空行没有把它劈开');
+assert.ok(/<div class="codeblock" data-lang="js">/.test(htmlF), '语言标识挂在 data-lang（详情页那张复制钮的卡要吃它）');
+assert.ok(inside[1].includes('const 雾 = 1;\n\n// 中间这枚空行不许把围栏劈成两半'), '空行原样留在 <pre> 里');
+/* 朝宽：围栏里任何一种行内语法都不许被渲染成排版件——这是本卡最硬的一条 */
+assert.ok(!/<em>|<strong>|<code>|<sup|<a |<figure|sidenote/.test(inside[1]), '围栏里没有一枚排版件');
+assert.ok(inside[1].includes('[^1] 与 *em* 与 **粗** 与 `反引号` 都按字面'), '*、**、`、[^1] 全部按字面出现');
+assert.ok(inside[1].includes('[文字](https://evil.example/z) 与 ![图](/x.png "注") 与 ^[边注]'), '链接/图片/边注在围栏里都是字面文本，引号不必再 Esc 一遍');
+assert.ok(inside[1].includes('&lt;script&gt;alert(1)&lt;/script&gt;'), 'HTML 在围栏里也只过 esc()，不成为标签');
+assert.ok(!/fn-k/.test(inside[1]) && !/id="fn-k"[^>]*>[^<]*写在围栏/.test(htmlF), '写在围栏里的 `[^k]:` 不算定义');
+assert.ok(/<li id="fn-k">[^<]*真定义在文末/.test(htmlF), '文末那枚真定义仍然接手——围栏没把两趟扫定义的过程搅乱');
+assert.ok(!/```/.test(htmlF), '屏幕上一枚裸反引号都不许留下');
+assert.equal((htmlF.match(/"/g) || []).length % 2, 0, '带围栏的产物引号成对，没有逃出属性');
+/* 未闭合的围栏一路吃到文末（CommonMark 同口径），后半截不许回到散文层去跟别人配对 */
+const htmlU = renderMd(['前。', '', '```', 'let a = 1;', '', '**x 没闭合', '还是代码'].join('\n'));
+assert.equal((htmlU.match(/class="codeblock"/g) || []).length, 1, '未闭合也只有一个代码块');
+assert.ok(htmlU.includes('**x 没闭合'), '未闭合围栏里的 `**` 留在代码里，不许跑出去跟下一段配对');
+assert.ok(!/<strong>/.test(htmlU) && !/```/.test(htmlU), '没有 <strong>、也没有裸反引号');
+/* info 串要进 data-lang 就必须先过白名单形状：过不了就整个不要这一枚属性（宁可没有标签） */
+const htmlI = renderMd('```js"onerror="alert(1)\ncode\n```');
+assert.ok(!/data-lang=/.test(htmlI), '带引号的 info 串不配当属性值');
+assert.ok(!/onerror/.test(htmlI), '……而且它一个字都不许落到产物里');
+assert.ok(/<div class="codeblock"><pre/.test(htmlI), '被拒的语言标识 ⇒ 不带 data-lang，CSS 那一侧的标签行因此不存在');
+/* CRLF：归一必须发生在围栏扫描**之前**，否则 ` ``` ` 那行带着 '\r' 就认不出来 */
+assert.equal(renderMd(mdFence.replace(/\n/g, '\r\n')), htmlF, '带围栏的稿子 CRLF 与 LF 产物逐字节相同');
+assert.equal(renderMd('```js\na\n\nb\n```'.replace(/\n/g, '\r\n')), renderMd('```js\na\n\nb\n```'), '未闭合之外的 CRLF 同一条');
+
+/* 加粗：必须赶在斜体之前，而且不许"斜体把加粗的星号吃掉一半"（那是这一格改之前的实际行为） */
+assert.equal(inlineMd('**加粗**'), '<strong>加粗</strong>', '没有半枚裸星号留下');
+assert.equal(inlineMd('***x***'), '<strong><em>x</em></strong>', '粗斜一套一起认');
+assert.equal(inlineMd('**a *b* c**'), '<strong>a <em>b</em> c</strong>', '粗里套斜：外粗内斜，断在半路的旧匹配方式不许回来');
+assert.equal(inlineMd('普通 *em* 照旧'), '普通 <em>em</em> 照旧', '斜体那一枚规则没被动');
+assert.equal(inlineMd('**x'), '**x', '未闭合的 ** 原样，不吞后文');
+assert.equal(inlineMd('看 `**字面**` 这里'), '看 <code>**字面**</code> 这里', 'code 占位那一步仍然走在加粗之前');
+const htmlB = renderMd(['第一段 **x 没闭合。', '', '第二段 **y** 闭合了。'].join('\n'));
+assert.ok(htmlB.includes('<p>第一段 **x 没闭合。</p>'), '跨段落不许配对');
+assert.equal((htmlB.match(/<strong>/g) || []).length, 1, '只有闭合那一对长成 <strong>');
+
+/* 表格：|a|b| + 分隔行；格子里的文字走 inlineMd，所以链接与行内 code 都在 */
+const mdT = [
+  '正文里先引用 [^t]。',
+  '',
+  '| 名字 | 数量 | 备注 | 说明 |',
+  '| --- | ---: | :---: | :--- |',
+  '| 雾 | 3 | [链接](https://example.com/fog) | `code` |',
+  '| 苔 | 12 | 竖线 \\| 不算分格 | 再引用 [^t] |',
+  '| 四格 | 1 | 2 | 3 | 这一格超出表头，该被丢掉 |',
+  '| 两格 | 1 |',
+  '',
+  '| a | b | c |',
+  '| --- | --- |',
+  '| 1 | 2 |',
+  '',
+  '标题',
+  '---',
+  '',
+  '[^t]: 表格里也能挂脚注。',
+].join('\n');
+const htmlT = renderMd(mdT);
+assert.ok(/^<div class="tablewrap"><table><thead><tr><th>名字<\/th>/.test(htmlT.match(/<div class="tablewrap">[\s\S]*?<\/tbody><\/table><\/div>/)[0]), '结构：wrapper › table › thead › tbody');
+assert.equal((htmlT.match(/<th[ >]/g) || []).length, 4, '四列表头');
+assert.equal((htmlT.match(/<td[ >]/g) || []).length, 16, '四行数据 × 四格（多的丢掉、缺的补空）');
+assert.ok(/<th class="al-r">数量<\/th>/.test(htmlT), '---: 右对齐');
+assert.ok(/<th class="al-c">备注<\/th>/.test(htmlT), ':---: 居中');
+assert.ok(/<th>说明<\/th>/.test(htmlT), '--- 与 :--- 都是默认左缘，不落 class');
+assert.ok(htmlT.includes('<a href="https://example.com/fog" target="_blank" rel="noopener noreferrer">链接</a>'), '格子里的链接走 inlineMd');
+assert.ok(/<td><code>code<\/code><\/td>/.test(htmlT), '格子里的行内 code');
+assert.ok(htmlT.includes('竖线 | 不算分格'), '\\| 是内容里的竖线，不是分格');
+assert.ok(!htmlT.includes('这一格超出表头'), '超出表头格数的单元格被丢掉，不许把表格撑破');
+assert.ok(/<td>两格<\/td><td class="al-r">1<\/td><td class="al-c"><\/td><td><\/td>/.test(htmlT), '不足格数的补空 <td>，列数守恒（对齐 class 跟着列走，不跟着内容走）');
+assert.ok(renderMd('| a | b |\n| --- | --- |\n| <i>尖括号</i> | 结束 |').includes('<td>&lt;i&gt;尖括号&lt;/i&gt;</td>'), '原始 HTML 在格子里转义成文字（与段落同一口径）');
+assert.equal((htmlT.match(/id="fn-t"/g) || []).length, 1, '同一处脚注在表格里再引用一次复用号数');
+assert.ok(/<li id="fn-t">/.test(htmlT), '定义在文末、引用在表格里——两趟扫描跨得住');
+/* 朝宽：三种"看着像表格"的写法都不许被误认，认错了就是把作者的一行字换成一块空表 */
+assert.ok(!/<table/.test(renderMd('标题\n---')), 'setext 那味写法（白名单里没有）不许解释成一列表格');
+assert.ok(!/<table/.test(renderMd('| a | b | c |\n| --- | --- |\n| 1 | 2 |')), '表头与分隔行格数不等 ⇒ 退回段落，不猜');
+assert.ok(!/<table/.test(renderMd('| a | b |\n| --- | x |\n| 1 | 2 |')), '分隔行里有非 `:?-+:?` 的格 ⇒ 不是分隔行');
+assert.ok(!/<table/.test(renderMd('| a | b |')), '只有表头没有分隔行 ⇒ 一整块段落');
+assert.ok(renderMd('| a | b | c |\n| --- | --- |\n| 1 | 2 |').includes('<p>| a | b | c | | --- | --- | | 1 | 2 |</p>'), '退回段落时那几行仍是字面文本');
+assert.equal(renderMd(mdT.replace(/\n/g, '\r\n')), htmlT, '带表格的稿子 CRLF 与 LF 产物逐字节相同');
+assert.equal((htmlT.match(/"/g) || []).length % 2, 0, '带表格的产物引号成对');
+
+console.log('\nmarkdown 4 OK  fence-literal + fence-atomic-blankline + lang-attr-whitelist + bold-before-em + table-shape + alignment + crlf-parity');
+console.log(htmlF.replace(/></g, '>\n<'));
+console.log(htmlT.replace(/></g, '>\n<'));
+
