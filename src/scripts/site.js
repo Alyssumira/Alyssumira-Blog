@@ -412,7 +412,10 @@ import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
     gloss.textContent = '上一跳那一页';
     back.append(document.createTextNode('退回你来处'), gloss);
     li.append(back);
-    lostList.prepend(li);   /* 排在六条地址之前：它说的是"退回你来处"，而 `/` 那条是"从头再走"（§15 的层级） */
+    lostList.append(li);   /* 挂在六条地址**之后**（提案原话是"再加一行：或者 · …"，"或者"是列表末尾的
+       接续词，不是列表开头的；且 append 才是真的"六条一条不挪位"——prepend 会把首页那条推到第 2 行，
+       那才是动了 §12 那句话所保护的东西）。它说"回到你来处"、`/` 那条说"从头再走"，两枚 gloss 各指
+       各的方向，不构成同义。 */
     back.addEventListener('click', () => history.back());
   }
 
