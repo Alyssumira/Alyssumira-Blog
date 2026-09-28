@@ -7,8 +7,10 @@ import { join, extname, dirname } from 'node:path';
 
 /* Astro 打包 frontmatter 模块时会把这份文件搬进 dist/.prerender/chunks/，
    import.meta.dirname 指向的是那儿的副本——数出来的就是 dist 了。仓库根只能从 cwd 往上找：
-   npm run build / dev 的 cwd 就是项目根，往上第一个带 package.json 的目录即根。 */
-const ROOT = (() => {
+   npm run build / dev 的 cwd 就是项目根，往上第一个带 package.json 的目录即根。
+   ⚠️ export 是给 `revised.js` 复用同一个口径（第九轮）：找根这件事在两棵树里各算一遍，迟早有一处先改。
+   这一行只多了 `export` 五个字母，siteFacts / readMinutes / tone 的输出一个都没动。 */
+export const ROOT = (() => {
   let dir = process.cwd();
   for (let i = 0; i < 6; i++){
     if (existsSync(join(dir, 'package.json'))) return dir;
