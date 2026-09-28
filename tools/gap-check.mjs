@@ -15,7 +15,7 @@
      X 纯块间距·在册偏差 ＝ 同一类里还没上 8 格的那些 → 不判 8 的倍数，判"枚数不许悄悄变"（要动就动那枚登记值，
                              那是 §16 说的三处同源：规范那一格 / 本文件字面量 / 盘上的声明）。
    在册枚数（顶部这一行、下面 `REGISTERED` 那枚字面量、§16 那一格、§4 那三行是同一句话的四处，动一处必红）：
-     **A 14 ／ B 10 ／ C 47 ／ X 62 ＝ 133 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
+     **A 14 ／ B 10 ／ C 42 ／ X 62 ＝ 128 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
    ⚠️ 防空转是硬要求（§16 记过一次"rgba 漂移检查静默空转、退出码 0、长得像全绿"）：
      注册表为空 ⇒ 红；扫描器一枚都没抓到 ⇒ 红并打印"判据正在空转"；
      注册表里一条盘上找不到（幻影）⇒ 红；盘上一枚没人认领 ⇒ 红；
@@ -33,8 +33,8 @@ const FILES = ['base.css', 'mistwood.css', 'home.css', 'essay.css', 'notes.css']
 const VPROPS = ['margin', 'margin-top', 'margin-bottom', 'padding', 'padding-top', 'padding-bottom', 'gap', 'row-gap'];
 const TIERS = { A: '视口比例', B: '行距派生', C: '纯块间距·已上格', X: '纯块间距·在册偏差' };
 /* ⚠️ 在册枚数（§16 那一格与 §4 那三行说的就是这几个数，三处同源，动一处必红）：
-   A 14 / B 10 / C 47 / X 62 ＝ 133 枚垂直间距槽位，覆盖 5 份样式表。 */
-const REGISTERED = { A: 14, B: 10, C: 47, X: 62 };
+   A 14 / B 10 / C 42 / X 62 ＝ 128 枚垂直间距槽位，覆盖 5 份样式表。 */
+const REGISTERED = { A: 14, B: 10, C: 42, X: 62 };
 /* needle：盘上扫不到这一条就是判据空转，不是"这一档刚好没东西" */
 const NEEDLE = ['essay.css', '', '.post-body h2', 'margin', '64px', 'C'];
 
@@ -147,11 +147,6 @@ const REGISTRY = [
   ['essay.css', '', '.post-body h2', 'margin', '24px', 'C', '章名与它下面第一段之间'],
   ['essay.css', '', '.post-body h2::before', 'margin-bottom', '16px', 'C', '那枚 32px 苔绿短线与章名之间'],
   ['essay.css', '', '.post-body code', 'padding', '2px', 'X', '行内 code 上下内垫（.85em 等宽，撑的是命中与呼吸，不是留白档）'],
-  ['essay.css', '', '.post-body .codeblock', 'margin', '40px', 'C', '围栏代码块整块上下：与引用块那一枚 40 同一档——"一整块"就是一整块，不新开档位（§15 第五轮）'],
-  ['essay.css', '', '.post-body .codeblock[data-lang]::before', 'margin-bottom', '8px', 'C', '语言标签行与代码面之间：上格最小的一档；它上面不是行，所以不是 B 档'],
-  ['essay.css', '', '.post-body pre', 'padding', '16px', 'C', '代码面上下内垫：行内 code 那 2px 的放大版——放大的是面，不是命中区'],
-  ['essay.css', '', '.post-body .tablewrap', 'margin', '40px', 'C', '表格整块上下：与引用块、代码块同一枚 40（§4 的"纯块间距·已上格"）'],
-  ['essay.css', '', '.post-body th,.post-body td', 'padding', '8px', 'C', '格子上下内垫：一行的呼吸走上格最小一档，12px 是横向、不计'],
   ['essay.css', '', '.post-body h3', 'margin', '48px', 'C', '小节前留白：比 h2 矮一档（48 对 64）'],
   ['essay.css', '', '.post-body h3', 'margin', '18px', 'X', 'h3 矮一档，它下面那段的距离也跟着收，但没走上格'],
   ['essay.css', '', '.post-body ul,.post-body ol', 'margin', '28px', 'B', '列表收口 = 段距那一档（同一个 18px/1.9 行盒）'],
