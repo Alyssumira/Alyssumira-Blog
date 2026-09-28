@@ -78,6 +78,46 @@ html[data-revisit] .bg-photo{ animation-duration:.8s; animation-delay:.2s; }
 .bg-photo .photo-dark{ opacity:0; }
 html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
 
+/* ============ 首屏空气透视 + 那束被放大的光（§5 光柱那一格，第九轮）============ */
+/* 两条路做同一件事：一个减色（雾把远处的树吞掉）、一个加光（把照片里已有的那束光放大一档）。
+   ⚠️ 两者都画在 `.bg-photo::after` 上——它坐在照片之上、纱罩之下（`.scrim` 是 `.bg-photo` 的后续兄弟，
+   整块纱罩连它自己的背景都压在 `.bg-photo` 的一切之上），所以纱罩照旧扛首屏文字的账，
+   `--scrim-*` 一个字没动；加进去的亮只透过半透明纱罩露进"有效底"，那一笔由 §2.4 的复测兜。
+   ⚠️ 零新色板令牌、零新 hex：色全部 `var()` 引用现成的主题感知令牌——
+   `--bg-top`（亮=雾后太阳的暖白 #EDE9DD / 暗=近黑 #12170F）、`--mist`（亮=白 .5 / 暗=月雾 .07）。
+   于是同一枚令牌自己就分极性：亮色那盏是"提亮"（暖白压在亮底上把深色字的对比抬上去），
+   暗色那盏是"压暗周围"（近黑压在暗底上把浅色字周围的底再压暗一档）——§2.2/§5 铁律 3 的极性，
+   不是往夜林里塞一束白毛边。
+   ⚠️ 零新模糊（§1.4 三种模糊一个没多）：`linear-gradient` 是渐变不是 `blur()`。 */
+.bg-photo::after{
+  content:""; position:absolute; inset:0; display:block; opacity:0;
+  transition:opacity .8s cubic-bezier(.22,1,.36,1),background .8s cubic-bezier(.22,1,.36,1);
+  /* 上：空气透视（照片上 1/3 一层极淡 --mist，远处吞进雾里，减色）
+     下：光柱——角度 65deg 是从两张照片量出来的（见 §5：亮脊/主轴两法、亮暗两张一致到 ~2–4°），
+     钉死不动，只有强度随 data-phase 变（下面那八条 opacity）。 */
+  background:
+    linear-gradient(180deg, var(--mist) 0%, transparent 40%),
+    linear-gradient(65deg, transparent 0%, var(--bg-top) 32%, transparent 62%);
+}
+/* 暗色极性反过来：--bg-top 是近黑，正着画会把整片压黑（连束光一起吞）——所以画成"两侧压暗、
+   中间留亮脊"，让照片里本来就有的那道亮靠周围变暗而读出来（压暗周围）。 */
+html[data-theme="dark"] .bg-photo::after{
+  background:
+    linear-gradient(180deg, var(--mist) 0%, transparent 40%),
+    linear-gradient(65deg, var(--bg-top) 0%, transparent 32%, transparent 72%, var(--bg-top) 100%);
+}
+/* 八格：2 主题 × 4 phase，只有强度（opacity）在动，角度/色相都不动。
+   清晨最亮 → 正午收起 → 傍晚偏暖（暖度由 --bg-top 的时段值自己带）→ 夜里消失。
+   夜林整体比亮色收一档（无月之夜没有太阳），且 night 两主题一起归零。 */
+html[data-phase="dawn"][data-theme="light"]  .bg-photo::after{ opacity:.50; }
+html[data-phase="day"][data-theme="light"]   .bg-photo::after{ opacity:.18; }
+html[data-phase="dusk"][data-theme="light"]  .bg-photo::after{ opacity:.38; }
+html[data-phase="night"][data-theme="light"] .bg-photo::after{ opacity:0; }
+html[data-phase="dawn"][data-theme="dark"]   .bg-photo::after{ opacity:.30; }
+html[data-phase="day"][data-theme="dark"]    .bg-photo::after{ opacity:.12; }
+html[data-phase="dusk"][data-theme="dark"]   .bg-photo::after{ opacity:.20; }
+html[data-phase="night"][data-theme="dark"]  .bg-photo::after{ opacity:0; }
+
 /* 纱罩：统一色调 + 保证文字可读 + 底部溶入正文底色 */
 /* 灯的"开合度"要能插值，所以注册成数字属性：mask 里的颜色stops本身不可过渡，
    只淡 rim/glow 会留下"环还亮着、洞已合上"的半截灯。不支持 @property 的浏览器退化为瞬开瞬合，
