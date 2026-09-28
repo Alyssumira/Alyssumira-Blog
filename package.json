@@ -8,7 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "new-post": "node tools/new-post.mjs",
-    "check": "node tools/new-post.mjs --check && node tools/check-markdown.mjs && node tools/palette-check.mjs && node tools/phase-check.mjs && node tools/taxonomy-check.mjs && node tools/gap-check.mjs",
+    "check": "node tools/new-post.mjs --check && node tools/check-markdown.mjs && node tools/palette-check.mjs && node tools/phase-check.mjs && node tools/gap-check.mjs && node tools/taxonomy-check.mjs",
     "selftest": "node tools/phase-check.mjs --selftest",
     "gate": "npm run check && npm run build && node tools/runtime-check.mjs"
   },
