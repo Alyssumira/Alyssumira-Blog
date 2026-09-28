@@ -22,26 +22,51 @@
 #progress-marks span{ position:absolute; top:0; width:1px; height:6px; background:var(--moss); opacity:.42; }
 #progress-marks span.on{ opacity:.95; }
 
-/* 盖章（§15）：分享＝把这一篇收进手记，回执是一行字、不是一枚图形。
-   画一枚圆章要新造一套符号语言（描边圆＋环排文字），那是第四种材质；排印能做到的事不另开材质。 */
+/* 盖章（§15）与专注模式（§15 第九轮）**共用这一条声明**——两枚按钮同源，不是"像"，是同一份 CSS。
+   分享＝把这一篇收进手记，回执是一行字、不是一枚图形；专注＝把这一页的氛围撤掉，回执是这一页自己变干净。
+   画一枚圆章要新造一套符号语言（描边圆＋环排文字），那是第四种材质；排印能做到的事不另开材质——
+   同一句话也把专注模式挡在"再发明一种按钮形状"之外（§9 那条"主/次按钮候选未启用"照旧成立）。 */
 .post-tail{ max-width:680px; margin:56px auto 0; }
-.post-stamp{
+.post-act{
   background:none; border:0; padding:0; cursor:pointer; font:inherit;
   font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--moss-ink);
   text-decoration-line:underline; text-decoration-thickness:1px; text-underline-offset:3px;
   text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);
   transition:text-decoration-color .3s cubic-bezier(.22,1,.36,1),text-decoration-thickness .3s cubic-bezier(.22,1,.36,1),color .3s cubic-bezier(.22,1,.36,1);
 }
-.post-stamp:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; color:var(--ink); }
-.post-stamp:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+/* 悬停恰好三个属性（§1.3 预算上限），全在 §8.8 白名单里；:active 那一下用回弹档——§8.1 明写它"只给按下" */
+.post-act:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; color:var(--ink); }
+.post-act:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 /* 剪贴板被拒（非安全上下文 / 用户没给权限）：当面说出来，不假装盖上了 */
-.post-stamp.miss{ color:var(--ink-2); text-decoration-color:var(--ink-3); }
-.post-stamp.miss::after{ content:" · 没能复制，地址在地址栏"; }
+.post-act.miss{ color:var(--ink-2); text-decoration-color:var(--ink-3); }
+.post-act.miss::after{ content:" · 没能复制，地址在地址栏"; }
 .stamp-note{
   margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
   color:var(--ink-3); animation:stamp-in .4s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes stamp-in{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
+
+/* 专注模式那枚开关与盖章之间 14px：这一行自己的既有节奏（`.stamp-note` 的 margin-top 就是 14px），
+   不新开一档间距（§1.5）。两枚都是 inline-block，窄屏放不下就自然换行，不为它加布局机器。 */
+.post-focus{ margin-left:14px; }
+
+/* 专注模式开起来撤两层（规格、数字与"为什么允许存在"全在 §15 第九轮那一格）：
+   ① 身后的雾——上面 `.post-body` 那条滚动驱动的 mask（机制 §8.7、逐档读数 §2.4）；
+   ② 子页那盏方向光落在正文上的部分——本体在 `mistwood.css` 的 `.wrap::before`（§2.3 末）。
+   ⚠️ 选择器带 `html[data-focus]` 是为了权重 (0,2,1) 压过 `.post-body`(0,1,0) 与 `.wrap::before`(0,1,1)——
+      靠权重赢，不靠打包顺序（§8.8 那句"那是运气不是设计"）。
+   ⚠️ **一条 transition 都不给**：§1.2 一处动处处静，切换是一次离散属性翻转，转场动画是明令禁止的；
+      `mask-image` 本来也不在 §8.8 白名单里，给它加过渡等于每帧重算一次裁切。
+   ⚠️ 这两条只在详情页生效：`html[data-focus]` 由 `site.js` 写在**有 `#post-body` 的文档**上（阅读页级），
+      所以别的页面带着那枚存储键也不会变——它不是抽屉那种全站级旋钮（为什么不进抽屉，§15 那格写了）。
+   ⚠️ 规则住在 `essay.css` 这一层：§17 那条"一枚规则只住在谁用得到它的那一层"，而状态覆写跟着**用它
+      的那个页面**走——现成先例是 `mistwood.css` 里那条 `html[data-quiet="1"] .grain`（被覆写的 `.grain`
+      本体在 `base.css`，覆写在用它的子页层）。被覆写的两条本体一个字不动。
+   ⚠️ `prefers-reduced-motion` 下 mask 本来就已经是 `none`（下面那条媒体查询，§1 预算表末行的落地），
+      所以那一档里这枚开关只剩撤灯，而撤灯在正文栏上实测 Δ0 ⇒ 视觉上等于不点；按钮照旧显形、
+      照旧可翻。这是明知故犯的退化，不是漏做（同一格在未验到里也点了名）。 */
+html[data-focus="1"] article.post-body{ -webkit-mask-image:none; mask-image:none; }
+html[data-focus="1"] .wrap::before{ display:none; }
 
 .post-head{ padding:24vh 0 56px; max-width:680px; margin:0 auto; }
 .post-meta{

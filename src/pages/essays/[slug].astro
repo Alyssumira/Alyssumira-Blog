@@ -45,7 +45,15 @@ const when = whenOf(post.data.date, post.data.hour);
 
     <!-- 盖章：分享＝把这一篇收下来。只落一行手记字，不画圆章（理由见 essay.css 与 §15） -->
     <div class="post-tail reveal">
-      <button class="post-stamp" id="post-stamp" type="button">share · 把这一篇收进手记</button>
+      <button class="post-act" id="post-stamp" type="button">share · 把这一篇收进手记</button>
+      <!-- 专注模式（§15 第九轮）：这一行里的第二枚，与盖章同源（共用 .post-act 那一条声明）。
+           按下去撤两层：身后的雾（mask）+ 方向光落在正文上的部分——两条 CSS 与全部理由在 essay.css。
+           ⚠️ `hidden` 是静态 HTML 就带着的：显形只由 site.js（打包的模块脚本）做，所以无 JS / 存储读不到
+              时这一页与今天逐字节相同。故意**不**写进 Layout.astro 那段 `<script is:inline>`——那会牵动
+              §16 第四类门禁"内联脚本同步落地五枚属性"的断言对象（§2.3 末"判定没搬进内联脚本"同一个理由）。
+           ⚠️ 标签里不写机制（不写"撤雾"）：prefers-reduced-motion 下本来就没有雾可撤，写了就是 §12 那种假语义。
+           aria-pressed 由脚本跟着状态翻；它是 <button type=button>，不是 href，所以 §12 死锚点那条管不到它。 -->
+      <button class="post-act post-focus" id="post-focus" type="button" hidden aria-pressed="false">focus · 只看字</button>
       <p class="stamp-note" id="stamp-note" hidden></p>
     </div>
 

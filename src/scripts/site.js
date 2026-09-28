@@ -327,6 +327,42 @@ import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
     });
   }
 
+  /* ---------- 专注模式（§15 第九轮）：正文末段那一行的第二枚文字钮 ----------
+     按下去撤两层：身后的雾（.post-body 的滚动 mask）+ 方向光落在正文上的部分。两条声明与全部
+     理由在 `essay.css` 里，这里只管状态。三条口径：
+     · **阅读页级**：只有有 `#post-body` 的文档才写 `html[data-focus]`，首页与其他子页拿到那枚键
+       也不动——抽屉那种全站级旋钮的语义不参与（为什么不进抽屉、为什么它不算"氛围旋钮作废地板"，
+       §15 那一格逐条写了；撤完正文回到 §2.4 那笔按纯色底算的账，是往上抬不是往下吃）。
+     · **存储跟 mistwood-* 那一族同旗**：值只有 '1'（开）与"键不存在"（关），和 mistwood-seen /
+       mistwood-greeted 一个写法。读不到（隐私模式 / 被禁）就当关：不猜、不提示、不预留空位（§12）。
+     · **显形只在这里发生**：按钮在静态 HTML 里带 `hidden`，所以无 JS / 这段没跑 ⇒ 这一页与今天
+       逐字节相同；而那时雾本来也不出现（`--read-fog` 起始 -9999px 只有下面 `updateProgress()` 会写）。
+       ⚠️ 故意不搬到 `<head>` 那段 `<script is:inline>`：那是 §16 第四类门禁"内联脚本同步落地五枚
+       属性"的断言对象，往里加一枚阅读页级的活只会多出一条永远断言不到的判据。
+       应用与显形都在 `updateProgress()` 之后、同一个同步执行里 ⇒ 中间没有一帧被画出去，
+       存着"开"进来的人不会先看见一次雾再看见它撤掉。 */
+  const FOCUS = 'mistwood-focus';
+  const focusBtn = document.getElementById('post-focus');
+  const readFocus = () => { try { return localStorage.getItem(FOCUS) === '1'; } catch (e) { return false; } };
+  function applyFocus(on){
+    if (on) root.setAttribute('data-focus', '1'); else root.removeAttribute('data-focus');
+    if (focusBtn){
+      /* 标签不写机制：reduced-motion 下没有雾可撤，写"撤掉身后的雾"就是假语义（§12） */
+      focusBtn.textContent = on ? 'focus · 退出专注' : 'focus · 只看字';
+      focusBtn.setAttribute('aria-pressed', String(on));
+    }
+  }
+  if (focusBtn && postBody){
+    let focus = readFocus();
+    applyFocus(focus);
+    focusBtn.hidden = false;
+    focusBtn.addEventListener('click', () => {
+      focus = !focus;
+      applyFocus(focus);
+      try { focus ? localStorage.setItem(FOCUS, '1') : localStorage.removeItem(FOCUS); } catch (e) {}
+    });
+  }
+
   /* ---------- 盖章：分享 = 把这一篇收进手记，回执是一行字不是一枚图形（§15） ----------
      复制没成功就什么都不落——一行"盖于…"的收据配一个没复制到的动作，是 §12 那种假反馈。 */
   const stampBtn = document.getElementById('post-stamp');
