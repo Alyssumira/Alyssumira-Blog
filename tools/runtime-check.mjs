@@ -217,6 +217,17 @@ if (!PAGES.length) die(`${DIST} 里一份 HTML 都没有`, '  dist/ 空＝build 
       草稿会从列表消失却仍然被数进档案（§15 那条"两处必须同一把尺子"讲的正是这一对）。
    ⚠️ 顺序也在这里对：`/essays/` 里各行出现的先后必须等于 `sortPosts()` 给的那个顺序（置顶在最前）。
       文本判据管不住"比较函数写反"，这一条读的是产物。 */
+/* ⚠️ 扫产物 HTML 之前先把 <!-- --> 摘掉（本卡实测到的假红逼出来的，不是预防性写法）：
+   `src/layouts/Layout.astro:44` 那段规范链接的注释里原话写着"同一篇稿子的 /essays/foo 与 /essays/foo/
+   各自回 200"——那是**给人读的一句说明**，今天真的烘进了每一页产物，于是"列表先后"那一格实测读出
+   `foo forest-blog fog-debugging slow-frontend` 四行（多出来的 `foo` 就是那半句注释）⇒ exit 1。
+   判据要抓的是**访客走得到的地址**，注释里的地址访客走不到 ⇒ 不算泄漏、也不算一行。
+   ⚠️ 同一把尺子顺手盖住"关于页那几个数"那一格——今天那里读到 1 处 `N 篇 · 约`、注释里 0 处，
+   也就是说这一格是**预防性的**，不是本轮实测到的假红（登记在未验到，别把它读成"已经抓到过一次"）。
+   摘注释只作用于"数地址与数那几个数"的三格，不作用于结构对账那一格——那一格数的是 `<h2>`，
+   注释里不会出现它，动了反而少一层见证。 */
+const stripComments = txt => txt.replace(/<!--[\s\S]*?-->/g, ' ');
+
 const POSTS_DIR = join(ROOT, 'src', 'content', 'posts');
 const postFiles = existsSync(POSTS_DIR) ? readdirSync(POSTS_DIR).filter(f => /\.md$/i.test(f)).sort() : [];
 if (!postFiles.length) problems.push(`正文结构对账没跑：${POSTS_DIR} 里一篇 .md 都没有 ⇒ 这一格判据空转（读不到稿件不算过）`);
@@ -241,7 +252,7 @@ for (const p of drafts) {
   const out = join(DIST, 'essays', p.id, 'index.html');
   if (existsSync(out)) problems.push(`${p.id}：draft: true 而 dist/essays/${p.id}/index.html 还在 ⇒ 详情页照样能访问（getStaticPaths 那一格漏了过滤，这是"列表没有、地址活着"那一族假完成）`);
   for (const t of READABLE) {
-    const txt = (t.html ??= readFileSync(t.path, 'utf8'));
+    const txt = (t.html ??= stripComments(readFileSync(t.path, 'utf8')));
     if (txt.includes(`/essays/${p.id}/`)) problems.push(`${p.id}：draft: true 却仍出现在 ${t.rel} ⇒ 那一处的 getCollection 没走 visiblePosts()`);
   }
 }
@@ -250,7 +261,7 @@ for (const p of drafts) {
   const listPath = join(DIST, 'essays', 'index.html');
   if (!existsSync(listPath)) problems.push('dist/essays/index.html 不在 ⇒ 顺序与草稿泄漏两笔判据都没了对象（这一格在空转）');
   else {
-    const html = readFileSync(listPath, 'utf8');
+    const html = stripComments(readFileSync(listPath, 'utf8'));
     const seen = [...html.matchAll(/\/essays\/([a-z0-9-]+)\//g)].map(m => m[1]);
     const uniq = seen.filter((v, i) => seen.indexOf(v) === i);
     const want = visible.map(p => p.id);
@@ -269,7 +280,7 @@ for (const p of drafts) {
   const aboutPath = join(DIST, 'about', 'index.html');
   if (!existsSync(aboutPath)) problems.push('dist/about/index.html 不在 ⇒ "档案那几个数与列表同一把尺子"这条判据没吃到东西');
   else {
-    const m = /(\d+)\s*篇 · 约/.exec(readFileSync(aboutPath, 'utf8').replace(/<[^>]+>/g, ''));
+    const m = /(\d+)\s*篇 · 约/.exec(stripComments(readFileSync(aboutPath, 'utf8')).replace(/<[^>]+>/g, ''));
     if (!m) problems.push('关于页的站点档案里读不到"N 篇 · 约 …"那一行 ⇒ 对账的尺子落空（模板换了写法要同步改这里）');
     else if (Number(m[1]) !== visible.length) problems.push(`关于页站点档案报 ${m[1]} 篇，可见稿件是 ${visible.length} 篇 ⇒ siteFacts() 吃的不是 visiblePosts()，草稿被数进档案而列表里没有`);
     else notes.push(`站点档案对账：关于页 ${m[1]} 篇 ＝ 可见稿件 ${visible.length} 篇（草稿没被数进去）✓`);
