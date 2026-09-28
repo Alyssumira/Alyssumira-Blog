@@ -394,6 +394,28 @@ import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
     });
   }
 
+  /* ---------- 404：退回你来处（§15 第九轮）----------
+     判据只有 `history.length > 1` 这一条——浏览器确实有一段可退的历史，才谈得上"退回你来处"。
+     ⚠️ 那一枚 li 整枚在这里 createElement，**静态产物里没有它的任何一个字节**，于是两头都干净：
+       · JS 关掉 ⇒ 这一页与改动前逐字相同（没有"藏着等显形"的节点，也就没有"显形失败就留个空位"）；
+       · 判据不满足 ⇒ 页面上一个节点都不留，不是 `display:none` 之后留着（§12"不许预留一个只会显示空缺的位置"）。
+     ⚠️ 不用 `<script is:inline>` 做这件事：那两段内联脚本有自己的门禁判据（§16"语法合法但整段不执行"那一族），
+       牵动它要另开一卡。这里也不写存储键——判据读的是浏览器自己那段会话历史，一次性的东西不留痕。
+     ⚠️ `runtime-check` 读的是 `--dump-dom`，一个 profile 只有一次导航 ⇒ 入口永远是 hist=1 那一档，
+       看不见这条路；所以门禁里**没有**它的断言（写了就是一条永远断言不到的判据），实测走 CDP。 */
+  const lostList = document.querySelector('.lost-list');
+  if (lostList && history.length > 1){
+    const li = document.createElement('li');
+    const back = document.createElement('button');
+    back.type = 'button';                       /* 真按钮 + 真动作：§12 那枚死锚点 href="#" 在这里没有藏身处 */
+    const gloss = document.createElement('span');
+    gloss.textContent = '上一跳那一页';
+    back.append(document.createTextNode('退回你来处'), gloss);
+    li.append(back);
+    lostList.prepend(li);   /* 排在六条地址之前：它说的是"退回你来处"，而 `/` 那条是"从头再走"（§15 的层级） */
+    back.addEventListener('click', () => history.back());
+  }
+
   /* ---------- 首屏那一行"此刻的话"：入夜＝守夜、清晨＝初、傍晚＝暮（§6） ----------
      一格、一套机制、一枚键。三个词都只在**本次会话第一次**落进来时说一次，刷新即无；
      读不到 sessionStorage 就永远不说——猜出来的问候不是问候。 */
