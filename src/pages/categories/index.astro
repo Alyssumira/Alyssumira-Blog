@@ -4,6 +4,7 @@
    ⚠️ 这一页不许替作者起分类名（§12 假内容族）。今天三篇稿子的 front matter 里 category 全空着，
       所以 groups 是空的——空态见下面那段：一句作者口吻的话 + 真地址，不白屏、不 500、不挂死锚点。 */
 import Layout from '../../layouts/Layout.astro';
+import SearchEntry from '../../components/SearchEntry.astro';
 import { visiblePosts } from '../../lib/posts.js';
 import { categoryOf, groupBy, bySize } from '../../lib/taxonomy.js';
 
@@ -15,7 +16,7 @@ const groups = bySize(groupBy(posts, categoryOf));
   <main class="wrap">
     <header class="page-head reveal">
       <h1 class="page-title">分类</h1>
-      <span class="sec-label">categories — <b>{pad(groups.length)}</b> →</span>
+      <div class="sec-label">categories — <b>{pad(groups.length)}</b> →<SearchEntry /></div>
     </header>
 
     {groups.length ? (

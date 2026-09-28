@@ -5,6 +5,7 @@
       taxSlug() 清成空串那种直接丢——`[^注一]` 那一族先例写在 markdown.js 的注释里，白名单不是装饰。
    ⚠️ 数与清单同源：这一页的篇数、详情页的胶囊、atom 的 <category> 读的都是同一份 visiblePosts()。 */
 import Layout from '../../layouts/Layout.astro';
+import SearchEntry from '../../components/SearchEntry.astro';
 import { visiblePosts } from '../../lib/posts.js';
 import { tagGroups, bySize } from '../../lib/taxonomy.js';
 
@@ -16,7 +17,7 @@ const groups = bySize(tagGroups(posts));
   <main class="wrap">
     <header class="page-head reveal">
       <h1 class="page-title">标签</h1>
-      <span class="sec-label">tags — <b>{pad(groups.length)}</b> →</span>
+      <div class="sec-label">tags — <b>{pad(groups.length)}</b> →<SearchEntry /></div>
     </header>
 
     {groups.length ? (

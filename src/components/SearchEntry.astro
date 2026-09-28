@@ -1,0 +1,54 @@
+---
+/* 站内搜索的入口与面板（第十一轮 `card/search`；规范 §9 那一枚在册组件条目）。
+   为什么它是一个**组件**而不是 `Layout.astro` 里的一段：
+   ① 裁决是"导航里不加第三枚按钮"。§11 那一整行把这笔几何账算死了——`.nav-links` 在 ≤340 档实测
+      270.48px，胶囊需要 296.48 而那一档的上限解析成 300 ⇒ 余量只剩 3.52px，一枚 30px 圆钮 + 一枚 gap
+      任何一档都装不下；而三条出路（gap 收到 6 / 隐藏一项撞 `.here` / 两行胶囊撞已签字的 nowrap）
+      全被那一格预先否掉。⇒ 入口搬进**内容页扉页那一行**，代价如实登记在 §11 与 §9：
+      访客只能在子页扉页与首页日志那一行找到它，导航里没有。
+   ② 宿主页各不相同（六份子页的 `.sec-label` 行 + 首页 `.hero-log` 那一行），`Layout` 插不进
+      页面自己那一行里——Astro 的 `<slot>` 是整块替换，没有"往别人那一行里塞一枚孩子"的口子。
+   ⚠️ 整块带 `hidden`，显形只由打包脚本做（`src/scripts/site.js` 里 `searchWrap.hidden = false` 那一步）：
+      口径抄 `[slug].astro` 那枚 `post-focus` 与 404 那枚纯 JS 的 `li`（§12 禁死锚点 ⇒ 不许退成一枚
+      `<a href="/search/">`——本站没有 /search/ 这一页，指向它的锚点就是死的；而"有字没功能"更糟）。
+      无 JS / 这段没跑 ⇒ 这一行**一个字都不出现**，连那枚分隔点 `·` 都在块内，不留半个悬着的标点。
+   ⚠️ 这一整块是 `<div>` 而不是 `<span>`，而宿主那一行也因此从 `<span class="sec-label">` 换成
+      `<div class="sec-label">`、首页从 `<p class="hero-log">` 换成 `<div class="hero-log">`——
+      **这是解析器的规矩不是口味**：`<p>` 遇到 `<div>` 会当场自己闭合（HTML5 的 "close a p element in
+      button scope" 那一条），而 `<span>` 里装块级元素虽然内容模型不合法、树却不动。上一版把面板
+      （一块 `<div class="settings">`）装进 `<p class="hero-log">`，实测产物里面板被甩到 `.search`
+      **外面**、包含块变成 `.hero`：于是"点外面只收不抢焦点"那一条把点结果行当成点了外面
+      （选中一篇的瞬间面板先收、焦点没还），几何读数里面板也落在 `left:0 / top:100%+14`＝屏幕之外。
+      ⇒ 宿主必须是能承块级的元素。两块都换 tag 之后版面逐位不变（`*{margin:0;padding:0}` 早就把
+      `<p>` 的 UA 外边距清了，`.page-head .sec-label` 本来就是 `display:block`）。
+   ⚠️ 面板**不新造材质**：DOM 上它同时挂着抽屉那一枚 `settings` 类，于是玻璃面、236px、内垫、
+      14px 圆角、`visibility:hidden` ⇄ `inert` 的收起对、`.settings > *` 那一族错落、`.settings-cap`
+      那行标题、打印档 `html .settings{display:none}` 全部是 `mistwood.css` 里那**一份**规则在管
+      （§9 说的"复用 .settings 抽屉那一整套"就是复用类，不复制声明——复制一份就是第二处真值，§17）。
+   `solo` 只有 /about/ 用：那一页的扉页原本只有一枚 `.page-title`，没有 `.sec-label` 那一行，
+   所以它自己就是那一行的全部内容 ⇒ 前面那枚分隔点 `·` 不该出现（一行开头挂着半个接续词＝画坏了）。 */
+const { solo = false } = Astro.props;
+---
+<div class="search" id="search" hidden>
+  {solo ? null : <span class="sep" aria-hidden="true">·</span>}
+  <!-- 入口是一枚**文字动作**，不是胶囊、不是第三枚圆钮：`.post-act`（盖章／专注／代码块复制）那一族的语言——
+       等宽小字 + 下划线 + `--moss-ink`，声明与全部理由在 `base.css` 那一格。它是真 `<button type="button">`：
+       有面板可开就是按钮，写成 `<a>` 就要给一个不存在的地址（§12 死锚点）。 -->
+  <button class="search-toggle" id="search-toggle" type="button"
+          aria-expanded="false" aria-controls="search-panel" aria-keyshortcuts="/"
+          title="站内搜索（按 / 直达）">search — 搜全文</button>
+  <!-- 收起态同 .settings：CSS 的 visibility:hidden 让它退出可读树，JS 再补一层 inert，两者同向。
+       ⚠️ 这一枚 `class` 是两枚：`settings` 交材质，`search-panel` 只管这一格自己的那几件。
+       面板规则全部写成 `.settings.search-panel`（0,2,0）才压得过抽屉那份——顺序与权重都算过，见 base.css 那段。
+       ⚠️ 它现在挂在**这一行字**下面，不再挂在胶囊下面 ⇒ 包含块与下垂距离都换了宿主，
+       那笔账（以及首页那一档为什么要朝上开）写在 `base.css` 搜索那一格里，读数在 `tools/search-check.mjs` 第 ⑦ 格。 -->
+  <div class="settings search-panel" id="search-panel" role="dialog" aria-label="站内搜索" inert>
+    <p class="settings-cap" id="search-cap">站内搜索</p>
+    <input class="search-input" id="search-input" type="search" placeholder="标题 / 摘要 / 正文"
+           autocomplete="off" spellcheck="false" maxlength="64" aria-labelledby="search-cap" aria-describedby="search-hint">
+    <div class="search-box">
+      <p class="search-hint" id="search-hint" aria-live="polite"></p>
+      <ul class="search-results" id="search-results"></ul>
+    </div>
+  </div>
+</div>

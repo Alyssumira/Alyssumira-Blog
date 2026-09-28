@@ -261,35 +261,51 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 
 /* ============ 站内搜索（§9 第十一轮新立的在册组件）============ */
 /* ⚠️ 面板**不新造材质**，也不新抄一份数值：DOM 上它同时挂着抽屉那一枚 `settings` 类，
-   于是玻璃面、内垫、14px 圆角、`visibility:hidden` ⇄ `inert` 的收起对、`.settings > *` 那一族
+   于是玻璃面、236px、内垫、14px 圆角、`visibility:hidden` ⇄ `inert` 的收起对、`.settings > *` 那一族
    错落、`.settings-cap` 那行标题、打印档里 `html .settings{display:none}` 那一行，
    全部是 `mistwood.css` 里那**一份**规则在管（§9 说的"复用 .settings 抽屉那一整套"就是这个意思：
    复用类，不复制声明——复制一份就是第二处真值，§17 那一格钉的正是这件事）。
-   这里只写抽屉里没有的四件：入口钮、输入行、说明行、结果表。
-   ⚠️ 为什么这一组住在 `base.css` 而不是跟着抽屉住进 `mistwood.css`：入口与面板六页全有，
-   而 `mistwood.css` 首页不加载（§17 的分工）——放那边的话首屏那枚钮就没有样式，
-   与首页 `.nav` 那份"两份都要改"的旧债是同一个形状，不再开第二处。 */
-.search{ position:relative; display:flex; }
-/* ⚠️ 这一行是 `hidden` 唯一能保住的地方：`.search` 自己写了 `display:flex`，
-   而作者样式压得过 UA 的 `[hidden]{display:none}` —— 少了这一行，无脚本的访客会看到一枚
-   点不动的放大镜（§12 那条"点了没反应的空壳"最直接的形状）。
+   这里只写抽屉里没有的四件：入口那一行字、输入行、说明行、结果表。
+   ⚠️ 为什么这一组住在 `base.css` 而不是跟着抽屉住进 `mistwood.css`：入口与面板七页全有
+   （六份子页的扉页那一行 + 首页 `.hero-log` 那一行），而 `mistwood.css` 首页不加载（§17 的分工）——
+   放那边的话首页那一行字就没有样式，与首页 `.nav` 那份"两份都要改"的旧债是同一个形状，不再开第二处。
+   ⚠️ 宿主在第十一轮末从**导航胶囊**换成了**内容页扉页那一行**（`src/components/SearchEntry.astro`），
+   理由不是审美，是 §11 那一整行的几何账：`.nav-links` 在 ≤340 档实测 270.48px、胶囊需要 296.48、
+   那一档的上限解析成 300 ⇒ 余量 3.52px，装不下第三枚 30px 圆钮 + 一枚 gap，而三条出路
+   （gap 收到 6 / 隐藏一项撞 `.here` / 两行胶囊撞已签字的 nowrap）都在那一格里被预先否掉。
+   代价照实登记在 §11 与 §9：**搜索入口不在导航里**，访客只能在内容页扉页那一行找到它。 */
+.search{ position:relative; display:inline-flex; align-items:baseline; }
+/* ⚠️ 这一行是 `hidden` 唯一能保住的地方：`.search` 自己写了 `display:inline-flex`，
+   而作者样式压得过 UA 的 `[hidden]{display:none}` —— 少了这一行，无脚本的访客会看到那一行末尾挂着
+   一枚点了没反应的字（§12 那条"点了没反应的空壳"最直接的形状，上一版是放大镜、这一版是一行字）。
+   下面窄屏那一档给 `.search` 换 display 时写成 `.search:not([hidden])`，就是为了让**这一行**
+   始终是"没有脚本就没有这一格"的唯一承重点，不在第二处再解释一遍 `hidden` 意味着什么。
    详情页那枚 `post-focus` 不需要这条，因为 `.post-act` 从来没点过 `display`（essay.css:30）。 */
 .search[hidden]{ display:none; }
-/* 入口钮与旁边两枚同族：30px 圆、1px --glass-border 描边、透明底、15px 图标。
-   悬停的主反馈只有 `color` 一枚——同族那两枚把 `transform` 用掉了（主题 180°、滑杆 90°），
-   放大镜没有可转的语义，硬凑一个角度就是第四种动法（§1.2 一处动处处静）。
-   按下那一下 `.98` 走 §8.1 回弹档（它唯一的合法用途就是按下），与全站三枚钮同值。 */
+/* 分隔点：与首页日志那一行 `.hero-log .sep` 同族（8px 左右、透明度 .5），它是入口那一块的一部分，
+   所以无 JS 时跟着整块一起消失——留在扉页行末尾的半个接续词就是画坏的那一行。
+   取值口径抄 home.css:275 那一份（窄屏那一档也是 8px），左右是水平量、gap-check 不看。 */
+.search .sep{ margin:0 8px; opacity:.5; }
+/* 入口是一枚**文字动作**：`.post-act` 那一族（盖章 / 专注 / 代码块复制，essay.css:30）的语言——
+   等宽小字 + 下划线 + `--moss-ink`，悬停恰好三个属性（§8.3 上限，全在 §8.8 白名单里），
+   按下那一下 `.98` 走 §8.1 回弹档（它唯一的合法用途就是"按下"）。
+   ⚠️ 字号与字距**不写**：`font:inherit` 让它吃宿主那一行（`.sec-label` 13px/.14em、`.hero-log` 13px/.12em），
+   于是这一枚字与它所在的那一行是同一副度量——这正是"同族语言、不是新材质"的意思。
+   ⚠️ 为什么它不是第三枚圆钮：胶囊里那两枚（主题 / 滑杆）都是 30px 圆 + 1px 玻璃描边，第三枚同形
+   就是把 §11 那笔账再撞一遍；而站内"有面板可开的那一枚字"早就有先例，不需要新形状。 */
 .search-toggle{
-  display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
-  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
-  color:var(--ink-2);
-  transition:color .3s cubic-bezier(.22,1,.36,1),background-color .3s cubic-bezier(.22,1,.36,1);
+  background:none; border:0; padding:0; cursor:pointer; font:inherit; color:var(--moss-ink);
+  text-decoration-line:underline; text-decoration-thickness:1px; text-underline-offset:3px;
+  text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);
+  transition:text-decoration-color .3s cubic-bezier(.22,1,.36,1),text-decoration-thickness .3s cubic-bezier(.22,1,.36,1),color .3s cubic-bezier(.22,1,.36,1);
 }
-.search-toggle:hover{ color:var(--ink); }
+.search-toggle:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; color:var(--ink); }
 .search-toggle:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
-/* 面板开着时停在提亮那一档：与 `.settings-toggle[aria-expanded=true]` 同一个语义（"你在这件事里面"） */
-.search-toggle[aria-expanded="true"]{ color:var(--ink); background:var(--surface); }
-.search-toggle svg{ width:15px; height:15px; }
+/* 面板开着时停在"加深 + 变粗"那一档：与 `.settings-toggle[aria-expanded=true]` 同一个语义
+   （"你在这件事里面"），但它是文字，所以状态灯用的是文字的那两枚属性，不是那枚 --surface 填面
+   ——填面就是给一行字新开一种材质。 */
+.search-toggle[aria-expanded="true"]{ color:var(--ink); text-decoration-color:currentColor; text-decoration-thickness:2px; }
+
 /* 宽度**一个字都不写**：抽屉那份 `width:236px` 是 §11 逐档实测过的数（320 上真展开占
    21.24–257.24，左边最薄还留着 21.24px），这一格与它同一块面、同一档内容密度，
    为它新开一枚宽度就是 §1.5 那句"数值必须故意"的反面。
@@ -298,6 +314,52 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
    同权重就是后写的赢——实测过：裸 `.search-panel` 的 `position:fixed` 在 375px 上被抽屉那份
    `position:absolute` 压住没生效（computed position 读到 absolute）。写成两类的复合选择器，
    谁在前谁在后都不再参与判定。 */
+/* 锚点：面板挂在**触发它的那一行字**下面，不再挂在胶囊的滑杆钮下面 ⇒ 三件跟着换。
+   ① `left:0; right:auto`——上一版的 `right:0` 是为"面板与那枚 30px 圆钮右缘对齐"写的，
+     宿主换成一横行字之后那条关系没了：扉页那一行的字**右**边可能就是视口右半（首页 8vw 内边距、
+     子页 `.wrap` 同理），右对齐会把 236px 一路铺到内容外面去。左对齐把它铺在那行字自己的起点上，
+     实测七档 × 两页都在视口内（`tools/search-check.mjs` 第 ⑦ 格逐档判"面板两缘在视口之内"）。
+   ② `transform-origin`——抽屉那份写 `calc(100% - 15px) -29px`，那 15px 是"圆钮宽的一半"，
+     一行字没有可取的"一半"（宽度随标签文字走），唯一静态可知的点是它自己的左端 ⇒ `0 -29px`：
+     面板仍然从"手上"长出来，只是手从一枚 30px 的圆变成一横行字的起点。
+   ③ 下垂距离继续吃 `.settings` 那一份 `top:calc(100% + 14px)`，这里一个数都不写（§17）。
+      ⚠️ 上一版靠 `.nav` 的 `transform` 把 `position:fixed` 的包含块拉回胶囊，所以窄屏那一档可以
+      只写 `left/right` 不写 `top`；宿主换成扉页那一行之后包含块变成**视口**（`.reveal.in` 之后
+      祖先链上没有一个 transform），那枚 `calc(100% + 14px)` 就解成 `100vh + 14` ⇒ 面板掉到屏幕外。
+      所以整条窄屏 `fixed` 分支删掉了，全站只剩 `position:absolute`：绝对定位的包含块是最近的
+      **有定位**的祖先（正是 `.search` 这一枚），与祖先有没有 transform 无关 ⇒ 扉页在文档哪里、
+      面板就挂在哪里，跟着页面一起滚，不需要任何一档重写它。 */
+.settings.search-panel{ left:0; right:auto; transform-origin:0 -29px; }
+/* 首页那一档**朝上开**：`.hero-log` 那行字在首屏底部（`margin-top:auto` + `margin-bottom:8vh`），
+   挂在它下缘的面板会掉到那一屏之外——开着却看不见，等于那一格坏了。`bottom:calc(100% + 14px)`
+   把它翻到那行字的上面，缝还是同一枚 14；origin 跟着镜像到面板下缘外 29px。
+   ⚠️ 收起态那 8px 的 `translateY` 不跟着翻：它是 `.settings` 那一份材质声明的一部分，
+   为这一档另写一份 transform 就是开第二处真值（§17），代价是这一档的入场位移朝上、
+   而抽屉与扉页那两档朝下——8px，读不读得出"方向反了"没有量过，记在 §9 那一格。 */
+.hero-log .settings.search-panel{ top:auto; bottom:calc(100% + 14px); transform-origin:0 calc(100% + 29px); }
+/* 窄屏那一档：入口那一行放不下时**整块落到第二行盒**，而不是把字距挤成贴面
+   （§11 给导航留的那句原话："字距开始像挤地铁"）。两枚宿主都要——扉页那一行是
+   `white-space:nowrap` 的（§15：那行字是门牌、不许折），溢出之后被 `body{overflow-x:hidden}`
+   裁掉的那半截**正好是入口本身**（点不到的入口比出玻璃的入口更坏）；首页 `.hero-log` 虽然自然
+   折行，但它折完之后那一枚 inline-flex 的入口仍然可能顶出内容盒（实测 300 档右缘 303.81 > 300）。
+   ⚠️ `:not([hidden])` 不是绕弯：上面 `.search[hidden]{display:none}` 那一条必须是"没有脚本
+   就没有这一格"的唯一承重点，而它的权重只有 (0,1,1)——这里若写成裸 `.search{display:flex}`
+   就会在窄屏把带 hidden 的那一块也拉回屏幕上。加一枚 `:not([hidden])` 让这一条只在
+   "脚本已经把它显形之后"参与判定，`hidden` 的语义仍然只住在一处。
+   ⚠️ 这一档也不在 `mistwood.css` 里写：`.page-head .sec-label` 那条 `display:block` 的权重是
+   (0,2,1)，而 `mistwood.css` 排在 `base.css` 之后（§17 那条"同权重后写的赢"），裸写会互相压——
+   这里带满宿主链（`.page-head .sec-label .search`＝(0,3,0) / `:not([hidden])` 再加 (0,1,1)）才算数。
+   ⚠️ 第二行盒不需要 `margin-top`：它是同一个块里的第二个行，行距吃宿主那一行自己的行盒
+     （B 档那一族），所以这里零枚新垂直 px——gap-check 的在册数不因这一条而动。
+   分隔点在这一档撤掉：那一行开头挂着半个接续词就是画坏了。
+   ⚠️ 这一档的断点（384）是**量出来的**：384 以下入口的右缘顶穿 `.wrap` / `.hero` 的内容盒，
+     385 起那一行装得下——逐档读数登记在 §11 与第 ⑦ 格。 */
+@media (max-width:384px){
+  .page-head .sec-label .search:not([hidden]),
+  .hero-log .search:not([hidden]){ display:flex; }
+  .page-head .sec-label .search .sep,
+  .hero-log .search .sep{ display:none; }
+}
 .search-box{ margin-top:14px; }
 .search-input{
   display:block; width:100%; padding:8px 9px; border-radius:9px;
@@ -336,28 +398,13 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
   background:color-mix(in srgb,var(--moss) 25%,transparent); color:inherit;
   -webkit-box-decoration-break:clone; box-decoration-break:clone;
 }
-@media (max-width:720px){
-  /* 窄屏不再挂在 30px 那枚钮下面：那一档整枚胶囊右缘离视口右边只剩 10–13px，
-     236px 的抽屉从那儿往左铺会顶出左边界（实测 320 那档面板左缘落在 -14）。
-     ⚠️ 改法只有一条，但那条**不是**"摊到视口"：`.nav` 带着 transform（`translate(-50%,…)` +
-     `animation:nav-in forwards`），而带 transform 的祖先就是 `position:fixed` 后代的包含块——
-     所以这里那三枚 `left/right/top` 量的都是**胶囊的 padding box**，不是视口。
-     读数逐档钉着（`tools/search-check.mjs` 第 ⑦ 格，判据里同时含"面板必须落在胶囊之内"）：
-       320 → 胶囊 16..304、面板 27..293（宽 266、y=121.19）   375 → 16..359 / 27..348（宽 321、y=125.19）
-       430 → 38.76..391.24 / 49.76..380.24（宽 330.48、y=79） 1440 → 376.98..1063.02 / 752.02..988.02（宽 236、y=71，那一档仍是 absolute）
-     `left/right:10px` 与 ≤340 那档 `max-width:calc(100vw - 20px)` 用的是同一枚 10（左右各 10），
-     落到视口边上就成了 27 / 27 / 49.76——胶囊自己的 1px 边框 + 那 10 再加胶囊被钉死的那点余量。
-     `top` **一个字都不写**：抽屉那份 `top:calc(100% + 14px)`（mistwood.css:170）在这档跟着换包含块，
-     于是它永远挂在"胶囊下缘 + 14"那一格：单排那几档量回来 79（胶囊占 16..66、padding box 顶 17、高 48 ⇒ 17+48+14），
-     两排那一档（≤384，见 mistwood.css 末段）自动推到 121.19——**同一枚声明，两档都自己对上，这里没写一个数**。
-     上一版在这里写死 `top:64px`，量回来是 81：那枚数按"视口顶 16 + 胶囊高 34 + 缝 14"算的，
-     而胶囊其实高 50、`top` 的起点其实是 padding box 顶 17——两头都没对上，凭空多出一段不等宽的缝。
-     删掉它才是复用（§17 那句"一枚规则只住在一个地方"），下垂距离由抽屉那一份决定。
-     上下内垫改回一枚 16px（C 档，格子上最小的那一档不小于这块面要承的满幅内容）。
-     ⚠️ 这一格依赖 `.nav` 那枚 transform——哪天胶囊改用 `left/right` 定位、transform 没了，
-     这里就会一路摊到视口上去。会红：第 ⑦ 格逐档判"面板在胶囊之内"+"position 仍是 fixed"。 */
-  .settings.search-panel{ position:fixed; left:10px; right:10px; width:auto; padding:16px; }
-}
+/* ⚠️ 这里**不再有** `@media (max-width:720px)` 那一档（第十一轮末随宿主一起删掉的）。
+   它原先干的是"胶囊里那枚圆钮离视口右边只剩 10–13px ⇒ 236px 的面板从那儿往左铺会顶出左边界
+   （实测 320 那档左缘落在 -14）⇒ 摊成全幅"，靠的是 `.nav` 那枚 transform 把 fixed 的包含块拉回胶囊。
+   宿主变成扉页那一行之后：包含块成了视口，同一份 `top:calc(100% + 14px)` 解成 `100vh + 14` ⇒ 掉出屏幕；
+   而"顶出左边界"这件事本来就不存在了——面板左缘对齐的是那行字的起点（内容左缘之内），
+   往右铺 236px 时它右边永远还有 `.wrap` 的余量（逐档读数在第 ⑦ 格与 §11）。
+   连带删掉的还有那一档的 `padding:16px`（C 档在册枚数因此少一枚，`tools/gap-check.mjs` 的注册表同步）。 */
 
 /* ============ 区块通用（滚动入场：规范 §8.7）============ */
 .reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); transition-delay:calc(var(--cascade,0) * 80ms); }

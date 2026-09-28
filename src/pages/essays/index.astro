@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import SearchEntry from '../../components/SearchEntry.astro';
 import { fmtDate, root } from '../../lib/markdown.js';
 import { visiblePosts } from '../../lib/posts.js';
 import { readMinutes } from '../../lib/stats.js';
@@ -42,7 +43,9 @@ let folio = 0;
   <main class="wrap">
     <header class="page-head reveal">
       <h1 class="page-title">文章</h1>
-      <span class="sec-label">essays — <b>{pad(posts.length)}</b> →</span>
+      {/* 扉页那一行现在要能承一块玻璃面板 ⇒ tag 从 `<span>` 换成 `<div>`（内容模型合法、`display:block`
+          由 `.page-head .sec-label` 那条既有声明给，版面逐位不变）；理由全文在 SearchEntry.astro 头上。 */}
+      <div class="sec-label">essays — <b>{pad(posts.length)}</b> →<SearchEntry /></div>
       <span class="density-wrap">
         <svg class="density" viewBox="0 0 300 60" width="300" height="60" role="img"
              aria-label={`近 12 个月（${span}）：${wrote} 个月有更新，共 ${posts.length} 篇`}>

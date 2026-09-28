@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import SearchEntry from '../components/SearchEntry.astro';
 import { siteFacts, tone } from '../lib/stats.js';
 import { inlineMd } from '../lib/markdown.js';
 import { visiblePosts } from '../lib/posts.js';
@@ -27,6 +28,12 @@ const walk = notes[0];
   <main class="wrap">
     <header class="page-head reveal">
       <h1 class="page-title">关于</h1>
+      <!-- 这一页原本没有 `.sec-label` 那一行（扉页只有标题）。搜索入口要落在扉页那一族里（§9/§11），
+           所以这里补的正是那一族的一行：`solo` 让分隔点不出现，`margin-top:16px` 吃的是
+           `.page-head .sec-label` 那一条既有声明（mistwood.css:293），没有新造一行版面常数、
+           也没有新增一枚垂直间距槽位（gap-check 的在册数因此不为它动）。
+           tag 用 `<div>` 而不是 `<span>`：这一行现在要能承面板那枚块级元素，理由在 SearchEntry.astro 头上。 -->
+      <div class="sec-label"><SearchEntry solo /></div>
     </header>
 
     <!-- 人像已到位（public/assets/portrait.png，276×276 透明角）；文案仍是这一页的作者口吻 -->

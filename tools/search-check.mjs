@@ -4,7 +4,18 @@
          node tools/search-check.mjs --edge=<路径>   （换浏览器可执行文件；找不到 ⇒ 红，不降级不跳过）
          node tools/search-check.mjs --only=node     （只跑不碰浏览器的那四格 ①②③④）
          node tools/search-check.mjs --only=browser  （只跑浏览器那三格 ⑤⑥⑦）
-         node tools/search-check.mjs --widths=320,375,430,1440   （换面板几何那几档；少于三档 ⇒ 红）
+         node tools/search-check.mjs --widths=300,320,340,360,720,1440   （逐档视口；少于三档 ⇒ 红）
+         node tools/search-check.mjs --pages=/,/essays/,/categories/     （逐档跑哪几页；少于两页 ⇒ 红）
+   ⚠️ **宿主那一格（第十一轮末，读代码之前先读这一段）**：入口不在导航胶囊里，在**内容页扉页那一行**
+      （六份子页的 `.sec-label` 行 + 首页 `.hero-log` 那一行，组件是 `src/components/SearchEntry.astro`）。
+      所以第 ⑦ 格现在同时判两件事，缺一件就是这一卡没跑：
+        · **撤干净了没有**——`.nav-links` 里不许有 `.search`，直接子节点必须回到**七枚**
+          （5 链接 + 滑杆 + 主题），胶囊那两枚内边距差回到 §11 签署的对称读数，出盒破口点回到 303.48。
+          这一格逐档打印 `.nav-links` 宽 / 胶囊需要量 / `scrollWidth == innerWidth`，
+          就是 §11 那一整行的口径；读数与 main 逐位不同 ⇒ 那枚按钮没摘干净或胶囊被动过。
+        · **新宿主装得下没有**——入口那一行在窄屏不许从 `.wrap` 的内容盒里溢出去（nowrap 那一行
+          溢出之后是被 `body{overflow-x:hidden}` 裁掉的，裁掉的就是入口本身 ⇒ 比"出玻璃"更坏：点不到），
+          面板逐档必须在视口之内，且首页那一档必须**朝上开**（那行字在首屏底部，朝下就掉出那一屏）。
    ⚠️ **它读 dist/**，所以挂在 check 链上之后，`npm run check` 就多了一条前置：没建过产物 ⇒ 第 ⑦ 项红并点名
       "先 npm run build"。这一条是**有意的**，不是疏漏："索引在、但是空的""正文来源被摘掉"这两种坏法
       只存在于产物里，前六关（源码级）原理上抓不到 ⇒ 宁可红得有名，不许把这一格挪进只读源码的那几关。
@@ -17,12 +28,14 @@
        只有拿源码数一遍"该有几篇"再对索引的篇数、并逐枚回 dist 里点名那一页才对得出来 ⇒ 第 ② 格。
        判"什么算草稿"吃的是 shipped 的 `isDraft` / `sortPosts`（`src/lib/taxonomy.js`，那份不碰
        astro:content），与 `runtime-check` 同一把尺子，不在这里重猜一遍。
-     · **无 JS 时留下一枚点了没反应的放大镜** —— `runtime-check` 的内联隔离档只判五枚属性，
+     · **无 JS 时留下一枚点了没反应的字** —— `runtime-check` 的内联隔离档只判五枚属性，
        它不看 `#search` 还在不在 ⇒ 第 ⑥ 格（.js 全 404 那一档读 dump 的 DOM）＋ 第 ⑤ 格里
        Node 直读 `dist/index.html` 字节的那一组静态形状读数。
    ⚠️ 防空转照抄 taxonomy-check / gap-check 的口径：每一格自己上报跑了几条断言，**一格 0 条就算红**，
       最后一枚总闸再判"一条都没跑过"（§14 第 14 格那条"检查静默空转、退出码 0、长得像全绿"）。
       逐格的 `asserted=0` 拦不到"所有格都被 if 跳过"那种整体空转，所以末尾那一枚不能省。
+      ⚠️ 探针/语料/页面名单一律不写死（写死的那一枚在"索引压根没建成"的环境里也长绿，白拿）；
+      它们全部从盘上现挑、现派生 ⇒ 挑不出对象就**红且点名**，不降级、不跳过。
 
    ── 命门那一格为什么"命中一篇"不够（第 ④ 格存在的全部理由）──────────────────
    语料里那枚二字窗只落在一篇，于是"命中一篇"既可能是"索引吃到了正文"，也可能是
@@ -37,6 +50,8 @@
       它只能证明"我造的样例能被我造的比对挑出来"，那正是 §14:1033 / §16:1246 那条病。
       真仓语料不够造出两枚"≥2 篇正文都有、标题摘要都没有"的窗时，这一格报红并点名
       **加一篇 .md 再跑**——加完必须 PASS，这是可复跑的要求，不是待办。
+      三张索引与探针全都从 **VISIBLE**（可见那批）派生，不是 CORPUS：草稿本来就不在产物索引里，
+      拿含草稿的语料挑探针会让"这一枚只在一篇正文里"判到一篇根本不该被搜到的稿子上。
 
    ── 浏览器那一侧怎么"真打一遍字"（本机可复跑的那条路）────────────────────────
    `--dump-dom` 一次导航拍完就走，给不了输入；本工具不引任何新依赖，走 `pixel-probe.mjs`
@@ -58,7 +73,7 @@
       但判据不依赖这件事）：这一格因此只读 `classList`、`getComputedStyle` 的**计算值**与
       `getBoundingClientRect`，并且量 rect 前先 `transition:none`；从不读过渡中间态——
       "读数没变"在这里不等于"功能没跑"。
-   ⚠️ 面板几何那几档不用 `--window-size` 设视口（本机 Edge 有最小窗宽，实测 320 档回来是 504），
+   ⚠️ 面板与胶囊几何那几档不用 `--window-size` 设视口（本机 Edge 有最小窗宽，实测 320 档回来是 504），
       用的是**同源 iframe**：见下面 FRAME_DRIVER 那段注释。
 */
 import { spawn } from 'node:child_process';
@@ -78,9 +93,12 @@ const argv = process.argv.slice(2);
 const opt = n => { const h = argv.find(a => a.startsWith(`--${n}=`)); return h ? h.slice(n.length + 3) : null; };
 const ONLY = opt('only');
 const DIST = resolve(opt('dist') || join(ROOT, 'dist'));
-const WIDTHS = (opt('widths') || '320,375,430,1440').split(',').map(Number).filter(Number);
+const WIDTHS = (opt('widths') || '300,320,340,360,720,1440').split(',').map(Number).filter(Number);
+/* 逐档几何跑哪几页：两枚宿主各一枚是底线（`/` 的 hero-log 与子页的 `.sec-label`），
+   `--pages=` 可以加。名单硬写在默认值里 ⇒ 被改空时下面那枚 `PAGES.length >= 2` 会红。 */
+const GEOM_PAGES = (opt('pages') || '/,/essays/,/categories/').split(',').filter(Boolean);
 const LAUNCH_TIMEOUT = 90_000;
-/* 无 JS 档要跑的页：六页共用一份 Layout，所以"每一页都有这一格"至少要在两页以上拍过才算。
+/* 无 JS 档要跑的页：三页共用一份 Layout、宿主两种各占其一，所以"每一页都有这一格"至少要在两页以上拍过才算。
    名单是硬写的 ⇒ 空名单／被改空时下面那枚 `nojs.length >= 2` 会红，不会静默少跑。 */
 const PAGES = ['/', '/essays/', '/about/'];
 
@@ -140,13 +158,17 @@ function bigrams(s){
   return out;
 }
 /* ==================== 探针词与反例词：每次跑都从盘上现挑 ====================
-   探针要同时满足四件事，缺一件第 ④ 那张表就退化成"搜标题"（§12:828 点名的形状）：
+   探针要同时满足五件事，缺一件第 ④ 那张表就退化成"搜标题"（§12:828 点名的形状）：
    ① 是中文二字窗；② 只落在一篇的**正文**里（标题、摘要、别的篇都不能有它）；③ 全站只出现一次；
-   ④ 不在任何一篇正文的前 TRUNC 字里——否则它在 trunc 那一列也是非零，三张表少了一张。
+   ④ 不在任何一篇正文的前 TRUNC 字里——否则它在 trunc 那一列也是非零，三张表少了一张；
+   ⑤ **它所属的那一篇必须是可见稿件**——产物索引里根本没有草稿那一篇（第 ② 格正是判它不许进来），
+      拿只有草稿才有的窗当探针，③④⑤ 三格会一起红在"搜不到"上，而那是**正确行为**。
+      语料图仍然按**全部**稿子建（含草稿），所以"只落在一篇"判的是全仓，比只数可见那批更严。
    写死一枚会在下一篇稿子落地那天悄悄失效（那时它可能命中两篇），所以每次现挑；挑不出来就是红。
    反例词同理：由语料派生（换两头拼一枚哪儿都不在的窗），不写死 zzzz——写死那枚在
    "索引压根没建成"的环境里也一样长绿，白拿。 */
 const TRUNC = 12;                       // trunc 那一列只留正文前 12 字：短到装不下任何一枚挑中的窗
+const VISIBLE_SLUGS = new Set(VISIBLE.map(p => p.slug));
 const PROBE = (() => {
   if (!CORPUS.length) return null;
   const seen = new Map();
@@ -157,9 +179,9 @@ const PROBE = (() => {
   const ok = [...seen.entries()]
     .filter(([w, who]) => who.size === 1 && CJK2.test(w) && !CORPUS.some(p => p.head.includes(w) || p.body.slice(0, TRUNC).includes(w)))
     .map(([w, who]) => ({ word: w, slug: [...who][0], total: CORPUS.reduce((n, p) => n + (p.body.split(w).length - 1), 0) }))
-    .filter(c => c.total === 1);
+    .filter(c => c.total === 1 && VISIBLE_SLUGS.has(c.slug));
   if (!ok.length){
-    hard(`${CORPUS.length} 篇稿子里挑不出"只落在一篇正文里、全站只出现一次、标题与摘要都不含、且不在正文前 ${TRUNC} 字内"的中文二字窗 ⇒ 命门那一格没有对象，判据正在空转（要么改探针挑选口径，要么加一篇稿子）`);
+    hard(`${CORPUS.length} 篇稿子（可见 ${VISIBLE.length} 篇）里挑不出"只落在一篇**可见**稿子的正文里、全站只出现一次、标题与摘要都不含、且不在正文前 ${TRUNC} 字内"的中文二字窗 ⇒ 命门那一格没有对象，判据正在空转（要么改探针挑选口径，要么加一篇稿子）`);
     return null;
   }
   return ok.sort((a, b) => a.word.localeCompare(b.word))[0];
@@ -267,7 +289,7 @@ if (product && PROBE) cell('③', '探针词只落在一篇正文里，searchDoc
       它证明的是"我造的样例能被我造的比对挑出来"，那正是 §14:1033/§16:1246 那条病。
       三列的区分全落在 `k` 是从哪一层文本切出来的（full = dist 里那份、title = 只喂标题+摘要、
       trunc = 正文只留前 12 字），比对函数自始至终是 shipped 的 `searchDoc()` 一枚。 */
-const shapeIndex = kind => CORPUS.map(p => ({
+const shapeIndex = kind => VISIBLE.map(p => ({
   u: `/essays/${p.slug}/`,
   t: p.head, e: '',
   k: docTokens(kind === 'title' ? p.head : p.head + ' ' + p.body.slice(0, kind === 'trunc' ? TRUNC : Infinity)),
@@ -279,8 +301,8 @@ if (product && PROBE) cell('④', '三张索引（full / 只喂标题 / 正文�
      与"命中一批"分界的证据。挑不到两枚就是红——语料不够造反例时**加一篇稿子再跑**，
       不许把这一格降级成"有一枚单篇窗就算过"。 */
   const perWin = new Map();
-  for (const p of CORPUS) for (const w of new Set(bigrams(p.body))){
-    if (!CJK2.test(w) || p.head.includes(w)) continue;              // 标题/摘要里有的窗不当探针
+  for (const p of VISIBLE) for (const w of new Set(bigrams(p.body))){
+    if (!CJK2.test(w) || CORPUS.some(x => x.head.includes(w))) continue;   // 标题/摘要里有的窗不当探针（全仓都查）
     if (p.body.slice(0, TRUNC).includes(w)) continue;               // 落在截断窗口里的窗没有区分力
     if (!perWin.has(w)) perWin.set(w, new Set());
     perWin.get(w).add(p.slug);
@@ -360,6 +382,13 @@ out.state = { theme: document.documentElement.dataset.theme, fog: document.docum
   enter: document.documentElement.dataset.enter, clock: (document.getElementById('clock') || {}).textContent,
   fonts: document.fonts ? document.fonts.status : 'none', vis_state: document.visibilityState };
 out.revealed = !!(await until(() => !document.getElementById('search').hidden, 8000));
+/* ⚠️ 宿主那一格（第十一轮末）：入口现在住在扉页/日志那一行，导航胶囊里一枚都不许有。
+   这两枚读数是"那枚按钮摘干净了没有"的正面证据，第 ⑤ 格判它、第 ⑦ 格逐档再判一次。 */
+out.in_nav = !!document.querySelector('.nav-links .search');
+out.nav_children = (() => { const el = document.querySelector('.nav-links'); return el ? el.children.length : null; })();
+out.host = (() => { const el = document.getElementById('search'); if (!el) return null;
+  return { in_page_head: !!el.closest('.page-head'), in_hero_log: !!el.closest('.hero-log'),
+    tag: el.tagName.toLowerCase(), text: (document.getElementById('search-toggle') || {}).textContent }; })();
 if (out.revealed){
   T().click();
   out.focus_after_open = document.activeElement && document.activeElement.id;
@@ -386,6 +415,29 @@ if (out.revealed){
   esc(document.body);
   await wait(120);
   out.after_esc = Object.assign(snap(), { focus: document.activeElement && document.activeElement.id });
+  /* ---------- 键盘 / 全站直达（第十一轮末新增；四条读数各判一件事）----------
+     ① 收起态在 body 上按 / ⇒ 面板必须开、焦点必须落进输入框（这才叫"直达"）；
+     ② 事件必须被 preventDefault——那几个浏览器把裸 / 认成"快速查找"，不拦就是两条通道同时接键；
+     ③ **输入框里的那个斜杠是字，不是命令**：焦点在 #search-input 里再按一次，默认行为不许被拦
+        （defaultPrevented 必须还是 false），面板状态也不许被"再开一次"改动；
+     ④ 带修饰键（Ctrl+/）不算这条命令。
+     ⚠️ 合成 KeyboardEvent 只能证明"这段脚本没有抢键、没有拦默认行为"，证不了浏览器真会把字符插进框里
+        （那是浏览器那一步的事，登记在未验到，不写成已验）。
+     ⚠️ 这一段整块住在 site.js 那个 if (searchWrap && ...) 里：这一页没有那一格 ⇒ 按 / 什么都不发生。 */
+  const slash = (t, mods) => { const ev = new KeyboardEvent('keydown', Object.assign({ key: '/', bubbles: true, cancelable: true }, mods || {}));
+    (t || document.body).dispatchEvent(ev); return ev.defaultPrevented; };
+  out.slash = { closed_before: !P().classList.contains('open'), focus_before: document.activeElement && document.activeElement.id };
+  out.slash.prevented = slash(document.body);
+  await wait(120);
+  out.slash.open_after = P().classList.contains('open');
+  out.slash.focus_after = document.activeElement && document.activeElement.id;
+  out.slash.in_input_prevented = slash(I());
+  out.slash.still_open = P().classList.contains('open');
+  out.slash.ctrl_prevented = slash(document.body, { ctrlKey: true });
+  esc(document.body);
+  await wait(120);
+  out.slash.esc_focus = document.activeElement && document.activeElement.id;
+  out.slash.esc_open = P().classList.contains('open');
   T().click();
   await wait(120);
   out.reopened = snap();
@@ -395,8 +447,13 @@ if (out.revealed){
   document.getElementById('settings-toggle').click();
   T().click();
   await wait(120);
+  /* 两枚面板在 1440 上的几何关系（**读数**，不再当成互斥那条判据的前提）：
+     宿主搬走之后它们一个挂在扉页那一行、一个挂在胶囊下的滑杆钮，是否还重叠由量说了算 ⇒ ⑤ 判
+     "同开之后只剩一块"（行为），重叠只打印登记进 §11，它将来变了不会静默改掉那条判据的理由。 */
   out.stack = (() => { const a = P().getBoundingClientRect(), b = S().getBoundingClientRect();
-    return { dx: r2(a.x - b.x), overlap: !(a.right <= b.left + 0.5 || b.right <= a.left + 0.5) }; })();
+    return { dx: r2(a.x - b.x), dy: r2(a.y - b.y), overlap: !(a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5),
+      search: { left: r2(a.left), right: r2(a.right), top: r2(a.top), bottom: r2(a.bottom) },
+      settings: { left: r2(b.left), right: r2(b.right), top: r2(b.top), bottom: r2(b.bottom) } }; })();
 }
 out.width = innerWidth;
 out.nav_links = (() => { const el = document.querySelector('.nav-links'); return el ? rectof(el) : null; })();
@@ -406,63 +463,90 @@ out.panel = (() => { const el = P(); const old = el.style.transition; el.style.t
 box.textContent = 'DRIVE' + JSON.stringify(out) + 'END';
 `;
 
-/* ---- 面板几何的读数路线：同源 iframe，不是 --window-size ----
+/* ---- 几何读数路线：同源 iframe，不是 --window-size ----
    ⚠️ 为什么不用 `--window-size=320,900`：本机 Edge 有最小窗口宽度，实测那一档 `innerWidth` 回来是 **504**
       —— 视口根本没设上，读数会一路全绿却量的是 504px 那一档（第一版就是这么红的）。
       CDP 的 `Emulation.setDeviceMetricsOverride`（§11 那批导航读数当年走的就是它）本工具不引：
       引一次就要养一段 WebSocket 客户端，而这一格要的只是"媒体查询按这一档宽度求值之后，
       那块面的盒子落在哪儿"。同源 iframe 的视口就是一个独立视口——媒体查询、`vw`、
       `position:fixed` 全部按 iframe 的宽度算，与被嵌页面自己 resize 到那一档等价，
-      而且被测对象仍然是**未改动的真产物**（只有 shipped site.js 在里面跑）。 */
+      而且被测对象仍然是**未改动的真产物**（只有 shipped site.js 在里面跑）。
+      ⚠️ 每一档都把 `iframe.contentWindow.innerWidth` 读回来跟请求值对账（⑦ 判 `o.width === w`），
+         对不上就是"这一档根本没设上"，整行读数作废而不是当成绿。
+      ⚠️ iframe 高写 900（与 §11 当年那批读数的窗口高档同值）：vh 参与 `.page-head` 的开场高度，
+         换高度就是换一组读数，不许在这一跑里随手改。 */
 const FRAME_DRIVER = `
 const box = document.getElementById('__drive_out');
 const r2 = n => Math.round(n * 100) / 100;
+const rectof = el => { const r = el.getBoundingClientRect();
+  return { x: r2(r.x), y: r2(r.y), w: r2(r.width), h: r2(r.height), left: r2(r.left), right: r2(r.right), top: r2(r.top), bottom: r2(r.bottom) }; };
 const W = ${'' /* 占位，服务端替换 */}__W__;
+const PAGE = '__P__';
 const f = document.createElement('iframe');
 f.style.cssText = 'position:fixed;left:0;top:0;border:0;width:' + W + 'px;height:900px';
-f.src = '/';
+f.src = PAGE;
 document.body.appendChild(f);
-const out = { want: W };
+const out = { want: W, page: PAGE };
 await new Promise(r => { f.onload = r; setTimeout(r, 12000); });
 const d = f.contentDocument, w = f.contentWindow;
 out.width = w.innerWidth;                                 /* 对账用的那枚：cell ⑦ 判的就是它必须等于 --widths 那一档 */
 out.inner = w.innerWidth;
+out.fonts = d.fonts ? d.fonts.status : 'none';            /* §11 的口径：等字体落地再量，字体是布局输入 */
 out.search_hidden_at_load = !!(d.getElementById('search') || { hidden: null }).hidden;
-out.mq = { narrow720: w.matchMedia('(max-width:720px)').matches, narrow340: w.matchMedia('(max-width:340px)').matches };
-const links = d.querySelector('.nav-links'), nav = d.querySelector('.nav');
-out.nav = nav ? { left: r2(nav.getBoundingClientRect().left), right: r2(nav.getBoundingClientRect().right), w: r2(nav.getBoundingClientRect().width) } : null;
-out.links = links ? { left: r2(links.getBoundingClientRect().left), right: r2(links.getBoundingClientRect().right), w: r2(links.getBoundingClientRect().width) } : null;
-/* 入口钮是往胶囊里**加**的一枚盒子（§11 那笔"七项"的账管的是 .nav-links 里面的 5 链接 + 滑杆 + 主题，
-   它现在多了一项）⇒ 这一档要同时回答两件事：整页不许横向溢出、这一排东西不许从玻璃两边探出去。
+out.mq = { narrow720: w.matchMedia('(max-width:720px)').matches, narrow340: w.matchMedia('(max-width:340px)').matches, narrow384: w.matchMedia('(max-width:384px)').matches };
+/* ============ 胶囊那一排：撤掉第三枚按钮之后必须回到与 main 逐位相同的读数 ============
    ⚠️ 数的是 .nav-links 的直接子节点，不是 .nav 的：.nav 只有两枚孩子（时钟 + 那一排），
    而 ≤720 那档时钟整个 display:none，拿 .nav 量会只剩 1 枚有尺寸的节点、min/max 读的是空气。
    ⚠️ 同样必须先滤掉 display:none 的子节点——那种节点的 rect 是一整排 0，Math.min 会把 0 当成左缘。 */
+const links = d.querySelector('.nav-links'), nav = d.querySelector('.nav');
+out.nav = nav ? rectof(nav) : null;
+out.links = links ? rectof(links) : null;
+out.in_nav = !!d.querySelector('.nav-links .search');     /* 必须 false：导航里不许有第三枚按钮 */
+out.nav_children = links ? links.children.length : null;  /* 必须是 7（5 链接 + 滑杆 + 主题） */
+const cs = nav ? getComputedStyle(nav) : null;
+out.nav_cs = cs ? { padL: +cs.paddingLeft.replace('px',''), padR: +cs.paddingRight.replace('px',''),
+  borL: parseFloat(cs.borderLeftWidth) || 0, borR: parseFloat(cs.borderRightWidth) || 0,
+  gap: +cs.gap.replace('px',''), wrap: getComputedStyle(links).flexWrap, maxWidth: cs.maxWidth, width: cs.width } : null;
+/* §11 那一格的那笔账，用读回来的数算、不用注释里的数：
+   胶囊需要量 = .nav-links 宽 + 左右 padding + 两枚 1px 描边 */
+out.need = (out.links && cs) ? r2(out.links.w + out.nav_cs.padL + out.nav_cs.padR + out.nav_cs.borL + out.nav_cs.borR) : null;
 const kids = links ? [...links.children].map(c => c.getBoundingClientRect()).filter(r => r.width > 0) : [];
 out.nav_overflow = { scroll: d.documentElement.scrollWidth, inner: w.innerWidth, n: kids.length,
   first: kids.length ? r2(Math.min(...kids.map(r => r.left))) : null,
   last: kids.length ? r2(Math.max(...kids.map(r => r.right))) : null,
   /* 逐枚点名：换行那一档要看得见"哪几枚在第一排、哪几枚在第二排"，只有 min/max 读不出行数 */
   each: kids.map(r => r2(r.left) + '..' + r2(r.right) + '@' + r2(r.top)) };
-/* 真点开那枚钮：面板由 shipped 的 setOpen 加上 .open / 撤掉 inert，与访客点的是同一条路 */
+/* ============ 入口那一行：新宿主装不装得下 ============ */
+const entry = d.getElementById('search');
+const row = entry ? entry.closest('.sec-label, .hero-log') : null;
+out.entry = entry ? Object.assign(rectof(entry), { display: getComputedStyle(entry).display }) : null;
+out.row = row ? { cls: row.className, left: r2(row.getBoundingClientRect().left), right: r2(row.getBoundingClientRect().right),
+  /* nowrap 那一行放不下时**不是换行而是溢出**，而 body{overflow-x:hidden} 会把溢出的那半截裁掉——
+     裁掉的正好是入口 ⇒ scrollWidth > clientWidth 就是"入口点不到"的签名，必须红。 */
+  scroll_w: row.scrollWidth, client_w: row.clientWidth, white_space: getComputedStyle(row).whiteSpace,
+  nowrap_overflow: row.scrollWidth - row.clientWidth } : null;
+/* 真点开那一行字：面板由 shipped 的 setSearchOpen 加上 .open / 撤掉 inert，与访客点的是同一条路 */
 d.getElementById('search-toggle').click();
 await new Promise(r => setTimeout(r, 120));
 const p = d.getElementById('search-panel');
 p.style.transition = 'none';                       /* 本机不走过渡帧：读终态（§9 那枚滑杆钮同一条口径） */
-const pr = p.getBoundingClientRect();
 out.open = p.classList.contains('open');
 out.inert = p.hasAttribute('inert');
 out.vis = getComputedStyle(p).visibility;
-out.panel = { left: r2(pr.left), right: r2(pr.right), w: r2(pr.width), y: r2(pr.top) };
 out.pos = getComputedStyle(p).position;
-/* 显示设置那一枚抽屉同档读数：两枚面板的 x 差与是否重叠 */
+out.panel = rectof(p);
+/* 首页那一档必须**朝上开**（那行字在首屏底部，朝下就掉出那一屏 ⇒ 开着却看不见） */
+out.panel_above_entry = out.entry ? (out.panel.bottom <= out.entry.top + 1) : null;
+/* 与显示设置那块面同开一次：同开之后搜索面板要已经收了（互斥那条行为） */
 d.getElementById('settings-toggle').click();
 await new Promise(r => setTimeout(r, 120));
 const s = d.getElementById('display-settings');
 s.style.transition = 'none';
-const sr = s.getBoundingClientRect();
-out.settings = { left: r2(sr.left), right: r2(sr.right), w: r2(sr.width) };
-out.dx = r2(pr.left - sr.left);
-out.overlap = !(pr.right <= sr.left + 0.5 || sr.right <= pr.left + 0.5);
+out.settings = rectof(s);
+out.search_open_after_settings_click = p.classList.contains('open');
+out.dx = r2(out.panel.left - out.settings.left);
+out.overlap = !(out.panel.right <= out.settings.left + 0.5 || out.settings.right <= out.panel.left + 0.5
+  || out.panel.bottom <= out.settings.top + 0.5 || out.settings.bottom <= out.panel.top + 0.5);
 box.textContent = 'DRIVE' + JSON.stringify(out) + 'END';
 `;
 
@@ -537,6 +621,13 @@ async function drive(){
     rows: (source.match(/class="search-row"/g) || []).length,
     search_hidden: /<div class="search" id="search"[^>]*\bhidden(\s|=|>)/.test(source),
     panel_inert: /<div class="settings search-panel"[^>]*\binert(\s|=|>)/.test(source),
+    /* ⚠️ 宿主这一格（第十一轮末）：入口那一块必须真的住在扉页/日志那一行里，而不是仍然住在胶囊里——
+       静态字节读得出宿主（`.nav-links` 里出现 `id="search"` 就是没摘干净），也不必借浏览器。
+       判法是先拿 `<nav class="nav-links">` 到它自己的 `</nav>` 之间那一段，再在里面找——
+       拿"整页里 nav-links 之后 4000 字符内有没有 search"当判据会跨出 `</nav>` 误报（扉页那一行本来就在导航之后）。 */
+    in_nav: (() => { const at = source.indexOf('<nav class="nav-links">'); if (at < 0) return null;
+      const end = source.indexOf('</nav>', at); return source.slice(at, end < 0 ? source.length : end).includes('id="search"'); })(),
+    host: /class="hero-log"[^>]*>[\s\S]{0,600}?<div class="search"/.test(source),
     /* 读不到那枚节点时交回一句**不是期望值**的话，让下面的 eq 当场红——
        拿空串兜底就是把"节点没落地"读成"说明行是空的（正确）"，那一档正是假绿。 */
     toggle_expanded: expM ? expM[1] : '（入口钮不在静态产物里）',
@@ -555,11 +646,13 @@ async function drive(){
       return;
     }
     if (p === '/__frame'){
-      /* 外壳页：不装产品内容，只按 ?w= 那一档开一枚同源 iframe 把**未改动的真产物**装进去量几何。
+      /* 外壳页：不装产品内容，只按 ?w= 那一档 + ?p= 那一页开一枚同源 iframe，把**未改动的真产物**装进去量几何。
          它不需要驱动脚本之外的任何东西，也不写进 dist/。 */
       const width = Math.max(240, Math.min(1600, Number(qs.get('w')) || 1440));
+      const page = (/^\//.test(qs.get('p') || '') ? qs.get('p') : '/').replace(/'/g, '');
+      const driver = FRAME_DRIVER.replace('__W__', String(width)).replace('__P__', page);
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
-      res.end(`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>geom ${width}</title></head><body><div id="__drive_out">@@PENDING@@</div>\n<script type="module">\n${FRAME_DRIVER.replace('__W__', String(width))}\n<\/script></body></html>`);
+      res.end(`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>geom ${width} ${page}</title></head><body><div id="__drive_out">@@PENDING@@</div>\n<script type="module">\n${driver}\n<\/script></body></html>`);
       return;
     }
     if (isolate && /\.(m?js)(\?|$)/i.test(p)){ served.blocked.add(p); res.writeHead(404, { 'content-type': 'text/plain' }); res.end('blocked by search-check（无 JS 档）'); return; }
@@ -584,7 +677,8 @@ async function drive(){
     results.blocked = served.blocked.size;
     isolate = false;
     assert.ok(WIDTHS.length >= 3, `面板几何只给了 ${WIDTHS.length} 档视口（--widths=）⇒ §11 要的是逐档读数，不是抽查`);
-    for (const w of WIDTHS) results.rects.push({ w, r: await dumpDom(`${base}/__frame?w=${w}`, mkp(), 1440) });
+    assert.ok(GEOM_PAGES.length >= 2, `几何那几档只跑了 ${GEOM_PAGES.length} 页（--pages=）⇒ 两枚宿主（hero-log 与 .sec-label）各一枚才算量过，抽查一页不算`);
+    for (const w of WIDTHS) for (const pg of GEOM_PAGES) results.rects.push({ w, page: pg, r: await dumpDom(`${base}/__frame?w=${w}&p=${pg}`, mkp(), 1440) });
   } finally { server.close(); cleanup(profiles); }
   return results;
 }
@@ -613,13 +707,20 @@ if (ONLY !== 'node'){
         const s = res.static_src;
         ok(s && s.file, `读不到静态产物 ${s && s.file} ⇒ "无 JS 时页面上是什么形态"这一半没有对象，判据正在空转`);
         eq(s.rows, 0, '静态产物里结果行不是 0 枚 ⇒ 索引被烘进页面了（那才是"没点就有内容"）');
-        eq(s.search_hidden, true, '静态产物里 .search 没有 hidden ⇒ 没有脚本的访客会看到一枚点了没反应的放大镜（§12 空壳）');
+        eq(s.search_hidden, true, '静态产物里 .search 没有 hidden ⇒ 没有脚本的访客会看到一枚点了没反应的字（§12 空壳）');
         eq(s.toggle_expanded, 'false', `静态产物里入口钮自称 aria-expanded="${s.toggle_expanded}"`);
         eq(s.hint_text, '', `静态产物里说明行不是空的（"${s.hint_text}"）——烘进页面的那一句是假回执`);
         ok(s.panel_inert, '静态产物里的面板没有 inert：收起只靠 CSS，JS 没跑就等于半开');
+        /* 宿主两条（第十一轮末）：静态字节里入口住在 `.hero-log` 那一行、胶囊里一枚都没有。
+           这一对就是"那枚按钮真的摘掉了"的正面证据——运行时那一半由下面 o.in_nav 与第 ⑦ 格逐档再判。 */
+        eq(s.in_nav, false, '静态产物的 `.nav-links` 段里还有 `id="search"` ⇒ 导航里那枚按钮没摘干净，§11 那笔"七项 296.48"的账要重开');
+        ok(s.host, '静态产物首页的入口不在 `.hero-log` 那一行里 ⇒ 裁决说挂在这一行，页面没挂上去');
         /* 这段脚本接管过的证据（不是静态形状，见驱动脚本里那段注释） */
         eq(o.revealed, true, '.search 的 hidden 一直没被撤 ⇒ site.js 那段没跑，这一格读的是空气');
         eq(o.after_js.rows, 0, 'driver 起跑时结果行已有内容 ⇒ 没输入就有结果，那是把索引当公告板');
+        eq(o.in_nav, false, '运行时 `.nav-links .search` 还在 ⇒ 胶囊里仍有第三枚按钮');
+        eq(o.nav_children, 7, `.nav-links 的直接子节点 ${o.nav_children} 枚、§11 签署的是 7 枚（5 链接 + 滑杆 + 主题）⇒ 导航项数动了`);
+        ok(o.host && o.host.in_hero_log && !o.host.in_page_head, `首页那枚入口的运行时候主是 ${JSON.stringify(o.host)}，应在 .hero-log 里、不在 .page-head 里`);
         eq(o.focus_after_open, 'search-input', `打开之后焦点在 ${o.focus_after_open}，应落在输入框里（键盘用户点开的东西要能直接打字）`);
         eq(o.opened.inert, false, '面板开着却没撤 inert');
         /* 命门 */
@@ -644,26 +745,41 @@ if (ONLY !== 'node'){
         eq(o.empty_snap.n, 0, '清空之后结果行没撤干净 ⇒ 拿上一次的结果冒充新输入');
         /* 回车 */
         eq(o.enter_to, '/essays/' + PROBE.slug + '/', `只有一条命中时回车应当走那一页，实测点了 "${o.enter_to === undefined ? '（什么都没发生）' : o.enter_to}"`);
-        /* 收口 */
+        /* 收口：Esc 把焦点还给**触发它的那枚文字动作**（宿主搬走之后那枚动作换了位置、没换 id） */
         eq(o.after_esc.open, false, 'Esc 之后面板还开着');
         eq(o.after_esc.inert, true, 'Esc 之后没补回 inert（CSS 撤了而 DOM 还点得动 ⇒ 单一机制）');
         eq(o.after_esc.vis, 'hidden', `Esc 之后计算值 visibility=${o.after_esc.vis}（读的是计算值，本机不走过渡帧）`);
-        eq(o.after_esc.focus, 'search-toggle', `Esc 之后焦点在 ${o.after_esc.focus}，应还给那枚入口钮`);
+        eq(o.after_esc.focus, 'search-toggle', `Esc 之后焦点在 ${o.after_esc.focus}，应还给那一行字那枚入口（#search-toggle）`);
         eq(o.reopened.open, true, '再点一次入口没能重新打开');
         eq(o.reopened.inert, false, '重新打开没撤 inert');
         eq(o.reopened.vis, 'visible', `重新打开之后 visibility=${o.reopened.vis}`);
-        /* 两枚弹层：先看它们在几何上本来会重叠（这就是下面那条互斥判据为什么是承重的，不是装饰） */
-        eq(o.stack.overlap, true, `两枚面板在 x 上居然不重叠（dx=${o.stack.dx}）⇒ "同开只会叠在一起"那句前提变了，互斥那一条判据要重新判`);
-        eq(o.mutual.search_open, false, '点开显示设置之后搜索面板还开着 ⇒ 两块 236px 的玻璃在同一片区域里叠在一起（上面刚量过它们确实重叠）');
+        /* ---- 键盘 `/` 四条（①直达 ②拦默认 ③输入框内不抢 ④带修饰键不算）---- */
+        eq(o.slash.closed_before, true, '`/` 那一跑起跑时面板竟然是开的 ⇒ 前面那一次 Esc 没收住，这一档读的是空气');
+        eq(o.slash.prevented, true, '在 `<body>` 上按 `/` 没有 preventDefault ⇒ 浏览器的"快速查找"会同时接住这一键，两条通道抢同一个键');
+        eq(o.slash.open_after, true, '按 `/` 没打开面板 ⇒ 这条直达根本没跑');
+        eq(o.slash.focus_after, 'search-input', `按 / 直达之后焦点在 ${o.slash.focus_after}，应当落进输入框（"达"就是达到这里）`);
+        eq(o.slash.in_input_prevented, false, '焦点在输入框里时 `/` 被 preventDefault 了 ⇒ 那一枚斜杠再也打不进搜索框（"输入框内不抢键"这条坏了）');
+        eq(o.slash.still_open, true, '在输入框里按 `/` 之后面板反而收起来了 ⇒ 抢键的判据没写对');
+        eq(o.slash.ctrl_prevented, false, 'Ctrl+/ 被这条监听抢了 ⇒ 修饰键没排除，浏览器的帮助键没了');
+        eq(o.slash.esc_open, false, '`/` 打开的那一档 Esc 收不掉 ⇒ 两条开法不是同一条收口路径');
+        eq(o.slash.esc_focus, 'search-toggle', `Esc 之后焦点在 ${o.slash.esc_focus}：用 `/` 打开的面板收起时也要还回那一行字（触发物是入口，不是"上一次按键"）`);
+        /* 两枚弹层：同开之后搜索那块必须已经收了（互斥那条行为判据）。
+           ⚠️ 1440 上它们重不重叠**只登记不判**：宿主搬走之后"两块玻璃叠在同一片区域"这个前提
+           是不是还成立，由第 ⑦ 格逐档量出来的 overlap 读数说话，不再写死在这一格里当判据。 */
+        eq(o.mutual.search_open, false, '点开显示设置之后搜索面板还开着 ⇒ 全站同一时刻只许一块玻璃压在内容上，这条坏了');
         eq(o.mutual.settings_open, true, '点设置钮没开抽屉 ⇒ 这一格读的是空气');
-        ok(o.stack.dx > 0, `两枚面板的 x 差 ${o.stack.dx}：搜索面板应挂在设置抽屉右边的另一枚钮下面`);
-        notes.push(`⑤ 静态产物（Node 读 ${s.file}）：结果行 ${s.rows} 枚、#search 带 hidden=${s.search_hidden}、aria-expanded="${s.toggle_expanded}"、说明行="${s.hint_text}"、面板带 inert=${s.panel_inert}`);
+        notes.push(`⑤ 静态产物（Node 读 ${s.file}）：结果行 ${s.rows} 枚、#search 带 hidden=${s.search_hidden}、aria-expanded="${s.toggle_expanded}"、说明行="${s.hint_text}"、面板带 inert=${s.panel_inert}；宿主：在 .nav-links 里=${s.in_nav}、在 .hero-log 那一行里=${s.host}`);
+        notes.push(`⑤ 运行时项数：.nav-links 直接子节点 ${o.nav_children} 枚、胶囊里的 .search=${o.in_nav}、入口宿主=${JSON.stringify(o.host)}`);
         notes.push(`⑤ 探针「${o.probe}」→ ${o.probe_snap.n} 行 = ${o.probe_snap.hrefs[0]}、<mark> ${o.probe_snap.marks} 枚（正文词，标题/摘要里没有 ⇒ 本来就不该标色）；`
           + `反例「${o.absent}」→ 0 行 + "${o.absent_snap.hint}"`);
         notes.push(`⑤ 高亮那一档打在标题里的二字窗「${o.titleword}」→ ${o.title_snap.n} 行、<mark> ${o.title_snap.marks} 枚（"${o.title_snap.marktxt}"）`);
         notes.push(`⑤ 另两句：标点 → "${o.punct_snap.hint}"；清空 → "${o.empty_snap.hint}"；回车（唯一命中）→ ${o.enter_to}`);
         notes.push(`⑤ 收口：Esc 后 open=${o.after_esc.open} inert=${o.after_esc.inert} visibility=${o.after_esc.vis} focus=${o.after_esc.focus}；`
-          + `重开 open=${o.reopened.open} inert=${o.reopened.inert} visibility=${o.reopened.vis}；两枚面板 x 差 ${o.stack.dx}px、重叠=${o.stack.overlap}`);
+          + `重开 open=${o.reopened.open} inert=${o.reopened.inert} visibility=${o.reopened.vis}`);
+        notes.push(`⑤ 键盘 /：body 上按 → prevented=${o.slash.prevented} open=${o.slash.open_after} focus=${o.slash.focus_after}；`
+          + `输入框内按 → prevented=${o.slash.in_input_prevented} 仍开=${o.slash.still_open}；Ctrl+/ → prevented=${o.slash.ctrl_prevented}；`
+          + `Esc 收 → open=${o.slash.esc_open} focus=${o.slash.esc_focus}`);
+        notes.push(`⑤ 两枚弹层：同开之后搜索=${o.mutual.search_open} 设置=${o.mutual.settings_open}；1440 上重叠=${o.stack.overlap}（dx=${o.stack.dx} dy=${o.stack.dy}）`);
         notes.push(`⑤ 环境自证：state=${JSON.stringify(o.state)} width=${o.width}`);
         return n;
       });
@@ -682,7 +798,14 @@ if (ONLY !== 'node'){
           assert.ok(!/search-toggle[^>]*aria-expanded="true"/.test(html), `${page}：静态产物里入口自称已展开`);
           assert.ok(/<html[^>]*data-fog=/.test(html), `${page}：连内联脚本那一层都没落地 ⇒ 这一档跑在了错的环境里`);
           assert.ok(/<div class="settings search-panel"[^>]*\binert(\s|=|>)/.test(html), `${page}：静态产物里的面板不是收起态（inert 没落在 HTML 上，只靠 CSS）`);
-          n += 6;
+          /* 无 JS 时那一行**一个字都不出现**：入口的文字本身也在 hidden 那块里，所以整块 display:none。
+             这一条只能拿"块里确实含着那枚按钮与那行字"来判——块在 `<p class="hero-log">` /
+             `<span class="sec-label">` 之内、且胶囊段里没有它。 */
+          assert.ok(/<div class="search"[^>]*hidden[\s\S]{0,400}?id="search-toggle"/.test(html), `${page}：hidden 那块里没有入口那枚字 ⇒ 显形之后页面上会没有可点的东西`);
+          { const at = html.indexOf('<nav class="nav-links">'), end = html.indexOf('</nav>', at);
+            assert.ok(at < 0 || !html.slice(at, end < 0 ? html.length : end).includes('id="search"'),
+              `${page}：无 JS 档的胶囊段里仍有 #search ⇒ 导航里那枚按钮没摘干净`); }
+          n += 8;
         }
         assert.ok(res.nojs.length >= 2, `无 JS 档只跑了 ${res.nojs.length} 页 ⇒ 六页共用一份 Layout，至少两页才看得见"每一页都有这一格"`);
         notes.push(`⑥ 无 JS 档 ${res.nojs.length} 页（${res.nojs.map(x => x.page).join(' / ')}），拦下的 .js 共 ${res.blocked} 种：`
@@ -690,72 +813,83 @@ if (ONLY !== 'node'){
         return n;
       });
 
-      cell('⑦', '面板几何：逐档视口下面板整块在视口内、且真的是"开着"的', () => {
+      cell('⑦', '逐档几何：胶囊回到七项的账 + 入口那一行与面板在视口之内', () => {
         let n = 0, thin = null;
         /* ⚠️ 逐档**独立记账**，不是一枚 assert 就把整格炸掉：assert 一抛，后面几档的读数跟着丢，
-           而这一格的用途恰恰是"从哪一档开始坏"（找 372 那个破口点时被这个坑卡了两回）。
+           而这一格的用途恰恰是"从哪一档开始坏"（找 372 与 303.48 那两个破口点时被这个坑卡过两回）。
            判据照旧逐枚计数，只是收拢成一张表，末了统一红。 */
         const bad = [];
         const ok = (a, m) => { n++; if (!a) bad.push(m); };
         const eq = (a, b, m) => { n++; if (a !== b) bad.push(m); };
-        ok(res.rects.length >= 3, `只跑了 ${res.rects.length} 档视口 ⇒ §11 那一格要的是逐档读数，不是抽查`);
-        for (const { w, r } of res.rects){
+        const wSet = new Set(res.rects.map(x => x.w));
+        ok(res.rects.length >= 3 * 2, `只跑了 ${res.rects.length} 档读数（= 视口档数 × 页数）⇒ §11 要的是逐档 × 逐宿主，不是抽查`);
+        ok(wSet.size >= 3, `只有 ${wSet.size} 档视口 ⇒ --widths= 给少了`);
+        for (const { w, page, r } of res.rects){
           n++;
-          if (r.fail){ problems.push(`⑦ ${w}px 档没交付读数：${r.fail}`); continue; }
+          const tag = `${w}px ${page}`;
+          if (r.fail){ problems.push(`⑦ ${tag} 档没交付读数：${r.fail}`); continue; }
           const o = r.json;
-          if (!o || !o.panel || !o.nav || !o.links || !o.nav_overflow){
-            problems.push(`⑦ ${w}px 档读数缺盒子（panel/nav/links/nav_overflow 之一没交回来）⇒ 这一档整行作废`); continue;
+          if (!o || !o.panel || !o.nav || !o.links || !o.nav_overflow || !o.entry || !o.row){
+            problems.push(`⑦ ${tag} 读数缺盒子（panel/nav/links/nav_overflow/entry/row 之一没交回来）⇒ 这一行作废`); continue;
           }
           const insetL = o.nav_overflow.first - o.nav.left, insetR = o.nav.right - o.nav_overflow.last;
           o.nav_overflow.insets = [+(insetL.toFixed(2)), +(insetR.toFixed(2))];
-          /* 读数**先登记再判定**（见上面那条）：断言红了也要看得见每一档的数。 */
-          notes.push(`    ${w}px → 面板 x=${o.panel.left}..${o.panel.right}（宽 ${o.panel.w}、y=${o.panel.y}、${o.pos}、open=${o.open} inert=${o.inert} vis=${o.vis}）`
-            + `｜胶囊 ${o.nav.left}..${o.nav.right}、那一排 ${o.nav_overflow.n} 枚占 ${o.nav_overflow.first}..${o.nav_overflow.last}`
-            + `（左右内边距 ${o.nav_overflow.insets.join(' / ')}，.nav-links ${o.links.left}..${o.links.right}）`
-            + '｜逐枚 ' + o.nav_overflow.each.join(' ')
-            + `｜scrollWidth=${o.nav_overflow.scroll}/${o.width}`);
-          eq(o.width, w, `${w}px 档实际 innerWidth=${o.width} ⇒ 视口没设上，这一档不算`);
-          /* 读了几枚就得判几枚：open/inert/visibility/position/mq 这五枚是驱动脚本真读回来的，
-             一条都不判就等于"拍了照没洗"——§14 第 14 格那种"长得像全绿"的小一号版本。 */
-          eq(o.open, true, `${w}px 档真点了那枚钮，面板却没有 .open ⇒ 这一档量的是收起态的盒子，几何读数为零意义`);
-          eq(o.inert, false, `${w}px 档面板开着但还挂着 inert ⇒ 开着却点不动`);
-          eq(o.vis, 'visible', `${w}px 档面板开着但 visibility=${o.vis}（读的是掐掉过渡之后的计算值）`);
-          eq(o.pos, w <= 720 ? 'fixed' : 'absolute', `${w}px 档面板 position=${o.pos}，窄屏那一档要摊成全幅（fixed）、桌面挂在钮下（absolute）`);
-          eq(o.mq.narrow720, w <= 720, `${w}px 档 max-width:720 这条媒体查询求值成 ${o.mq.narrow720} ⇒ iframe 那档视口没生效，这一行的所有读数作废`);
-          ok(o.panel.left >= 0, `${w}px 档面板左缘在 ${o.panel.left}（出视口左边）`);
-          ok(o.panel.right <= o.width + 0.5, `${w}px 档面板右缘 ${o.panel.right} > 视口宽 ${o.width}（出视口右边）`);
-          ok(o.panel.w > 100, `${w}px 档面板宽 ${o.panel.w} —— 这么窄放不下结果行，几何判据本身坏了`);
-          /* 胶囊那两枚 rect 也读回来了，那就判它：面板的 fixed 包含块其实是**transform 过的胶囊**
-             （§16 记过的那条"祖先带 transform ⇒ fixed 的包含块不是视口"），所以面板贴的是胶囊的内垫边。
-             判据按这一句的形状写：胶囊本身必须在视口内，面板必须在视口内——两处任一处出界都红。 */
-          ok(o.nav && o.links, `${w}px 档读不到 .nav / .nav-links 的 rect ⇒ 这一档的定位参照物没落地`);
-          ok(o.nav.left >= -0.5 && o.nav.right <= o.width + 0.5, `${w}px 档胶囊自己在 ${o.nav.left}..${o.nav.right}，视口只有 ${o.width} ⇒ 定位参照物就出界了`);
-          /* 往胶囊里加一枚钮，§11 那笔"七项"的账就得重算：整页不许横向溢出、内容不许从玻璃两边探出去。 */
-          ok(o.nav_overflow.n >= 2, `${w}px 档只数到 ${o.nav_overflow.n} 枚有尺寸的胶囊子节点 ⇒ 这一档的量具在读空气（藏起来的节点也算进 min/max 是另一种读法，两种都会假红/假绿）`);
+          /* 读数**先登记再判定**（见上面那条）：断言红了也要看得见每一档的数——这张表就是 §11 那一格
+             要的那四列：`.nav-links` 宽 / 胶囊需要量 / 出盒破口点 / `scrollWidth == innerWidth`。 */
+          notes.push(`    ${tag} → innerWidth ${o.width}｜.nav-links ${o.links.w}、胶囊需要 ${o.need}（= links + padding ${o.nav_cs.padL}/${o.nav_cs.padR} + 描边 ${o.nav_cs.borL}/${o.nav_cs.borR}）、上限 ${o.nav_cs.maxWidth}、`
+            + `玻璃 ${o.nav.left}..${o.nav.right}、那一排 ${o.nav_overflow.n} 枚占 ${o.nav_overflow.first}..${o.nav_overflow.last} ⇒ 左右内边距 ${o.nav_overflow.insets.join(' / ')}、出盒 ${+(o.nav_overflow.last - o.nav.right).toFixed(2)}`
+            + `｜wrap=${o.nav_cs.wrap}、项数 ${o.nav_children}、胶囊里的 .search=${o.in_nav}`
+            + `｜scrollWidth ${o.nav_overflow.scroll}/${o.inner}`);
+          notes.push(`    ${tag} → 入口 ${o.entry.left}..${o.entry.right}（display ${o.entry.display}、宿主 ${o.row.cls}、white-space ${o.row.white_space}、行溢出 ${o.row.nowrap_overflow}）`
+            + `｜面板 ${o.panel.left}..${o.panel.right}（宽 ${o.panel.w}、y ${o.panel.top}..${o.panel.bottom}、${o.pos}、open=${o.open} inert=${o.inert} vis=${o.vis}、朝上开=${o.panel_above_entry}）`
+            + `｜抽屉 ${o.settings.left}..${o.settings.right}、两枚重叠=${o.overlap}（dx ${o.dx}）｜fonts=${o.fonts}`);
+          eq(o.width, w, `${tag} 实际 innerWidth=${o.width} ⇒ 视口没设上，这一行的所有读数作废`);
+          /* ---- 胶囊那一排：必须与 main 逐位相同 ---- */
+          eq(o.in_nav, false, `${tag} 胶囊里还有 .search ⇒ 那枚按钮没摘干净（§11 那笔"七项 296.48 / 上限 300"的账要整格重开）`);
+          eq(o.nav_children, 7, `${tag} .nav-links 直接子节点 ${o.nav_children} 枚、签署的是 7 枚（5 链接 + 滑杆 + 主题）⇒ 导航项数动了`);
+          eq(o.nav_cs.wrap, 'nowrap', `${tag} .nav-links 的 flex-wrap 读回 ${o.nav_cs.wrap} ⇒ §11 里"胶囊不折行"那句被改了，那是改设计不是修 bug`);
+          eq(o.mq.narrow720, w <= 720, `${tag} max-width:720 求值成 ${o.mq.narrow720} ⇒ iframe 那档视口没生效，这一行读数作废`);
+          eq(o.mq.narrow340, w <= 340, `${tag} max-width:340 求值成 ${o.mq.narrow340} ⇒ 那一档的 gap 8 / padding 12 与上限 20 没落地`);
+          eq(o.mq.narrow384, w <= 384, `${tag} max-width:384 求值成 ${o.mq.narrow384} ⇒ 入口那一行的窄屏分支没落地`);
+          ok(o.nav_overflow.n >= 2, `${tag} 只数到 ${o.nav_overflow.n} 枚有尺寸的胶囊子节点 ⇒ 量具在读空气`);
           eq(o.nav_overflow.scroll, o.nav_overflow.inner,
-            `${w}px 档 documentElement.scrollWidth=${o.nav_overflow.scroll} ≠ innerWidth=${o.nav_overflow.inner} ⇒ 整页横向溢出（搜索入口把这档的胶囊挤出去了，§11 那笔账要重开）`);
+            `${tag} documentElement.scrollWidth=${o.nav_overflow.scroll} ≠ innerWidth=${o.nav_overflow.inner} ⇒ 整页横向溢出`);
+          ok(o.nav.left >= -0.5 && o.nav.right <= o.width + 0.5, `${tag} 胶囊自己在 ${o.nav.left}..${o.nav.right}，视口只有 ${o.width} ⇒ 定位参照物就出界了`);
           ok(o.nav_overflow.first >= o.nav.left - 0.5 && o.nav_overflow.last <= o.nav.right + 0.5,
-            `${w}px 档胶囊内容占 ${o.nav_overflow.first}..${o.nav_overflow.last}，玻璃是 ${o.nav.left}..${o.nav.right} ⇒ 东西从玻璃边上探出去了`);
-          /* §11 那一格签的是**两条**判据，不是一条："内容完整落在胶囊内"**且**左右内边距差 ≤1px"。
-             只判前一条会漏掉"没出盒、但右侧内边距被吃干净"那种形状——上一格正是为它动的刀
-             （"那 8px 全塌在右内边距上"是他们点名要修掉的病，不是能接受的现状）。
-             ⚠️ 对称那一条只在 ≤720 判：那一档 `.nav-clock` 整个 display:none，那一排是胶囊里唯一的内容，
-             "左右对称"才有意义；桌面档时钟在左边占着，左内边距本来就是 243 那种数（1440 实测），
-             拿对称去判它就是拿量具判不存在的事——桌面档改判"右内边距仍是签署的 22 + 1px 描边"。 */
+            `${tag} 那一排占 ${o.nav_overflow.first}..${o.nav_overflow.last}，玻璃是 ${o.nav.left}..${o.nav.right} ⇒ 东西从玻璃边上探出去了`);
+          /* §11 那一格签的是**两条**判据："内容完整落在胶囊内"**且**左右内边距差 ≤1px"。
+             ⚠️ 对称那一条只在 ≤720 判（那一档 `.nav-clock` 整个 display:none，那一排是胶囊里唯一的内容）；
+             桌面档改判"右内边距仍是签署的 22 + 1px 描边 = 23"。 */
           if (w <= 720) ok(Math.abs(insetL - insetR) <= 1,
-            `${w}px 档胶囊左右内边距 ${insetL.toFixed(2)} / ${insetR.toFixed(2)}（差 ${Math.abs(insetL - insetR).toFixed(2)}px > 1）⇒ 玻璃被吃到一边，§11 那条"对称"的判据坏了`);
+            `${tag} 胶囊左右内边距 ${insetL.toFixed(2)} / ${insetR.toFixed(2)}（差 ${Math.abs(insetL - insetR).toFixed(2)}px > 1）⇒ 玻璃被吃到一边，§11 那条"对称"的判据坏了`);
           else ok(Math.abs(insetR - 23) <= 1,
-            `${w}px 档胶囊右内边距 ${insetR.toFixed(2)}，桌面签署的是 padding 22 + 1px 描边 = 23 ⇒ 那一排与玻璃边的关系变了（§11 1440 那格的读数）`);
-          ok(o.panel.left >= o.nav.left && o.panel.right <= o.nav.right + 0.5,
-            `${w}px 档面板 ${o.panel.left}..${o.panel.right} 不在胶囊 ${o.nav.left}..${o.nav.right} 之内 ⇒ 这一档的包含块换了东西，读数与 §11 登记的那一串对不上`);
-          /* 与显示设置那块面同开一次：两枚抽屉叠在一起就是画坏了（⑤ 在 1440 上判过同一件事，这里是逐档） */
-          eq(o.overlap, true, `${w}px 档两枚面板在几何上本来不重叠 ⇒ "同开会叠在一起"的前提在这档不成立，互斥判据要按档重判`);
-          ok(Math.abs(o.dx) > 0.5, `${w}px 档两枚面板的 x 差是 ${o.dx} ⇒ 读的是同一枚盒子，量具坏了`);
+            `${tag} 胶囊右内边距 ${insetR.toFixed(2)}，桌面签署的是 padding 22 + 1px 描边 = 23 ⇒ 那一排与玻璃边的关系变了`);
+          /* ---- 入口那一行：新宿主装不装得下 ---- */
+          if (o.row.white_space === 'nowrap') ok(o.row.scroll_w <= o.row.client_w + 0.5,
+            `${tag} 那一行是 nowrap 却溢出内容盒 ${o.row.nowrap_overflow}px ⇒ 溢出的那半截被 body{overflow-x:hidden} 裁掉，裁的正是入口本身（点不到的入口比出玻璃的入口更坏）`);
+          ok(o.entry.left >= -0.5 && o.entry.right <= o.width + 0.5,
+            `${tag} 入口占 ${o.entry.left}..${o.entry.right}，视口只有 ${o.width} ⇒ 那一行字被挤出视口`);
+          /* ---- 面板：逐档在视口之内，且真的是"开着"的 ---- */
+          eq(o.open, true, `${tag} 真点开了那一行字，面板却没有 .open ⇒ 这一行量的是收起态的盒子，几何读数为零意义`);
+          eq(o.inert, false, `${tag} 面板开着但还挂着 inert ⇒ 开着却点不动`);
+          eq(o.vis, 'visible', `${tag} 面板开着但 visibility=${o.vis}（读的是掐掉过渡之后的计算值）`);
+          eq(o.pos, 'absolute', `${tag} 面板 position=${o.pos} ⇒ 宿主是那一行字，absolute 才跟着文档走；写回 fixed 的话同一份 top:calc(100% + 14px) 会解成 100vh+14（掉出屏幕）`);
+          ok(o.panel.left >= 0, `${tag} 面板左缘在 ${o.panel.left}（出视口左边）`);
+          ok(o.panel.right <= o.width + 0.5, `${tag} 面板右缘 ${o.panel.right} > 视口宽 ${o.width}（出视口右边）`);
+          ok(o.panel.w > 100, `${tag} 面板宽 ${o.panel.w} —— 这么窄放不下结果行，几何判据本身坏了`);
+          /* 首屏底部那一行字必须**朝上开**（朝下就掉出那一屏：开着却看不见 = 那一格坏了）；
+             子页那一行在文档上方，朝下开才不压住扉页标题——两档各判各的方向，用读回来的 rect 判。 */
+          if (page === '/') eq(o.panel_above_entry, true, `${tag} 首页面板仍在那行字**下面**（面板底 ${o.panel.bottom} vs 入口顶 ${o.entry.top}）⇒ 那行字在首屏底部，朝下开就是掉出那一屏`);
+          else eq(o.panel_above_entry, false, `${tag} ${page} 的面板跑到那行字上面去了（朝上开那条分支漏了宿主页）`);
+          /* 面板顶端不许盖住导航胶囊那一带以外的东西？——不判：它是浮层，压内容是它的职责（与抽屉同一件事）。
+             但同开一次必须只剩一块玻璃（互斥那条行为，逐档判一次）。 */
+          eq(o.search_open_after_settings_click, false, `${tag} 点开显示设置之后搜索面板还开着 ⇒ 同开两条通道，Tab 与读屏会被同时带进两块玻璃`);
+          ok(Math.abs(o.dx) > 0.5, `${tag} 两枚面板的 x 差是 ${o.dx} ⇒ 读的是同一枚盒子，量具坏了`);
           const slack = Math.min(o.panel.left, o.width - o.panel.right);
-          if (thin === null || slack < thin.slack) thin = { w, slack, rect: o.panel };
+          if (thin === null || slack < thin.slack) thin = { tag, slack, rect: o.panel };
         }
-        notes.push(`⑦ 面板逐档（真展开、transition:none 之后读 rect；position、媒体查询求值、出盒量、左右内边距对称都逐档判过）`);
-        if (thin) notes.push(`⑦ 最薄的一档：${thin.w}px 上面板左右各留 ${thin.slack.toFixed(2)}px（相对视口）`);
+        notes.push('⑦ 逐档（真点开拓缝、transition:none 之后读 rect；innerWidth 对账、position、三档媒体查询求值、出盒量、左右内边距对称、入口行溢出、面板朝向都逐行判过）');
+        if (thin) notes.push(`⑦ 最薄的一档：${thin.tag} 上面板左右各留 ${thin.slack.toFixed(2)}px（相对视口）`);
         else problems.push('⑦ 一档都没量成交回来的数 ⇒ 这一格的判据正在空转');
         assert.ok(!bad.length, `逐档读数在上面那几行；这一格红了 ${bad.length} 条：\n        ${bad.join('\n        ')}`);
         return n;

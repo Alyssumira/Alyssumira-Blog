@@ -56,8 +56,11 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     sPanel.classList.toggle('open', v);
     sBtn.setAttribute('aria-expanded', String(v));
     if (v) sPanel.removeAttribute('inert'); else sPanel.setAttribute('inert','');
-    /* 两枚弹层同向、不许同开：它们都靠 right:0 挂在各自那枚钮的右缘下面，宽度同一份 236px，
-       并排的两枚钮之间只差 40px ⇒ 一起开着就是两块玻璃叠在一起，读起来像画坏了。
+    /* 两枚弹层同向、不许同开。⚠️ 这一条的理由在第十一轮末换过一次：原先它们并排挂在胶囊里
+       那两枚 30px 圆钮下面（右缘对齐、宽度同一份 236、两枚钮之间只差 40px ⇒ 同开就是两块玻璃
+       叠在同一片区域），现在搜索面板搬到扉页那一行了，几何上未必还叠着（第 ⑤/⑦ 格逐档量过，
+       读数登记在 §11）。**判据留着**，因为买的不是"不重叠"而是"全站同一时刻只许一块玻璃压在内容上"：
+       两块同开时读屏与 Tab 序都会同时把访客带进两个方向。
        setSearchOpen 是同一作用域里的函数声明（提升），所以这里能直接叫它；
        它只在真开的时候才反手叫回来（v 为假不叫），两条路都不构成回环。 */
     if (v) setSearchOpen(false);
@@ -83,16 +86,26 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
   }
 
   /* ---------- 站内搜索（§9 在册组件，第十一轮）----------
-     三条口径写在这里，因为它们都是"看不见但一毁就全毁"的那类：
-     ① **入口只由这段显形**：`<div class="search">` 在静态产物里带 `hidden`，而 `.search` 自己写了
-        `display:flex`（压得过 UA 那条 `[hidden]{display:none}`），所以 `base.css:163` 那条
-        `.search[hidden]{display:none}` 是"没有脚本就没有这一格"的唯一承重点。口径抄自
-        `[slug].astro` 那枚 post-focus（显形只由打包脚本做，见上面 :348 那段）——
-        无 JS / 这段没跑 ⇒ 页面上不存在一枚点了没反应的放大镜（§12）。
+     四条口径写在这里，因为它们都是"看不见但一毁就全毁"的那类：
+     ① **入口只由这段显形**：`<div class="search">`（`src/components/SearchEntry.astro`）在静态产物里带
+        `hidden`，而 `.search` 自己写了 `display:inline-flex`（一个块级元素挂成原子性内联盒，
+        于是它就住在宿主那一行的文字流末尾、不另起一行；压得过 UA 那条 `[hidden]{display:none}`），
+        所以 `base.css` 那条 `.search[hidden]{display:none}` 是"没有脚本就没有这一格"的唯一承重点。
+        口径抄 `[slug].astro` 那枚 post-focus（显形只由打包脚本做，见上面 :348 那段）与 404 那枚纯 JS 的
+        `li`——无 JS / 这段没跑 ⇒ 扉页那一行末尾连分隔点都不出现，更不会有一枚点了没反应的字（§12）。
+        ⚠️ 不许退化成 `<a href="/search/">`：本站没有 /search/ 这一页，指向它的锚点就是 §12 那种死锚点。
      ② **检索不住在这里**：切词、比对、标高亮全在 `lib/search.js` 那一处，构建期与门禁跑的是同一份。
         这里只做三件事：取 JSON、把结果画成 DOM、把状态说清楚。
      ③ **说明行不许空着**：没输东西 / 零条 / 输入里没有可搜的字 / 索引没取到，四种场合各一句实话。
-        空白不是"还没搜"，是 §12 刚在 404 那格否决过的"许愿输入框"——回车什么都不发生。 */
+        空白不是"还没搜"，是 §12 刚在 404 那格否决过的"许愿输入框"——回车什么都不发生。
+     ④ **宿主是"内容页扉页那一行字"，不是右上角那枚圆钮**：入口与面板都在 `#search` 这一块里，
+        打开/收起/归还焦点这条链上的三个对象（`#search-toggle` 那枚文字动作、`#search-panel`、
+        点外面时判归属的 `.search` 类）一个都没换 id——**换的是它们的宿主位置**。⚠️ 所以 Esc 归还的
+        那枚 `seBtn.focus()` 现在落回的是"扉页那一行的那枚字"：它必须真的在页面上（上一版的入口在导航里，
+        焦点还回一枚右上角圆钮；宿主搬走而归还对象不改，就会把焦点还进一个不存在的位置——
+        第 ⑤ 格判的就是 `document.activeElement.id === 'search-toggle'`，跟着宿主漂的那一档会当场红）。
+        这一页没有那一格（详情页 / 分类与标签的落地页 / 404）⇒ `#search` 整个不存在，
+        下面每一处都在 `if (searchWrap && …)` 里，`/` 也在那里面：**按了不做事，也不假装做事**。 */
   const searchWrap = document.getElementById('search');
   const seBtn = document.getElementById('search-toggle');
   const sePanel = document.getElementById('search-panel');
@@ -217,6 +230,27 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     });
     addEventListener('keydown', e => {
       if (e.key === 'Escape' && sePanel.classList.contains('open')){ setSearchOpen(false); seBtn.focus(); }
+      /* ↑ 焦点还给**触发它的那枚文字动作**（`#search-toggle` 现在是扉页那一行里的 `search — 搜全文`，
+         不再是右上角那枚圆钮）——id 没换、宿主换了，所以这一句跟着换宿主的正是它的**指向对象**：
+         还回一枚不存在的元素就等于把焦点丢回 `<body>`，键盘用户下一次 Tab 从页头重新走一遍。 */
+    });
+    /* 键盘 `/` 全站直达这一格。四条"不抢"是这一句的全部难度：
+       ① 输入框与可编辑区里的那个斜杠是**正在打的字**，不是命令（`<input type=search>` 里打 `/`
+          必须落进框里——这一档第 ⑤ 格专门判：焦点在输入框里时把 `/` 打进去，值必须长出那一枚字符，
+          而面板不许被第二次"打开"）；
+       ② 带任何修饰键都不算（`Ctrl+/`、`Cmd+/` 是浏览器与编辑器的）；
+       ③ 原生 `<dialog>` 开着（灯箱 `showModal()`）时不抢——那是一个焦点陷阱，在它上面再开一块玻璃
+          就是把焦点从陷阱里拽走，模态语义当场作废；
+       ④ 这一页没有那一格（详情页 / 分类与标签的落地页 / 404）⇒ 这一段整块住在 `if (searchWrap && …)`
+          里面，按 `/` 与改动前逐字相同：什么都不发生，也不"打开一枚不存在的面板"。
+       `preventDefault` 要写：那几个浏览器把裸 `/` 认成"快速查找"，不拦就会同时弹浏览器的找字条。 */
+    addEventListener('keydown', e => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      setSearchOpen(true);
     });
     addEventListener('click', e => {
       if (!sePanel.classList.contains('open') || e.target.closest('.search')) return;

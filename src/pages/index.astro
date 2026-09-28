@@ -1,6 +1,7 @@
 ---
 import '../styles/home.css';
 import Layout from '../layouts/Layout.astro';
+import SearchEntry from '../components/SearchEntry.astro';
 import { things, notes } from '../data/site.js';
 import { fmtDate, inlineMd } from '../lib/markdown.js';
 import { visiblePosts } from '../lib/posts.js';
@@ -43,8 +44,17 @@ const walk = notes[0];
       <span class="line"><span class="w" style="--i:0"><span>在森林</span></span><span class="w" style="--i:1"><span>与代码</span></span><span class="w" style="--i:2"><span>之间，</span></span></span>
       <span class="line"><span class="w" style="--i:3"><span>收集</span></span><span class="w" style="--i:4"><span>微风、</span></span><span class="w" style="--i:5"><span><em>light</em></span></span><span class="w" style="--i:6"><span>和</span></span><span class="w" style="--i:7"><span>好文章。</span></span></span>
     </h1>
-    <!-- 观察日志：数字 = 构建期真实条数 -->
-    <p class="hero-log"><b>{pad(counts.essays)}</b> essays<span class="sep">·</span><b>{pad(counts.things)}</b> things<span class="sep">·</span><b>{pad(counts.notes)}</b> notes</p>
+    <!-- 观察日志：数字 = 构建期真实条数。⚠️ 搜索入口挂在**这一行末尾**（裁决与账在 §11 的"导航"那一整格：
+         胶囊里不加第三枚按钮 ⇒ 首页这一行就是它在这一屏的宿主）。这一行没有 `.page-head`，但它与子页
+         扉页那一行是同一族（13px 等宽 + 宽字距 + 构建期真数），所以"同族的位置"落在这里；
+         不新造一行——`.hero-log` 是 `white-space` 自然折行的，窄屏放不下时它自己换行，
+         面板那一档跟着朝上开（base.css 里 `.hero-log .settings.search-panel` 那一条）。
+         ⚠️ 这一行的 tag 从 `<p>` 换成了 `<div>`，是解析器的规矩不是口味：`<p>` 遇到块级元素会当场
+         自我闭合，而入口那一块里装着面板那枚 `<div class="settings">`——挂着 `<p>` 的时候面板被甩到
+         `.search` 外面，"点外面只收不抢焦点"于是把**点结果行**当成点了外面（选中一篇的瞬间面板先收、
+         焦点没还），几何读数也一路落到 `top:100%+14` 即屏幕之外。版面逐位不变：
+         `*{margin:0;padding:0}`（base.css:210）早就清了 `<p>` 的 UA 外边距，这一行的所有样式都挂在 class 上。 -->
+    <div class="hero-log"><b>{pad(counts.essays)}</b> essays<span class="sep">·</span><b>{pad(counts.things)}</b> things<span class="sep">·</span><b>{pad(counts.notes)}</b> notes<SearchEntry /></div>
     <!-- 此刻的话：入夜＝守夜 / 清晨＝初 / 傍晚＝暮，由 site.js 决定说不说（读不到 session 就永远不说） -->
     <p class="hero-watch" id="hero-watch" hidden></p>
   </main>

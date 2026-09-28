@@ -1,6 +1,7 @@
 ---
 import '../styles/notes.css';
 import Layout from '../layouts/Layout.astro';
+import SearchEntry from '../components/SearchEntry.astro';
 import { notes } from '../data/site.js';
 import { inlineMd } from '../lib/markdown.js';
 import { tone } from '../lib/stats.js';
@@ -10,7 +11,7 @@ const pad = n => String(n).padStart(2, '0');
   <main class="wrap">
     <header class="page-head reveal">
       <h1 class="page-title">碎碎念</h1>
-      <span class="sec-label">notes — <b>{pad(notes.length)}</b> →</span>
+      <div class="sec-label">notes — <b>{pad(notes.length)}</b> →<SearchEntry /></div>
     </header>
 
     <div class="notes-list">
