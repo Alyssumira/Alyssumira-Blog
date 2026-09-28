@@ -42,7 +42,11 @@ const links = [
   ['/about/', '关于', 'about'],
   ['/notes/', 'notes', 'notes'],
 ];
-const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&display=swap`;
+/* css2 只拼没自托管旗的族（见 src/data/site.js 的 fonts 清单与 base.css 的自托管节）；
+   哪一天四族全解绑了，这一枚就该整行拆掉而不是发一个空查询——当场抛，不静默挂一枚坏 link */
+const remoteFonts = fonts.filter(f => !f.self);
+if (!remoteFonts.length) throw new Error('fonts 清单里没有远程族了，但 Layout 还在拼 css2 URL——全自托管那天应删掉这枚 <link>，而不是发空查询');
+const FONTS = `${FONT_HOST}/css2?${remoteFonts.map(f => 'family=' + f.q).join('&')}&display=swap`;
 ---
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" data-phase="day" data-tier={tier}>
