@@ -12,13 +12,21 @@
       不量半径也不量方位，直接把 `--lit` 合成进有效底顶、当作铺满整页，再复算一遍地板。
       这样几何只管"在哪儿看得见"，而"哪怕它铺满全页也不许破可读性地板"由这一条兜住。
       ⚠️ 它自带防空转：`--lit` 缺失或 α=0 直接红，并且末尾打印"复算 N 档"——N=0 就是这盏灯根本没进过闸。
-      （§16 那条"rgba 漂移检查静默空转、退出码 0、长得像全绿"就是这么被抓出来的，新判据一律先学它。） */
-import { readFileSync } from 'node:fs';
+      （§16 那条"rgba 漂移检查静默空转、退出码 0、长得像全绿"就是这么被抓出来的，新判据一律先学它。）
+   ⚠️ 同一天 base.css 归并之后，②「双表漂移」换了语义（§16）。旧判据是"同一个 (选择器,令牌) 键
+      在两份表里都出现**且取值不同**才红"——归并做完的那一刻两份表的交集掉到 0，它会照样打印
+      `✓ … 0 个 … 取值一致` 并 exit 0，正是上面那句点名的形状。所以先加防空转闸，再把判据换成
+      归并之后该说的话：**色板令牌只许有一处真值（base.css），同名键出现在第二份表里就红**，
+      外加一条"§2 那批基础令牌必须确实在 base.css 里"的完备性——两个方向都不许它空转。 */
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SHEETS = ['mistwood.css', 'home.css'].map(f => join(ROOT, 'src', 'styles', f));
+/* 读色板：base.css 是真值所在，mistwood / home 只留各自那一层的专属令牌（--lit 族 / --scrim-* 族） */
+const SHEETS = ['base.css', 'mistwood.css', 'home.css'].map(f => join(ROOT, 'src', 'styles', f));
+/* "一处真值"这条判据扫的是全部入口样式表：别处再多一份同名声明就是分叉的起点 */
+const ALL_SHEETS = [...SHEETS, join(ROOT, 'src', 'styles', 'essay.css')];
 
 /* ---------- 色彩数学 ---------- */
 const toLin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) };
@@ -59,44 +67,62 @@ function ladder(bgHex, target, C, H){
   return +lo.toFixed(3);
 }
 
-/* ---------- 读色板：两份表 × 所有条件块 ---------- */
+/* ---------- 读色板：三份表 × 所有条件块 ---------- */
 const HEX = /(--[a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})\b/g;
 /* rgba()/rgb() 令牌（--shadow / --glass / --scrim-* / --line 这一族）：算不进对比度（它们是面与影，
-   不是压在底上的字），但**两份表里必须逐字符一样**——§2.3 那四条时段投影就是 rgba，
+   不是压在底上的字），但**一处真值**这条判据认它们——§2.3 那四条时段投影就是 rgba，
    只查 hex 的话"改一处忘另一处"这条老路照样走得通。 */
 /* ⚠️ 匹配的是"值里含 rgba()/rgb()"的令牌，不是"值以 rgba( 开头"——`--shadow:0 12px 24px -8px rgba(…)`
-   这种一长串偏移打头的写法，用 `:\s*(rgba?\(` 去抠会一个字都不中，漂移检查当场变成摆设（实测踩过）。 */
+   这种一长串偏移打头的写法，用 `:\s*(rgba?\(` 去抠会一个字都不中，漂移检查当场变成摆设（实测踩过）。
+   新写的"色板令牌只许一处"判据照抄这条口径，别退回那个抠法。 */
 const FN = /(--[a-z0-9-]+):([^;]*rgba?\([^)]*\)[^;]*)/g;
-/* 按"选择器 { 体 }"粗切：CSS 里没有嵌套规则（@media 里那几块不含 hex 令牌，扫到也不匹配） */
+/* 按大括号深度切，带 @media / @supports 的上下文——归并之后同一个选择器文本可以合法地出现在
+   两份表里（各自声明自己那一层的令牌），所以键必须是"上下文 + 选择器 + 令牌名"，
+   只看选择器文本会把 `@media (max-width:720px)` 里那条当成顶层那条的副本。 */
 function allBlocks(src){
-  const out = [];
-  const re = /(^|\n)([^\n{}]+)\{([^{}]*)\}/g;
-  let m;
-  while ((m = re.exec(src))){
-    const sel = m[2].trim(), body = m[3];
-    if (!sel.includes('html') && sel !== ':root') continue;
-    const attrs = {};
-    for (const a of sel.matchAll(/\[data-([a-z-]+)="([a-z0-9-]+)"\]/g)) attrs[a[1]] = a[2];
-    const toks = {}, fn = {};
-    for (const t of body.matchAll(HEX)) toks[t[1]] = t[2].toUpperCase();
-    for (const t of body.matchAll(FN)) fn[t[1]] = t[2].replace(/\s+/g, '');
-    if (!Object.keys(toks).length && !Object.keys(fn).length) continue;
-    out.push({ sel, attrs, toks, fn });
+  const clean = src.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
+  const out = []; const stack = []; let start = 0;
+  const lineOf = p => clean.slice(0, p).split('\n').length;
+  for (let i = 0; i < clean.length; i++){
+    const c = clean[i];
+    if (c === '{'){ stack.push({ pre: clean.slice(start, i).trim().replace(/\s+/g, ' '), start }); start = i + 1; }
+    else if (c === '}'){
+      const body = clean.slice(start, i), top = stack.pop(); start = i + 1;
+      if (!top || /^@/.test(top.pre)) continue;         /* at-rule 本体（@media/@keyframes）不是声明块 */
+      if (/^(from|to|[0-9.]+%)$/.test(top.pre)) continue; /* @keyframes 里的帧：不含令牌，跳过 */
+      const ctx = stack.map(s => s.pre).join(' / ');
+      const attrs = {};
+      for (const a of top.pre.matchAll(/\[data-([a-z-]+)="([a-z0-9-]+)"\]/g)) attrs[a[1]] = a[2];
+      const toks = {}, fn = {};
+      for (const t of body.matchAll(HEX)) toks[t[1]] = t[2].toUpperCase();
+      for (const t of body.matchAll(FN)) fn[t[1]] = t[2].replace(/\s+/g, '');
+      out.push({ ctx, sel: top.pre, attrs, toks, fn, line: lineOf(top.start) });
+    }
+    else if (c === ';' && !stack.length) start = i + 1;
   }
   return out;
 }
 function readSheets(){
-  const per = SHEETS.map(f => ({ file: f.split(/[\\/]/).pop(), blocks: allBlocks(readFileSync(f, 'utf8')) }));
-  const find = name => per.flatMap(p => p.blocks).find(x => x.sel === name);
-  const b = find(':root'), d = find('html[data-theme="dark"]');
-  return { per, light: b ? b.toks : {}, dark: d ? d.toks : {}, lightFn: b ? b.fn : {}, darkFn: d ? d.fn : {} };
+  const per = ALL_SHEETS.filter(f => existsSync(f))
+    .map(f => ({ file: f.split(/[\\/]/).pop(), blocks: allBlocks(readFileSync(f, 'utf8')) }));
+  /* 基准板 = 三份表里 ctx 为空的那两条，按 base → mistwood → home 合并。
+     归并之后同一键只会出现在一份里（这正是判据①守的事），所以合并顺序不影响读数；
+     还按"取第一条命中"写的话，base.css 之外的令牌（--surface / --firefly）就会从这张表里消失——
+     少扫几枚色板 = 判据静默变窄，那是 §16 记过的同一个形状。 */
+  const base = {}, baseFn = {}, dark = {}, darkFn = {};
+  for (const p of per) for (const b of p.blocks){
+    if (b.ctx !== '') continue;                        /* 只认顶层那两条基准板 */
+    if (b.sel === ':root'){ Object.assign(base, b.toks); Object.assign(baseFn, b.fn); }
+    if (b.sel === 'html[data-theme="dark"]'){ Object.assign(dark, b.toks); Object.assign(darkFn, b.fn); }
+  }
+  return { per, light: base, dark, lightFn: baseFn, darkFn };
 }
-/* 条件块 = 选择器里带 data-phase / data-moon 的那些（data-theme 单独出现不算，那是基础板） */
+/* 条件块 = 顶层选择器里带 data-phase / data-moon 的那些（data-theme 单独出现不算，那是基础板） */
 function variants(per){
   const out = [];
   for (const { file, blocks } of per)
     for (const b of blocks)
-      if ('phase' in b.attrs || 'moon' in b.attrs) out.push({ file, ...b });
+      if (b.ctx === '' && ('phase' in b.attrs || 'moon' in b.attrs)) out.push({ file, ...b });
   return out;
 }
 /* 档位来自 §2.4：正文级 ≥7、次要 ≥4.5，其余（三级/苔/枯草/月光）属大字或装饰档，不设地板 */
@@ -106,6 +132,10 @@ const PHASES = ['dawn', 'day', 'dusk', 'night'], MOONS = ['*', 'full'];
 
 const args = process.argv.slice(2);
 const { per, light, dark, lightFn, darkFn } = readSheets();
+/* 基准板读不到就别往下算了：没有 --bg-base 的话后面每一格都是 NaN，
+   而 NaN 与"达标"在一张打印表里长得太像（§16 那一串空转教训） */
+for (const [n, t] of [[':root', light], ['html[data-theme="dark"]', dark]])
+  if (!t['--bg-base'] || !t['--bg-top']){ console.log(`✗ 读不到 ${n} 的 --bg-base / --bg-top —— 色板闸正在空转（base.css 是不是没被扫到？）`); process.exit(1); }
 const themes = [['亮色', light], ['暗色', dark]];
 
 if (args[0] === '--need'){
@@ -144,31 +174,57 @@ for (const [name, t] of themes){
 }
 function toOkLchSafe(hex){ try { return toOklch(hex) } catch (e) { return { L: 0, C: 0, H: 0 } } }
 
-/* ---------- ① 两份表不许各说各话 ---------- */
-let drift = 0;
+/* ---------- ① 色板只许有一处真值（base.css 归并之后）---------- */
+/* 键 = "上下文 + 选择器 + 令牌名"，值 = 声明了它的文件清单。
+   旧语义：同一个键在两份表里出现**且取值不同**才红 ⇒ 归并做完后交集掉到 0，它照样打 ✓ 并 exit 0。
+   新语义：同一个键出现在两份表里就红（取值一样也红——两份"一样的"声明正是下一次分叉的起点），
+   再加两条闸：① base.css 里一枚色板令牌都没有 ⇒ 判据空转，红；
+              ② §2 那批基础令牌必须确实在 base.css 里各声明一次 ⇒ 缺一枚就红，
+                 否则"把色板全删掉"反而能让这一关变绿（越少越绿＝另一个形状的空转）。 */
+const BASE_SET = {
+  ':root': ['--bg-base', '--bg-top', '--ink', '--ink-2', '--ink-3', '--moss', '--moss-deep', '--moss-ink',
+            '--straw', '--moon', '--line', '--glass', '--glass-border', '--mist', '--halo', '--shadow'],
+  'html[data-theme="dark"]': ['--bg-base', '--bg-top', '--ink', '--ink-2', '--ink-3', '--moss', '--moss-deep',
+            '--moss-ink', '--line', '--glass', '--glass-border', '--mist', '--halo', '--shadow'],
+  'html[data-phase="dawn"][data-theme="light"]': ['--bg-top', '--shadow'],
+  'html[data-phase="dusk"][data-theme="light"]': ['--bg-top', '--shadow'],
+  'html[data-phase="night"][data-theme="light"]': ['--bg-base', '--bg-top', '--shadow'],
+  'html[data-theme="dark"][data-moon="full"]': ['--shadow'],
+};
+let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0;
 {
-  /* 键 = "选择器 + 令牌名"，值 = 各文件里给出的 hex。同一个键在两份表里出现而取值不同 ⇒ 分叉，红。 */
   const table = new Map();
   for (const { file, blocks } of per)
     for (const b of blocks)
       for (const [kind, map] of [['hex', b.toks], ['rgba', b.fn]])
         for (const [k, v] of Object.entries(map)){
-          const id = `${b.sel} ${k}`;
-          if (!table.has(id)) table.set(id, new Map());
-          table.get(id).set(file, { v, kind });
+          const id = `${b.ctx ? b.ctx + ' / ' : ''}${b.sel} ${k}`;
+          if (!table.has(id)) table.set(id, []);
+          table.get(id).push({ file, v, kind });
+          if (file === 'base.css'){ basePalette++; kind === 'hex' ? baseHex++ : baseRgba++; }
         }
-  let shared = 0, sharedFn = 0;
-  for (const [id, byFile] of table){
-    if (byFile.size < 2) continue;
-    const vals = [...byFile.values()];
-    if (vals[0].kind === 'rgba') sharedFn++; else shared++;
-    for (const x of vals) if (x.v !== vals[0].v){
-      console.log(`  ✗ ${id} 在两份表里取值不同：` + [...byFile].map(([f, o]) => `${f} ${o.v}`).join(' vs '));
-      drift++;
-    }
+  /* 一处真值：同一个键跨文件重复 ⇒ 红 */
+  for (const [id, hits] of table){
+    const files = [...new Set(hits.map(h => h.file))];
+    if (files.length < 2) continue;
+    console.log(`  ✗ ${id} 在 ${files.length} 份表里各声明了一次：` + hits.map(h => `${h.file} ${h.v}`).join(' vs '));
+    drift++;
   }
-  console.log('\n=== 双表漂移（mistwood.css vs home.css）===');
-  console.log(`  ${drift ? '✗ ' + drift + ' 处分叉' : '✓'} 两份表同时声明的 ${shared} 个色板令牌 + ${sharedFn} 个 rgba 令牌（面/影/纱）取值一致`);
+  /* 完备性：§2 那批基础令牌必须住在 base.css，一枚都不许少 */
+  const inBase = new Map();
+  for (const [id, hits] of table) for (const h of hits) if (h.file === 'base.css') inBase.set(id, h);
+  for (const [sel, list] of Object.entries(BASE_SET)) for (const k of list){
+    const id = `${sel} ${k}`;
+    if (!inBase.has(id)){ console.log(`  ✗ base.css 里没有 ${sel} 的 ${k} —— 基础色板缺了一枚（判据不许靠"删掉就绿"过关）`); drift++; }
+  }
+  console.log('\n=== 一处真值（base.css ← mistwood.css / home.css / essay.css）===');
+  if (!basePalette){
+    console.log('  ✗ base.css 里一枚色板令牌都没扫到 —— 双表漂移判据正在空转');
+    process.exit(1);
+  }
+  if (per.length < 2){ console.log(`  ✗ 只扫到 ${per.length} 份样式表，"一处真值"这条判据正在空转`); process.exit(1); }
+  console.log(`  ${drift ? '✗ ' + drift + ' 处分叉' : '✓'} base.css 集中了 ${baseHex} 枚 hex + ${baseRgba} 枚含 rgba() 的色板令牌（面/影/纱），` +
+    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 0 处、基础板 ${Object.values(BASE_SET).reduce((n, a) => n + a.length, 0)} 枚全在位`);
 }
 
 /* ---------- ② 时段 / 月相块 + ③ 方向光：随时间变的色板与照度也要过闸 ---------- */
@@ -228,5 +284,5 @@ for (const [tName, tBase, tFn] of [['light', light, lightFn], ['dark', dark, dar
 console.log(`  方向光复算 ${litChecked} 档（0 档＝这盏灯没进过闸）`);
 if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相与方向光都没有把任何一档推下它的地板');
 
-if (bad || bad2 || drift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处双表漂移跌破登记值`); process.exit(1); }
+if (bad || bad2 || drift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');

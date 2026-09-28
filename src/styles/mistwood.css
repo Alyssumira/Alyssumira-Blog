@@ -1,26 +1,14 @@
-/* mistwood 子页面共享底座（首页 index.html 仍为单文件，后续再归并） */
+/* mistwood 子页面样式：这一层只放**子页专属**与**只有一份**的东西。
+   色板与基础层（`*`/`::selection`/滚动条/`.grain`/`.nav-clock`/`.theme-toggle`/`.reveal`）
+   已经归并进 `base.css`——它们以前在这里和 `home.css` 各有一份，§16 记着那笔债。 */
 
-/* ============ 色彩系统 ============ */
+/* ============ 色彩系统：只留子页专属的那几枚 ============ */
+/* ⚠️ 不许把这里任何一枚"顺手归并"进 base.css：它们只有一份，归并等于多造一处真值。
+   `--lit` 族画在 `.wrap::before` 上（§2.1），只有五个子页有这层；首页有照片和纱罩，再叠一盏＝两束光。 */
 :root{
-  --bg-base:#F2F4EF;
-  --bg-top:#EDE9DD;
-  --ink:#232B25;
-  --ink-2:#5A675E;            /* 灰苔：压在暖顶上 4.60:1、基底 5.05:1，够 §2.4 的 4.5 线 */
-  --ink-3:#9AA59B;            /* 三级：白底上限只有 2.55:1，按规范属"淡是氛围"档 */
-  --moss:#7C9A80;
-  --moss-deep:#5F7D63;        /* 只给大字（≥24px 标题/悬停），4.12:1 */
-  --moss-ink:#384D3B;         /* 正文级强调与小字：压在四个顶上都 ≥7（最差 7.25，傍晚暖顶）。⚠️ 原值 #3C513F 在傍晚只剩 6.81——时段块当年没过闸 */
-  --straw:#C2A878;
-  --moon:#BCCFC4;
-  --line:rgba(35,43,37,.07);
-  --glass:rgba(250,251,248,.72);
   --glass-lit:rgba(250,251,248,.86);   /* 雾灯照到导航那一段时的玻璃：同一块面，只是被照亮后更实 */
-  --glass-border:rgba(35,43,37,.08);
   --surface:#F7F8F5;          /* 移动端实色卡面（§11：卡片改实色+软影） */
-  --mist:rgba(255,255,255,.5);
   --fog:1;                    /* 显示设置里那枚"雾"的乘数：淡 .4 / 中 1 / 浓 1.35，只乘在氛围层的 opacity 上 */
-  --halo:rgba(242,244,239,.55);
-  --shadow:0 12px 24px -8px rgba(95,125,99,.12);
   --photo-look:saturate(.85) brightness(1.04);   /* §10.5 褪色：降饱和 15% + 提黑位 */
   /* 方向光（§2.1）：子页背景上的同一盏灯。方位是常量（左上，被首屏照片的亮部钉死，§5 实测），
      随时段转的是仰角与暖度——太阳低＝光铺得更深更长，太阳高＝收得紧。
@@ -31,22 +19,8 @@
   --lit-r:56vmax;
 }
 html[data-theme="dark"]{
-  --bg-base:#0E130D;
-  --bg-top:#12170F;
-  --ink:#E3E8E0;
-  --ink-2:#87927F;
-  --ink-3:#707B6C;            /* 规范原值 #5C675A 在夜林底上只有 3.17:1，已按实测登记 */
-  --moss:#A9C4A0;
-  --moss-deep:#8FA98A;
-  --moss-ink:#A9C4A0;
-  --line:rgba(227,232,224,.08);
-  --glass:rgba(26,33,26,.55);
   --glass-lit:rgba(35,44,35,.68);
-  --glass-border:rgba(227,232,224,.09);
   --surface:#141A14;
-  --mist:rgba(188,207,196,.07);
-  --halo:rgba(14,19,13,.6);
-  --shadow:0 12px 28px -8px rgba(14,19,13,.55);
   --photo-look:saturate(.8) brightness(.78);      /* 夜林：原图直出会刺眼，照片也重新打光 */
   /* 夜林没有太阳（§2.2），这盏是月亮：同一枚方位（照片的亮部也在左），色取 --moon，
      且不随时间转——"暗色不参与日循环"那条一个字没改。α 的上限由 §2.4 的 --ink-2 那一格守着 */
@@ -60,10 +34,12 @@ html[data-theme="dark"]{
    所以：清晨低角度＝长影、正午高角度＝短影（= :root 的基准值）、傍晚＝全年最长、夜里＝几乎无影。
    ⚠️ 三条硬约束：① 4 处 text-shadow 全是 `0 1px`（那是"字抬起来"不是光照方向），**光晕不参与**，跟着转会变成歪影；
    ② `box-shadow` 只在**换档那一刻**离散改值，不给它加 transition——它不在 §8.8 白名单里，淡一个 24px 的投影就是每帧重绘一次阴影；
-   ③ 暗色的**投影**不参与日循环（§2.2 夜林没有太阳）——夜里的影子归月相管，见下面那块。⚠️ 2026-09-28 起这一句只管影子：暗色的**色温**开始随时段转了，见下面那两行。 */
-html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; --shadow:0 20px 32px -12px rgba(95,125,99,.13); --lit:rgba(255,243,216,.13); --lit-at:-18% -2%; --lit-r:64vmax; }
-html[data-phase="dusk"][data-theme="light"]{ --bg-top:#EDE4D2; --shadow:0 26px 38px -14px rgba(95,125,99,.14); --lit:rgba(255,232,194,.15); --lit-at:-20% 4%; --lit-r:70vmax; }
-html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7DE; --shadow:0 6px 16px -10px rgba(95,125,99,.10); --lit:rgba(233,245,246,.07); --lit-at:-12% -14%; --lit-r:46vmax; }
+   ③ 暗色的**投影**不参与日循环（§2.2 夜林没有太阳）——夜里的影子归月相管，见下面那块。⚠️ 2026-09-28 起这一句只管影子：暗色的**色温**开始随时段转了，见下面那两行。
+   ⚠️ 这三条块里的 `--bg-top` / `--shadow` 已经搬进 `base.css`（两份表共同的那部分），
+   这里只剩方向光——同一个选择器出现在两份表里不算分叉，同一个 (选择器, 令牌) 键才算。 */
+html[data-phase="dawn"][data-theme="light"]{ --lit:rgba(255,243,216,.13); --lit-at:-18% -2%; --lit-r:64vmax; }
+html[data-phase="dusk"][data-theme="light"]{ --lit:rgba(255,232,194,.15); --lit-at:-20% 4%; --lit-r:70vmax; }
+html[data-phase="night"][data-theme="light"]{ --lit:rgba(233,245,246,.07); --lit-at:-12% -14%; --lit-r:46vmax; }
 /* ⚠️ 暗色的三段色温（§2.3，路线图 #11，2026-09-28 落地）：夜林不再只是"一个时刻"，它自己有夜里的时间轴。
    傍晚留一点枯草金的余温、凌晨天将亮时极淡青、21 点到 4 点仍旧是签过字那版最冷最静（＝基准，不出块）。
    **只转色相、不转亮度**：两枚底各自锁在自己的 OKLCH L（.179 / .196）上只挪 H，WCAG 相对亮度差 ≤0.14/1000
@@ -73,15 +49,13 @@ html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7D
 html[data-phase="dusk"][data-theme="dark"]{ --bg-base:#121208; --bg-top:#16160C; }
 html[data-phase="dawn"][data-theme="dark"]{ --bg-base:#0A140E; --bg-top:#0E1812; }
 
-/* 夜林里影子归月相管（§6）：无月之夜是这套暗色的身份，它没有方向光，所以基准那版投影又短又软。
-   满月那一晚"有月之夜"成立——影子回来一点（更长、更实）。**只动 shadow 与灯，绝不动照片底**：
-   提亮底图会直接吃掉 §2.4 首屏那笔账（暗色标题中位 6.81、≥7 只有 44.5%，全靠大字档 3:1 守住），
-   而投影与灯都不在文字底下 ⇒ 一条对比度都不用重算。 */
-html[data-theme="dark"][data-moon="full"]{ --shadow:0 16px 30px -10px rgba(14,19,13,.62); }
+/* 夜林里影子归月相管（§6）那条 `html[data-theme="dark"][data-moon="full"]{--shadow:…}` 已搬进
+   `base.css`（两份表共同），这一层只剩下面那两条只属于子页的月相读数。 */
 
-/* ============ 基础 ============ */
-*,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
-html{ scroll-behavior:smooth; }
+/* ============ 基础层里只有子页这一份的东西 ============ */
+/* ⚠️ `body` 没有归并：两份表的 `background` 本来就不同——子页要那条 40vh 的渐变把内容区接进
+   照片底色（§5 的斜坡），并且它是 §8.3 跨页转场那 80ms 里"有东西可露"的铺底；首页是实色底 + 照片层。
+   值不一样不是漂移，硬合并才是改画面。 */
 body{
   font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-base) 40vh);
@@ -92,37 +66,13 @@ body{
   overflow-x:hidden;
   transition:background-color .8s cubic-bezier(.22,1,.36,1),color .8s cubic-bezier(.22,1,.36,1);
 }
-::selection{ background:rgba(124,154,128,.25); }
-html[data-theme="dark"] ::selection{ background:rgba(169,196,160,.22); }
-::-webkit-scrollbar{ width:6px; }
-::-webkit-scrollbar-track{ background:transparent; }
-::-webkit-scrollbar-thumb{ background:var(--ink-3); border-radius:3px; }
-::-webkit-scrollbar-thumb:hover{ background:var(--ink-2); }
-:focus-visible{ outline:2px solid var(--moss); outline-offset:4px; border-radius:4px; }
-a{ color:inherit; text-decoration:none; }
-em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 
-/* 颗粒：子页面唯一的常驻氛围。
-   ⚠️ steps(1) 不是笔误——animation-level 的 timing function 作用在**每个关键帧区间**上，
-   这份 @keyframes 有四个区间，写 steps(4) 会得到 4×4＝16 个位置／1.2s，也就是每 75ms 换一次
-   全场点阵（实测 getAnimations 采样：0 / 75 / 150 / 225 / 300ms 各一个不同的 translate）。
-   §1.3 登记的是"1.2s 跳四帧 ≈ 每秒 3.3 次"，实现却跑了 13.3 次——那是胶片帧率的对岸、
-   也是"整片在沸腾"的这一岸，两头都不像材质。steps(1) 让一周期真跳四下，回到签过字的那个数。 */
-.grain{
-  position:fixed; inset:-50%; z-index:3; pointer-events:none; opacity:.035;
-  transition:opacity 1.2s cubic-bezier(.22,1,.36,1);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation:grain-shift 1.2s steps(1) infinite;
-}
-/* 合上书＝更静（§8.7）：读到文末，这一页唯一还在动的东西自己退场。
+/* 颗粒的材质本体在 `base.css`（含 steps(1) 那笔账）。这里只留"合上书＝更静"那一条（§8.7）：
+   它是子页的读书记号，首页是一屏，没有"读到文末"这回事——所以它只有一份，不归并。
    反着做的那一版（文末把颗粒加深一倍）否掉了：颗粒是 position:fixed 的全屏层，它闪一下
    等于全屏幕动一次，正面撞 §1.2"一处动处处静"；而"结束"这个感觉本该是一次沉默，不是一次响动。
    ⚠️ 只动 opacity（§8.8 白名单内），1.2s 吐纳，往回滚它自己回来。 */
 html[data-quiet="1"] .grain{ opacity:0; }
-@keyframes grain-shift{
-  0%{ transform:translate(0,0); } 25%{ transform:translate(-2%,1%); }
-  50%{ transform:translate(1%,-2%); } 75%{ transform:translate(-1%,2%); } 100%{ transform:translate(0,0); }
-}
 
 /* ============ 导航 ============ */
 .nav{
@@ -138,7 +88,7 @@ html[data-quiet="1"] .grain{ opacity:0; }
   transition:background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
   max-width:calc(100vw - 32px);
 }
-@keyframes nav-in{ to{ opacity:1; transform:translate(-50%,0); } }
+/* `@keyframes nav-in` 与 `.nav-clock` / `.nav-clock .dot` / `.theme-toggle` 全家已搬进 `base.css`。 */
 /* 灯照到导航这一段时玻璃变实（§8.5）。只翻一个类、只改 background-color，
    用的是 .nav 上面那条 .8s 过渡——不新增可 animatable 的属性（§8.8 白名单外的一律不动），
    也不引第二枚灯。0.8s 落在"氛围响应"档不是"控件手感"档，这是有意的。
@@ -159,12 +109,6 @@ html[data-quiet="1"] .grain{ opacity:0; }
    当前页那枚是"我在哪儿"，和天上的事无关。 */
 html[data-theme="dark"][data-moon="full"] .nav-clock .dot{ background:var(--moon); }
 html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:.6; }
-.nav-clock{
-  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em;
-  color:var(--ink-2); white-space:nowrap; display:flex; align-items:center; gap:8px;
-}
-/* §6 时钟零动效：状态点是实心的，不呼吸 */
-.nav-clock .dot{ width:5px; height:5px; border-radius:50%; background:var(--moss); flex:none; }
 .nav-links{ display:flex; align-items:center; gap:22px; flex-wrap:nowrap; }
 .nav-links a{
   position:relative; font-size:13px; letter-spacing:.14em; color:var(--ink-2);
@@ -196,15 +140,7 @@ html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:
   content:""; position:absolute; left:-11px; top:50%; width:1px; height:8px; margin-top:-4px;
   background:var(--glass-border);
 }
-.theme-toggle{
-  display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
-  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
-  color:var(--ink-2);
-  transition:color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
-}
-.theme-toggle:hover{ color:var(--ink); transform:rotate(180deg); }
-.theme-toggle:active{ transform:rotate(180deg) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
-.theme-toggle svg{ width:15px; height:15px; }
+/* `.theme-toggle` 全家（含 :hover / :active / svg）在 `base.css`，与首页共用同一枚钮。 */
 
 /* ============ 显示设置：雾浓度 / 颗粒 / 萤火 ============ */
 /* 抽屉只给用户"把氛围关掉"的权力，不给往上加东西的权力——三项都是往回收的旋钮（§1 的预算不会因为
@@ -350,9 +286,8 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .sec-label b{ color:var(--ink-2); font-weight:500; }
 .page-head .sec-label{ display:block; margin-top:16px; }
 
-/* 滚动入场（规范 §8.7）：错落节拍住在 CSS 里，JS 只给 --cascade 序号 */
-.reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); transition-delay:calc(var(--cascade,0) * 80ms); }
-.reveal.in{ opacity:1; transform:none; }
+/* 滚动入场（规范 §8.7）：`.reveal` / `.reveal.in` 本体在 `base.css`——错落节拍住在 CSS 里，
+   JS 只给 --cascade 序号。 */
 
 /* 手记的呼吸（§15）：同一页里行距按句子长短走三档——短句留白、长句挤在一起，版式自己在表达语气。
    三档只有 1.75 / 1.85 / 1.95：差 5% 与 5%，读得出"这条写得很短"，读不出"这里有个算法"。
@@ -592,7 +527,6 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 /* ============ 移动端 ============ */
 @media (max-width:720px){
   .nav{ gap:14px; padding:9px 14px; }
-  .nav-clock{ display:none; }
   .nav-links{ gap:10px; }
   .nav-links a{ font-size:12px; }
   /* 窄屏间距只有 10px：点与竖分隔都往中间挪，免得压到左边那项的文字 */
@@ -640,18 +574,12 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 @keyframes vt-out{ from{ opacity:1; transform:none } to{ opacity:0; transform:translateY(-8px) } }
 @keyframes vt-in{ from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
 
-/* ============ 减弱动态偏好：全部落到终态，一个循环都不留 ============ */
+/* ============ 减弱动态偏好：落到终态，一个循环都不留 ============ */
+/* 那两条 `*`、`html{scroll-behavior:auto}` 与 `.reveal` 已在 `base.css` 的同一档媒体查询里，
+   这里只留子页才有的东西。⚠️ 顺序读法：base 在前、这里在后，两边没有同名键，
+   谁先谁后都不改读数——这正是这次归并要买的东西。 */
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{ animation:none !important; transition-duration:.01s !important; transition-delay:0s !important; }
-  /* 颜色与不透明度过渡保留 200ms：主题切换是"日落"语义，一并砍掉会把渐变变成亮度突跳（§12 禁明暗突跳）。
-     位移、缩放、模糊一律不动（上面那行已经把时长压到 0），infinite 一律 animation:none。 */
-  *,*::before,*::after{
-    transition-property:color,background-color,border-color,text-decoration-color,opacity !important;
-    transition-duration:.2s !important;
-  }
-  html{ scroll-behavior:auto; }
   .nav{ opacity:1; transform:translate(-50%,0); }
-  .reveal{ opacity:1; transform:none; }
   .cover img,.thing .shot,.portrait img,.post-body img{ filter:var(--photo-look); }
   /* 转场伪元素树不在文档树里，上面那条 `*` 管不到它——跨页淡入淡出必须单独掐掉 */
   ::view-transition-old(root),::view-transition-new(root){ animation:none !important; }

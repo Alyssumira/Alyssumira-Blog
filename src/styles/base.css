@@ -1,0 +1,145 @@
+/* ============ 全站共享底座：色板 + 基础层 ============
+   来历（§16）：`mistwood.css` 与 `home.css` 曾经各写一份同一套色板与同一个基础层，
+   "谁赢取决于打包顺序——那是运气不是设计"。这份文件就是那次归并的落点：
+   **共同的声明只住在这里，一处一份**。
+   判据由 `npm run check` 第三关守着（palette-check 的"双表漂移"，2026-09-28 起语义从
+   "两份都声明且取值不同才红"升级成"同一个 (选择器, 令牌) 键出现在两份表里就红"）。
+
+   分层口径——什么不许搬进来：
+   - 首页专属的雾灯一族（`--lantern-r` 的 @property、`--lantern-boost`、`.scene` 的 clamp、
+     coarse 指针那档、满月对 `.scene` 的加成）留在 `home.css`。它们**本来就只有一份**，
+     不是漂移债；搬进来等于把首页的灯装到子页上。
+   - 子页专属的方向光 `--lit` / `--lit-at` / `--lit-r`、`--surface`、`--glass-lit`、`--fog`、
+     `--photo-look` 留在 `mistwood.css`；首页的纱罩 `--scrim-*` 与 `--firefly` 留在 `home.css`。
+     同一个理由反着说：只有一份的东西不归并，归并了反而多造一处真值。
+   - ⚠️ **条件块的权重不许动**：暗色三段色温（`html[data-phase="dusk"][data-theme="dark"]` /
+     `dawn`）只写在 `mistwood.css` 一处，它压得过 `home.css` 那条 `html[data-theme="dark"]`(0,1,1)
+     靠的是权重 (0,2,1)（§2.3 末登记过这个判断）。搬 `:root` / dark 两块时不把这些条件块抽过来，
+     也不为了"整洁"统一选择器——一改权重，首页的暗色读数就可能换个人赢。 */
+
+/* ============ 色彩系统（§2）============ */
+:root{
+  --bg-base:#F2F4EF;
+  --bg-top:#EDE9DD;            /* 雾后太阳的暖白，随时段微调 */
+  --ink:#232B25;
+  --ink-2:#5A675E;            /* 灰苔：压在暖顶上 4.60:1、基底 5.05:1，够 §2.4 的 4.5 线 */
+  --ink-3:#9AA59B;            /* 三级：白底上限只有 2.55:1，按规范属"淡是氛围"档 */
+  --moss:#7C9A80;
+  --moss-deep:#5F7D63;        /* 只给大字（≥24px 标题/悬停、Hero 斜体词 68px），4.12:1 */
+  --moss-ink:#384D3B;         /* 正文级强调与小字：压在四个顶上都 ≥7（最差 7.25，傍晚暖顶）。⚠️ 原值 #3C513F 在傍晚只剩 6.81——时段块当年没过闸 */
+  --straw:#C2A878;            /* 枯草金，每屏至多 2 次 */
+  --moon:#BCCFC4;
+  --line:rgba(35,43,37,.07);
+  --glass:rgba(250,251,248,.72);
+  --glass-border:rgba(35,43,37,.08);
+  --mist:rgba(255,255,255,.5);
+  --halo:rgba(242,244,239,.55);
+  --shadow:0 12px 24px -8px rgba(95,125,99,.12);
+}
+html[data-theme="dark"]{
+  --bg-base:#0E130D;
+  --bg-top:#12170F;
+  --ink:#E3E8E0;
+  --ink-2:#87927F;
+  --ink-3:#707B6C;            /* 规范原值 #5C675A 在夜林底上只有 3.17:1，已按实测登记 */
+  --moss:#A9C4A0;
+  --moss-deep:#8FA98A;
+  --moss-ink:#A9C4A0;
+  --line:rgba(227,232,224,.08);
+  --glass:rgba(26,33,26,.55);
+  --glass-border:rgba(227,232,224,.09);
+  --mist:rgba(188,207,196,.07);
+  --halo:rgba(14,19,13,.6);
+  --shadow:0 12px 28px -8px rgba(14,19,13,.55);
+}
+/* 时段色温（§2.3）：幅度控制在"说不清但感觉得到"之下。这里只有**两份表共同的那部分**
+   （亮色三档的底与影 + 满月那晚的影）；亮色各档的方向光 `--lit` 族跟着子页留在
+   `mistwood.css`，傍晚的纱罩 `--scrim-top` 跟着首页留在 `home.css`——同一个选择器出现在
+   两份表里不算分叉，**同一个 (选择器, 令牌) 键**才算。
+   ⚠️ 暗色的三段色温不在这里，理由见文件头那条权重禁令。 */
+html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; --shadow:0 20px 32px -12px rgba(95,125,99,.13); }
+html[data-phase="dusk"][data-theme="light"]{ --bg-top:#EDE4D2; --shadow:0 26px 38px -14px rgba(95,125,99,.14); }
+html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7DE; --shadow:0 6px 16px -10px rgba(95,125,99,.10); }
+/* 夜林里影子归月相管（§6）：无月之夜是这套暗色的身份，它没有方向光，所以基准那版投影又短又软。
+   满月那一晚"有月之夜"成立——影子回来一点（更长、更实）。**只动 shadow 与灯，绝不动照片底**：
+   提亮底图会直接吃掉 §2.4 首屏那笔账（暗色标题中位 6.81、≥7 只有 44.5%，全靠大字档 3:1 守住），
+   而投影与灯都不在文字底下 ⇒ 一条对比度都不用重算。
+   ⚠️ 权重 (0,2,1) 压过上面那条 `html[data-theme="dark"]` 的 (0,1,1)，与文件顺序无关——
+   满月对 `.nav-clock .dot` / `.dayring` 的加成是子页的事，留在 `mistwood.css`。 */
+html[data-theme="dark"][data-moon="full"]{ --shadow:0 16px 30px -10px rgba(14,19,13,.62); }
+
+/* ============ 基础 ============ */
+*,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+::selection{ background:rgba(124,154,128,.25); }
+html[data-theme="dark"] ::selection{ background:rgba(169,196,160,.22); }
+::-webkit-scrollbar{ width:6px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background:var(--ink-3); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover{ background:var(--ink-2); }
+:focus-visible{ outline:2px solid var(--moss); outline-offset:4px; border-radius:4px; }
+a{ color:inherit; text-decoration:none; }
+em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
+
+/* 颗粒：全站唯一的常驻氛围。
+   ⚠️ steps(1) 不是笔误——animation-level 的 timing function 作用在**每个关键帧区间**上，
+   这份 @keyframes 有四个区间，写 steps(4) 会得到 4×4＝16 个位置／1.2s，也就是每 75ms 换一次
+   全场点阵（实测 getAnimations 采样：0 / 75 / 150 / 225 / 300ms 各一个不同的 translate）。
+   §1.3 登记的是"1.2s 跳四帧 ≈ 每秒 3.3 次"，实现却跑了 13.3 次——那是胶片帧率的对岸、
+   也是"整片在沸腾"的这一岸，两头都不像材质。steps(1) 让一周期真跳四下，回到签过字的那个数。
+   ⚠️ 这一组以前在两份表里各有一份，首页那份加载在后才是首页实际生效的——
+   只改 `mistwood.css` 的话子页修好、首页继续跑 13.3 Hz，看起来完全像"改了没生效"。
+   今天起它只有一处，就是这里。 */
+.grain{
+  position:fixed; inset:-50%; z-index:3; pointer-events:none; opacity:.035;
+  transition:opacity 1.2s cubic-bezier(.22,1,.36,1);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain-shift 1.2s steps(1) infinite;
+}
+@keyframes grain-shift{
+  0%{ transform:translate(0,0); } 25%{ transform:translate(-2%,1%); }
+  50%{ transform:translate(1%,-2%); } 75%{ transform:translate(-1%,2%); } 100%{ transform:translate(0,0); }
+}
+
+/* ============ 导航壳：时钟与主题钮（胶囊本体 `.nav` 不在这层）============ */
+/* ⚠️ `.nav` 没有归并：两份的 `animation-delay` 是**故意不同**的——首页 1.4s（§8.2 的入场时间轴，
+   导航排在斜体词之后），子页 .3s（没有 hero 要等）。合并它等于给其中一页改时间。 */
+.nav-clock{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em;
+  color:var(--ink-2); white-space:nowrap; display:flex; align-items:center; gap:8px;
+}
+/* §6 时钟零动效：状态点是实心的，不呼吸 */
+.nav-clock .dot{ width:5px; height:5px; border-radius:50%; background:var(--moss); flex:none; }
+@keyframes nav-in{ to{ opacity:1; transform:translate(-50%,0); } }
+.theme-toggle{
+  display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
+  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
+  color:var(--ink-2);
+  transition:color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
+}
+.theme-toggle:hover{ color:var(--ink); transform:rotate(180deg); }
+.theme-toggle:active{ transform:rotate(180deg) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+.theme-toggle svg{ width:15px; height:15px; }
+
+/* ============ 区块通用（滚动入场：规范 §8.7）============ */
+.reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); transition-delay:calc(var(--cascade,0) * 80ms); }
+.reveal.in{ opacity:1; transform:none; }
+
+/* ============ 移动端：导航壳在窄屏收起时钟（§11）============ */
+/* ⚠️ 只有 `.nav-clock` 归并了。同一条媒体查询里的 `.nav{gap;padding}` 两份表**取值不同**
+   （子页 9px 14px / 首页 9px 16px），那是版面不是漂移，合并等于改其中一页的字距。 */
+@media (max-width:720px){
+  .nav-clock{ display:none; }
+}
+
+/* ============ 减弱动态偏好：落到终态，一个循环都不留（§1 预算表末行）============ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation:none !important; transition-duration:.01s !important; transition-delay:0s !important; }
+  /* 颜色与不透明度过渡保留 200ms：主题切换是"日落"语义，一并砍掉会把渐变变成亮度突跳（§12 禁明暗突跳） */
+  *,*::before,*::after{
+    transition-property:color,background-color,border-color,text-decoration-color,opacity !important;
+    transition-duration:.2s !important;
+  }
+  html{ scroll-behavior:auto; }
+  .reveal{ opacity:1; transform:none; }
+}

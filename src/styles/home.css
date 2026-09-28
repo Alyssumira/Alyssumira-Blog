@@ -1,58 +1,29 @@
-/* ============ 色彩系统 ============ */
+/* ============ 首页专属的那几枚色板 ============ */
+/* ⚠️ 色板本体（`:root` / `html[data-theme="dark"]` 的 16 + 14 枚）与基础层都在 `base.css`，
+   这里只留**只有首页用得到**的：纱罩三档 + 文字遮罩 + 萤火色。
+   它们不是漂移债——只有一份的东西不归并，归并了等于把首页的纱装到子页上。
+   门禁认这个：同一个 (选择器, 令牌) 键出现在两份表里才算分叉。 */
 :root{
-  --bg-base:#F2F4EF;
-  --bg-top:#EDE9DD;            /* 雾后太阳的暖白，随时段微调 */
-  --ink:#232B25;
-  --ink-2:#5A675E;            /* 灰苔：压在暖顶上 4.60:1，够 §2.4 的 4.5 线 */
-  --ink-3:#9AA59B;            /* 三级：白底上限 2.55:1，属"淡是氛围"档 */
-  --moss:#7C9A80;
-  --moss-deep:#5F7D63;        /* 只给大字（Hero 斜体词 68px、悬停标题 24px+） */
-  --moss-ink:#384D3B;         /* 正文级强调与小字：压在四个顶上都 ≥7（最差 7.25，傍晚暖顶）。⚠️ 原值 #3C513F 在傍晚只剩 6.81——时段块当年没过闸 */
-  --straw:#C2A878;             /* 枯草金，每屏至多 2 次 */
-  --moon:#BCCFC4;
-  --line:rgba(35,43,37,.07);
-  --glass:rgba(250,251,248,.72);
-  --glass-border:rgba(35,43,37,.08);
-  --mist:rgba(255,255,255,.5);
   --scrim-top:rgba(242,244,239,.36);
   --scrim-mid:rgba(242,244,239,.14);
   --scrim-bottom:rgba(242,244,239,1);
   --scrim-text:radial-gradient(72% 64% at 22% 60%,rgba(242,244,239,.5),transparent 78%);
-  --halo:rgba(242,244,239,.55);
-  --shadow:0 12px 24px -8px rgba(95,125,99,.12);
   --firefly:#A9C4A0;
 }
 html[data-theme="dark"]{
-  --bg-base:#0E130D;
-  --bg-top:#12170F;
-  --ink:#E3E8E0;
-  --ink-2:#87927F;
-  --ink-3:#707B6C;
-  --moss:#A9C4A0;
-  --moss-deep:#8FA98A;
-  --moss-ink:#A9C4A0;
-  --line:rgba(227,232,224,.08);
-  --glass:rgba(26,33,26,.55);
-  --glass-border:rgba(227,232,224,.09);
-  --mist:rgba(188,207,196,.07);
   --scrim-top:rgba(14,19,13,.60);
   --scrim-mid:rgba(14,19,13,.30);
   --scrim-bottom:rgba(14,19,13,1);
   --scrim-text:radial-gradient(72% 64% at 22% 60%,rgba(14,19,13,.62),transparent 78%);
-  --halo:rgba(14,19,13,.6);
-  --shadow:0 12px 28px -8px rgba(14,19,13,.55);
 }
-/* 时段色温：幅度控制在"说不清但感觉得到"之下 */
-html[data-phase="dawn"][data-theme="light"]{ --bg-top:#EFE7D6; --shadow:0 20px 32px -12px rgba(95,125,99,.13); }
-html[data-phase="dusk"][data-theme="light"]{ --bg-top:#EDE4D2; --scrim-top:rgba(237,228,210,.34); --shadow:0 26px 38px -14px rgba(95,125,99,.14); }
-html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7DE; --shadow:0 6px 16px -10px rgba(95,125,99,.10); }
-/* 光的方向与月相的完整理由写在 mistwood.css 同一条块旁边，两份表里取值必须逐字符相同——
-   `npm run check` 的第三关现在会同时扫这两份文件的 data-phase / data-moon 块，分叉直接红。 */
-html[data-theme="dark"][data-moon="full"]{ --shadow:0 16px 30px -10px rgba(14,19,13,.62); }
+/* 时段色温的底与影（`--bg-top` / `--shadow`）已在 `base.css`；傍晚这一档首页还多一块纱，
+   它跟着照片走，子页没有照片 ⇒ 留在这里。⚠️ 同一个选择器出现在两份表里不算分叉，
+   同一个 (选择器, 令牌) 键才算。 */
+html[data-phase="dusk"][data-theme="light"]{ --scrim-top:rgba(237,228,210,.34); }
 
-/* ============ 基础 ============ */
-*,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
-html{ scroll-behavior:smooth; }
+/* ============ 基础层里只有首页这一份的东西 ============ */
+/* ⚠️ `body` 没有归并：首页是实色底 + 照片层，子页要那条 40vh 的渐变接住内容区（§5）。
+   值不一样不是漂移，硬合并才是改画面。 */
 body{
   font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   background:var(--bg-base);
@@ -62,15 +33,6 @@ body{
   overflow-x:hidden;
   transition:background-color .8s cubic-bezier(.22,1,.36,1),color .8s cubic-bezier(.22,1,.36,1);
 }
-::selection{ background:rgba(124,154,128,.25); }
-html[data-theme="dark"] ::selection{ background:rgba(169,196,160,.22); }
-::-webkit-scrollbar{ width:6px; }
-::-webkit-scrollbar-track{ background:transparent; }
-::-webkit-scrollbar-thumb{ background:var(--ink-3); border-radius:3px; }
-::-webkit-scrollbar-thumb:hover{ background:var(--ink-2); }
-:focus-visible{ outline:2px solid var(--moss); outline-offset:4px; border-radius:4px; }
-a{ color:inherit; text-decoration:none; }
-em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 
 /* ============ 背景：照片底 + 动的氛围 ============ */
 /* ⚠️ --lantern-r 注册成 <length> 有两个理由：① hero.js 要读它的**解析后**值来判断"灯照到导航了没有"
@@ -185,19 +147,14 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
   opacity:0; will-change:transform,opacity;
 }
 
-/* 颗粒：与 mistwood.css 同一份规格（steps(1) 与"文末收灯"的理由写在那边，别在这里改回 steps(4)） */
-.grain{
-  position:fixed; inset:-50%; z-index:3; pointer-events:none; opacity:.035;
-  transition:opacity 1.2s cubic-bezier(.22,1,.36,1);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation:grain-shift 1.2s steps(1) infinite;
-}
-@keyframes grain-shift{
-  0%{ transform:translate(0,0); } 25%{ transform:translate(-2%,1%); }
-  50%{ transform:translate(1%,-2%); } 75%{ transform:translate(-1%,2%); } 100%{ transform:translate(0,0); }
-}
+/* 颗粒（`.grain` + `@keyframes grain-shift`）在 `base.css`——它以前在这里和 `mistwood.css`
+   各有一份，`steps(4)→steps(1)` 那一修只改了一份，另一份继续跑 13.3 Hz（§1.3 / §16）。
+   今天起全站只有一处，别再往回抄。 */
 
 /* ============ 导航：雾面玻璃胶囊 ============ */
+/* ⚠️ `.nav` 没有归并：只有它的 `animation-delay` 是**故意不同**的——首页 1.4s 排在斜体词之后
+   （§8.2 的入场时间轴），子页 .3s（没有 hero 要等）。合并它等于给其中一页改时间。
+   `.nav-clock` / `.nav-clock .dot` / `.theme-toggle` 全家与 `@keyframes nav-in` 都在 `base.css`。 */
 .nav{
   position:fixed; top:16px; left:50%; transform:translate(-50%,-8px);
   z-index:10; display:flex; align-items:center; gap:28px; flex-wrap:nowrap;
@@ -211,26 +168,11 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
   transition:background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
   max-width:calc(100vw - 32px);
 }
-@keyframes nav-in{ to{ opacity:1; transform:translate(-50%,0); } }
-.nav-clock{
-  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em;
-  color:var(--ink-2); white-space:nowrap; display:flex; align-items:center; gap:8px;
-}
-/* §6 时钟零动效：状态点是实心的，不呼吸 */
-.nav-clock .dot{ width:5px; height:5px; border-radius:50%; background:var(--moss); flex:none; }
 /* .nav-links 全家（含 .here / ::after / :hover）只住在 mistwood.css。
    原先这里有一份逐字重复的副本，而且窄屏那两条已经漂了：这份写 gap:12px / padding:9px 16px，
    mistwood.css 那版是 10px / 9px 14px——首页靠"Astro 把 Layout.css 排在后面"才用到新值，
    正是 §8.8 说的"那是运气不是设计"。删副本，留一份。 */
-.theme-toggle{
-  display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
-  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
-  color:var(--ink-2);
-  transition:color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
-}
-.theme-toggle:hover{ color:var(--ink); transform:rotate(180deg); }
-.theme-toggle:active{ transform:rotate(180deg) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
-.theme-toggle svg{ width:15px; height:15px; }
+
 
 /* ============ Hero ============ */
 /* 垂直节奏：名字与标题是一组（钉在上方 17vh），日志用 margin-top:auto 沉到近底。
@@ -338,14 +280,12 @@ html[data-revisit] .hero-watch{ animation-delay:.9s; }
    关于页那两处是好的（`.now-list` 把 line-height 设在容器上、由 span 继承，自己的类赢）。 */
 .home-note p{ font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:19px; color:var(--ink); }
 
-/* ============ 区块通用（滚动入场：规范 §8.7） ============ */
-.reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); transition-delay:calc(var(--cascade,0) * 80ms); }
-.reveal.in{ opacity:1; transform:none; }
+/* ============ 区块通用（滚动入场：规范 §8.7）============ */
+/* `.reveal` / `.reveal.in` 本体在 `base.css`，首页与子页共用同一套 0.8s 吐纳。 */
 
 /* ============ 移动端 ============ */
 @media (max-width:720px){
   .nav{ gap:14px; padding:9px 16px; }
-  .nav-clock{ display:none; }
   .hero{ padding:0 7vw; }
   .hero-title{ font-size:clamp(34px,9.5vw,44px); }
   /* mask 已改成词级，折行天然按词断开、每词自带升起窗——旧的"整行升起"降级随之删除。
@@ -360,17 +300,11 @@ html[data-revisit] .hero-watch{ animation-delay:.9s; }
   .home-note time{ padding-top:0; }
 }
 
-/* ============ 减弱动态偏好：落到终态，一个循环都不留（§1 预算表末行） ============ */
+/* ============ 减弱动态偏好：落到终态，一个循环都不留（§1 预算表末行）============ */
+/* 那两条 `*`、`html{scroll-behavior:auto}` 与 `.reveal` 已在 `base.css` 的同一档媒体查询里，
+   这里只留 hero 那一组——它们要的终态是首页特有的（词盒不落到 translateY(112%) 之外就是空白）。 */
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{ animation:none !important; transition-duration:.01s !important; transition-delay:0s !important; }
-  /* 与 mistwood.css 同口径：颜色/透明度保留 200ms 交叉淡化，避免明暗切换变成亮度突跳 */
-  *,*::before,*::after{
-    transition-property:color,background-color,border-color,text-decoration-color,opacity !important;
-    transition-duration:.2s !important;
-  }
-  html{ scroll-behavior:auto; }
   /* 词盒的静止态本身就是 translateY(112%)，animation:none 不落到终态会让标题整块消失在 mask 里 */
   .hero-title .w > span{ transform:none; }
   .hero-title em,.hero-name,.hero-log,.hero-watch,.nav,.bg-photo{ opacity:1 !important; }
-  .reveal{ opacity:1; transform:none; }
 }
