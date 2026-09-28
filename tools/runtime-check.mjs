@@ -244,18 +244,32 @@ for (const name of postFiles) {
 }
 const visible = sortPosts(corpus.filter(p => !isDraft(p)));
 const drafts = corpus.filter(p => isDraft(p));
-const READABLE = ['dist/essays/index.html', 'dist/index.html', 'dist/rss.xml', 'dist/atom.xml']
-  .map(rel => ({ rel, path: join(DIST, ...rel.split('/')), html: null }))
+/* ⚠️ 键里那四枚相对 DIST 而言**不带** dist/ 前缀——上一版把显示名和路径名混成一枚串，
+   join(DIST, 'dist/essays/index.html') 得到 dist/dist/... ⇒ 四份产物一份都不存在、被 filter 静默丢掉，
+   "草稿泄漏"那一格于是变成零对象的空转还照样 exit 0。本卡第一次喂进真草稿才把它撞出来（见下面那条红）。
+   现在 rel 只管给人看、parts 只管找文件，两件事分开写。 */
+const READABLE = [['dist/essays/index.html', ['essays', 'index.html']],
+                  ['dist/index.html', ['index.html']],
+                  ['dist/rss.xml', ['rss.xml']],
+                  ['dist/atom.xml', ['atom.xml']]]
+  .map(([rel, parts]) => ({ rel, path: join(DIST, ...parts), html: null }))
   .filter(t => existsSync(t.path));
+/* ⚠️ 这一格的"看得见"与"判据"同等重要（§16 那条老账：全绿却不打印数，就等于没人知道它跑没跑）：
+   有草稿时逐枚点名"产物里没有它"，没草稿时点名"今天没有对象"，一份可读产物都找不到时算红而不是算过。 */
+if (drafts.length && !READABLE.length) problems.push(`草稿对账：源码里有 ${drafts.length} 篇 draft，dist/ 里却一份可读产物都没有（essays 列表／首页／rss／atom 全不在）⇒ 这一格没吃到东西，不许算过`);
 if (!drafts.length) notes.push(`草稿对账：源码里没有一篇 draft ⇒ 这一格今天没有对象（读得到稿件、判据仍然算跑过：可见 ${visible.length} 篇已逐个点名）`);
+const gone = [];
 for (const p of drafts) {
   const out = join(DIST, 'essays', p.id, 'index.html');
+  let clean = !existsSync(out);
   if (existsSync(out)) problems.push(`${p.id}：draft: true 而 dist/essays/${p.id}/index.html 还在 ⇒ 详情页照样能访问（getStaticPaths 那一格漏了过滤，这是"列表没有、地址活着"那一族假完成）`);
   for (const t of READABLE) {
     const txt = (t.html ??= stripComments(readFileSync(t.path, 'utf8')));
-    if (txt.includes(`/essays/${p.id}/`)) problems.push(`${p.id}：draft: true 却仍出现在 ${t.rel} ⇒ 那一处的 getCollection 没走 visiblePosts()`);
+    if (txt.includes(`/essays/${p.id}/`)) { clean = false; problems.push(`${p.id}：draft: true 却仍出现在 ${t.rel} ⇒ 那一处的 getCollection 没走 visiblePosts()`); }
   }
+  if (clean) gone.push(p.id);
 }
+if (gone.length) notes.push(`草稿对账：${drafts.length} 篇 draft（${drafts.map(d => d.id).join('、')}）——逐个回读 dist/essays/<id>/index.html 不存在、${READABLE.length} 份可读产物（${READABLE.map(t => t.rel).join(' / ')}）零提及 ✓`);
 /* 列表顺序 ⇄ 产物里各行的先后 */
 {
   const listPath = join(DIST, 'essays', 'index.html');
