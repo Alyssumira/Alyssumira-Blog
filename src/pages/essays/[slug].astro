@@ -35,7 +35,10 @@ const when = whenOf(post.data.date, post.data.hour);
    两个都空 ⇒ 整块不出现，和第五轮那条"空着一个字都不显示"同一条路。 */
 const whenText = whenLine(when, post.data.date, revised);
 ---
-<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays" type="article">
+/* JSON-LD 要的这两枚就取自上面已经算好的 prop，不另问一次 git、也不从 slug 反推路径（:10-12 那条禁令同样管这里）：
+   revised 是 git 里最后一次改动型提交的日历日（问不到＝undefined ⇒ Seo 那一键整块不写），date 是 front matter 那天。
+   ⚠️ 这里只是把「已经在这儿的值」交给 Layout，页面上那行「改于」的判据与灰度一个字没动（§7 / §15）。 */
+<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays" type="article" date={post.data.date} revised={revised}>
   <div id="progress" aria-hidden="true"></div>
   <!-- 章节刻度（§6.3）：同一批 H2 在这条线上的位置。右侧目录给名字，这一排给形状——
        窄屏没有目录，刻度还在。aria-hidden：它是这一篇结构的图形化重述，读屏已经有目录 -->
