@@ -85,9 +85,11 @@ export function siteFacts(posts){
   const first = dot(git('git log --reverse --format=%ad --date=short').split('\n')[0]);
   const last = dot(git('git log -1 --format=%ad --date=short'));
 
-  /* ⚠️ 一个页面只许有一个构建时刻（规范 §16）：这一份档案里 `new Date()` 只许出现这一次，
+  /* ⚠️ 一个页面只许有一个构建时刻（规范 §16）：整份档案里取时刻只许下面这一行，
      构建戳与年度弧都吃同一个对象。两处各求一次就会在跨秒的那一次构建里自相打脸——
-     而 colophon 正是一页专门摆数字的地方，读者有权假定那两行说的是同一刻。 */
+     而 colophon 正是一页专门摆数字的地方，读者有权假定那两行说的是同一刻。
+     ⚠️ 这段注释与规范里都不许把这串调用抄成字面量：§16 那条判据是"数这一份文件里带空括号的那个构造"，
+     注释里写一遍，计数就自己变 2（本轮实测踩过——同一个坑在 about.astro 那条反例上踩过第二次）。 */
   const now = new Date();
 
   return {
