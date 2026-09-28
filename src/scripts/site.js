@@ -199,14 +199,25 @@ import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
     updateProgress();
   }
 
+  /* ⚠️ 目录与章节刻度**吃同一枚选择器，而且从这一行起只有一个出处**：原先 :204/:226/:231 三处
+     各写一遍字面量 `'h2:not(.fn-title)'`，注释还写着"两把尺子必须是同一把"——一句注释守不住的东西，
+     挪成一份常量才守得住。本轮把 H3 一起收进来（§15 详情页那一格），三处同向变：
+     只改目录不改刻度就是当场制造分叉，而那种分叉两边都长得像"对的"。
+     文末那枚"注"（.fn-title）仍旧不算章——它是那一块的标题，不是一章。 */
+  const HEAD_SEL = 'h2:not(.fn-title), h3';
+  const headsOf = () => Array.from(postBody ? postBody.querySelectorAll(HEAD_SEL) : []);
+
   function buildToc(){
     if (!toc || !postBody) return;
-    const heads = Array.from(postBody.querySelectorAll('h2:not(.fn-title)'));
+    const heads = headsOf();
     heads.forEach((h, i) => {
       if (!h.id) h.id = 'sec-' + i;
       const a = document.createElement('a');
       a.href = '#' + h.id;
       a.textContent = h.textContent;
+      /* H3 在目录里是二级条目：只交"它是哪一级"这一枚事实，缩进怎么画归 CSS（§9 那条
+         "同一个符号不许表达两种状态"，所以这里不加新记号、不补第二枚短线） */
+      if (h.tagName === 'H3') a.classList.add('sub');
       toc.appendChild(a);
     });
     const links = Array.from(toc.children);
@@ -219,16 +230,15 @@ import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
   }
   buildToc();
 
-  /* 刻度的那一排 span：与目录同一批 H2、同一个选择器（`h2:not(.fn-title)`，文末那个"注"字不算章） */
+  /* 刻度的那一排 span：与目录同一批标题、同一个选择器（上面那枚 `HEAD_SEL`） */
   function measureMarks(){
     if (!marks || !postBody) return;
     const base = postBody.getBoundingClientRect().top + scrollY;
-    markAt = Array.from(postBody.querySelectorAll('h2:not(.fn-title)'))
-      .map(h => h.getBoundingClientRect().top + scrollY - base);
+    markAt = headsOf().map(h => h.getBoundingClientRect().top + scrollY - base);
     lastTotal = -1;                       /* 逼一次重排：图落地之后位置会变 */
   }
   if (marks && postBody){
-    markEls = Array.from(postBody.querySelectorAll('h2:not(.fn-title)')).map(() => {
+    markEls = headsOf().map(() => {
       const m = document.createElement('span');
       marks.appendChild(m);
       return m;
@@ -363,35 +373,127 @@ import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
     });
   }
 
+  /* ---------- 复制到剪贴板：全站唯一一把尺子（两个调用点：盖章 ＋ 代码块复制钮） ----------
+     两条都试、都不成才算失败：`navigator.clipboard.writeText` 在 http/非安全上下文里直接拒
+     （那一档 `navigator.clipboard` 整个是 undefined，所以这句连 property 都取不到），
+     `execCommand('copy')` 是那一退路。返回值就是"到底复制上没有"，调用点只准吃这一枚布尔——
+     §9 盖章那一格签的纪律（"复制没成功就什么都不落"）管的是**判定**，不是某一句文案，
+     所以第二个调用点进来时这段必须搬出来共用，而不是在旁边再写一份 textarea+execCommand。
+     ⚠️ 这段原先住在盖章那个 if 块里（:372，函数名 fallbackCopy）：搬动只是换宿主，
+     两条路的先后、catch 的形状、execCommand 抛异常时回 false 都一个字没改。 */
+  const fallbackCopy = text => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:-200vh;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+  };
+  async function copyText(text){
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) { return fallbackCopy(text); }
+  }
+
   /* ---------- 盖章：分享 = 把这一篇收进手记，回执是一行字不是一枚图形（§15） ----------
      复制没成功就什么都不落——一行"盖于…"的收据配一个没复制到的动作，是 §12 那种假反馈。 */
   const stampBtn = document.getElementById('post-stamp');
   const stampNote = document.getElementById('stamp-note');
   if (stampBtn && stampNote){
     const p2 = n => String(n).padStart(2, '0');
-    const fallbackCopy = text => {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.cssText = 'position:fixed;top:-200vh;opacity:0';
-      document.body.appendChild(ta);
-      ta.select();
-      let ok = false;
-      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-      ta.remove();
-      return ok;
-    };
     stampBtn.addEventListener('click', async () => {
       const url = location.href;
-      let ok = false;
-      try { await navigator.clipboard.writeText(url); ok = true; }
-      catch (e) { ok = fallbackCopy(url); }         /* http 或非安全上下文里 clipboard API 会直接拒 */
+      const ok = await copyText(url);
       stampBtn.classList.toggle('miss', !ok);
       if (!ok) return;
       const d = new Date();
       stampNote.textContent = `盖于 ${d.getFullYear()}.${p2(d.getMonth() + 1)}.${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())} · 本机`;
       stampNote.hidden = false;
     });
+  }
+
+  /* ---------- 正文代码块的复制钮（§15，card/render 留给这一张卡的那半件） ----------
+     挂点：`.codeblock[data-lang]` 那一行小标签所在的**行**——外壳 `position:relative` 是上一张卡
+     特意留给"不跟随滚动的定位父级"的（`overflow-x:auto` 开在 `pre` 上，钮挂进滚动容器就会跟着跑）。
+     ⚠️ 三条"整块不出现"：
+       · 代码块一枚都没有 ⇒ 这个 forEach 一个节点都不造（今天三篇稿子就是这一态，产物里零字节）；
+       · 围栏没带语言标识（或标识过不了 `[A-Za-z0-9._+-]{1,24}` 那层白名单）⇒ 渲染器不写 data-lang ⇒
+         那一行标签本来就不存在，钮也没有可以并进去的那一行；宁可不给复制，不新造一行版面占位；
+       · 无 JS / 这段没跑 ⇒ 页面上没有这一枚钮，与改动前逐字节相同（同 post-focus 那枚的显形口径）。
+     ⚠️ 故意**不**把这段搬进 `Layout.astro:56-68` 那两段 `<script is:inline>`：那是第四类门禁
+       （runtime-check"内联脚本同步落地五枚属性"）的断言对象，往里塞东西要另开一卡。
+     取值走 `<code>` 的 textContent：那里面是渲染器整块 esc() 出来的字面代码，没有一枚子元素，
+     所以不必再剥标签；钮在 `<code>` 之外（`.codeblock` 的直接子元素），不会把自己复制进去。 */
+  document.querySelectorAll('.post-body .codeblock[data-lang]').forEach(block => {
+    const code = block.querySelector('code');
+    if (!code) return;                        /* 形状不对（渲染器不会发这种）就不装钮，宁缺不假 */
+    const btn = document.createElement('button');
+    btn.type = 'button';                      /* 真按钮：§12 那枚死锚点 href="#" 在这里没有藏身处 */
+    btn.className = 'post-act code-copy';     /* 与盖章、专注同一族那条声明，零新按钮形状（§9） */
+    btn.textContent = 'copy';
+    block.appendChild(btn);
+    btn.addEventListener('click', async () => {
+      /* 回执是**同一枚字位换成另一种字**，不是新增一块图形：成了＝copied，没成＝那句真话。
+         与 focus 那枚钮 '只看字' / '退出专注' 同一个做法（§9:722 判的是"同一个符号表达两种状态"，
+         这里一格只表达一种状态，翻页靠字本身）。不做"1.7s 之后自己淡回 copy"——那是给一行
+         已经说过的收据装定时器，盖章那行 `盖于…` 也没这么办。 */
+      btn.textContent = (await copyText(code.textContent)) ? 'copied' : '没能复制';
+    });
+  });
+
+  /* ---------- 正文配图灯箱（§15 / §8.4 那条"先铺雾、载入后散开"的第二次使用） ----------
+     ⚠️ 在场态由**构建期**决定：`[slug].astro` 数过正文里有没有 `figure.shot`，没图就不发那枚
+       `<dialog>`（本站最一致的那条模式——"没填 ⇒ 整块不出现"，不是 `display:none` 留着）。
+       脚本这一侧再兜一道：`#lightbox` 不在 ⇒ 整段不跑，也不给任何图版装可点语义。
+     ⚠️ 用原生 `<dialog>` + `showModal()`：焦点陷阱与 Esc 是浏览器给的，不是我们模仿的。
+       图版本身靠 `tabindex`+`role=button`+键盘 Enter/Space 补齐——§12:788 那条教训（"光标接近才浮现"
+       对键盘/触屏不是降级而是页面失效）在这儿反着用：能点开的东西必须也能 Tab 到、也能按下去。
+     ⚠️ 放大件是**新建的一枚 `<img>`**，src 从被点的那张取：图版在正文里已经走完 §8.4 那条链，
+       再复用同一个节点就是让大图"没有载入却演一次散雾"——那是假反馈。新节点真走一次 load/error，
+       散开那一下（mistwood.css 那条 filter 声明，第五个使用点）才有出处；第二次打开时缓存已经就位，
+       走 `img.complete` 那条同步分支，不再演一遍。 */
+  const lightbox = document.getElementById('lightbox');
+  const shots = Array.from(document.querySelectorAll('.post-body figure.shot'));
+  if (lightbox && shots.length){
+    const big = document.createElement('img');
+    big.className = 'lightbox-img';
+    const capEl = document.createElement('p');
+    capEl.className = 'lightbox-cap';
+    capEl.hidden = true;                          /* 没有图注就没有这一行，不留一个只会显示空缺的位置（§12） */
+    lightbox.insertBefore(capEl, lightbox.firstElementChild);
+    lightbox.insertBefore(big, capEl);
+    const clear = () => big.classList.add('in');  /* 与 :243 那一族同一个 .in、同一条 0.6s 吐纳 */
+    big.addEventListener('load', clear, {once:true});
+    big.addEventListener('error', clear, {once:true});   /* 取不到图也放行——留一块永久雾比留一个空位更糟 */
+    const lbClose = lightbox.querySelector('.lightbox-close');
+    for (const fig of shots){
+      const src = fig.querySelector('img');
+      if (!src) continue;
+      fig.classList.add('zoomable');
+      fig.tabIndex = 0;
+      fig.setAttribute('role', 'button');
+      fig.setAttribute('aria-label', `放大这一张：${src.alt || '正文配图'}`);
+      const open = () => {
+        const cap = fig.querySelector('figcaption');
+        big.classList.remove('in');
+        capEl.textContent = cap ? cap.textContent : '';
+        capEl.hidden = !capEl.textContent;
+        big.alt = src.alt;
+        big.src = src.currentSrc || src.src;
+        lightbox.showModal();
+        if (big.complete && big.naturalWidth) clear();   /* 缓存命中：load 不会再来的那一档 */
+      };
+      fig.addEventListener('click', open);
+      fig.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }   /* role=button 的键盘语义要自己补：Tab 到得了不等于按得下 */
+      });
+    }
+    if (lbClose) lbClose.addEventListener('click', () => lightbox.close());
+    /* 点图版外面那片雾也收：backdrop 的事件落在 dialog 自己身上，所以 target 是它＝点在框外 */
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) lightbox.close(); });
   }
 
   /* ---------- 404：退回你来处（§15 第九轮）----------
