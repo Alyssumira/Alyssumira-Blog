@@ -339,12 +339,25 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 @media (max-width:720px){
   /* 窄屏不再挂在 30px 那枚钮下面：那一档整枚胶囊右缘离视口右边只剩 10–13px，
      236px 的抽屉从那儿往左铺会顶出左边界（实测 320 那档面板左缘落在 -14）。
-     改法只有一条——挂到胶囊下面那一整幅：
+     ⚠️ 改法只有一条，但那条**不是**"摊到视口"：`.nav` 带着 transform（`translate(-50%,…)` +
+     `animation:nav-in forwards`），而带 transform 的祖先就是 `position:fixed` 后代的包含块——
+     所以这里那三枚 `left/right/top` 量的都是**胶囊的 padding box**，不是视口。
+     读数逐档钉着（`tools/search-check.mjs` 第 ⑦ 格，判据里同时含"面板必须落在胶囊之内"）：
+       320 → 胶囊 10..310、面板 21..299（宽 278）  375 → 16..359 / 27..348（宽 321）
+       430 → 38.76..391.24 / 49.76..380.24（宽 330.48）
      `left/right:10px` 与 ≤340 那档 `max-width:calc(100vw - 20px)` 用的是同一枚 10（左右各 10），
-     `top:64px` = 胶囊顶 16（§9 签的那个数）+ 胶囊高 34 + 与桌面同一档 14 的缝 = 64，
-     上下内垫改回一枚 16px（C 档，格子上最小的那一档不小于这块面要承的 236px 满幅内容）。
-     实测读数由 `tools/search-check.mjs` 逐档跑，登记在 §11 那一格。 */
-  .settings.search-panel{ position:fixed; left:10px; right:10px; top:64px; width:auto; padding:16px; }
+     落到视口边上就成了 21 / 27 / 49.76——左右各再减去胶囊自己的 1px 边框 + 那 10。
+     `top` **一个字都不写**：抽屉那份 `top:calc(100% + 14px)`（mistwood.css:170）在这档跟着换包含块，
+     量回来 y=79——胶囊占 16..66（30px 那排钮 + 上下 10 内垫 = 高 50），padding box 是 17..65（高 48），
+     `100% + 14` = 62 ⇒ 17+62 = 79，正好落在胶囊下缘（66）再往下 13（那 13 = 14 减掉 1px 边框，
+     与桌面那档"钮下缘 + 14"同一个来源、同一枚算法）。
+     上一版在这里写死 `top:64px`，量回来是 81：那枚数按"视口顶 16 + 胶囊高 34 + 缝 14"算的，
+     而胶囊其实高 50、`top` 的起点其实是 padding box 顶 17——两头都没对上，凭空多出一段不等宽的缝。
+     删掉它才是复用（§17 那句"一枚规则只住在一个地方"），窄屏这档的下垂距离由抽屉那一份决定。
+     上下内垫改回一枚 16px（C 档，格子上最小的那一档不小于这块面要承的满幅内容）。
+     ⚠️ 这一格依赖 `.nav` 那枚 transform——哪天胶囊改用 `left/right` 定位、transform 没了，
+     这里就会一路摊到视口上去。会红：第 ⑦ 格逐档判"面板在胶囊之内"+"position 仍是 fixed"。 */
+  .settings.search-panel{ position:fixed; left:10px; right:10px; width:auto; padding:16px; }
 }
 
 /* ============ 区块通用（滚动入场：规范 §8.7）============ */
