@@ -29,7 +29,7 @@
 .post-tail{ max-width:680px; margin:56px auto 0; }
 .post-act{
   background:none; border:0; padding:0; cursor:pointer; font:inherit;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--moss-ink);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--moss-ink);
   text-decoration-line:underline; text-decoration-thickness:1px; text-underline-offset:3px;
   text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);
   transition:text-decoration-color .3s cubic-bezier(.22,1,.36,1),text-decoration-thickness .3s cubic-bezier(.22,1,.36,1),color .3s cubic-bezier(.22,1,.36,1);
@@ -41,7 +41,7 @@
 .post-act.miss{ color:var(--ink-2); text-decoration-color:var(--ink-3); }
 .post-act.miss::after{ content:" · 没能复制，地址在地址栏"; }
 .stamp-note{
-  margin-top:14px; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em;
+  margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
   color:var(--ink-3); animation:stamp-in .4s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes stamp-in{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
@@ -70,11 +70,11 @@ html[data-focus="1"] .wrap::before{ display:none; }
 
 .post-head{ padding:24vh 0 56px; max-width:680px; margin:0 auto; }
 .post-meta{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
   color:var(--ink-3); margin-bottom:20px;
 }
 .post-title{
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif;
   font-size:clamp(32px,6vw,42px); font-weight:600; line-height:1.4; letter-spacing:.02em;
 }
 .post-sub{ margin-top:18px; color:var(--ink-2); font-size:15px; }
@@ -90,7 +90,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
 }
 @keyframes toc-in{ to{ opacity:1; } }
 #toc a{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.08em;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em;
   color:var(--ink-3); transition:color .3s cubic-bezier(.22,1,.36,1); padding-left:14px; position:relative;
 }
 #toc a::before{
@@ -112,7 +112,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
 /* 正文：衬线长文，680 栏 */
 .post-body{
   max-width:680px; margin:0 auto;
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif;
   font-size:18px; line-height:1.9; letter-spacing:.01em;
   /* 身后的雾（§8.7）：--read-fog 由 site.js 每个滚动帧写一次（和进度线同一个 rAF 回调，零新监听）。
      雾线在视口 30% 那一行，它以下完全不动 ⇒ 正在读的那一屏一个字都不被蒙；往上走 100vh 才淡到底。
@@ -179,7 +179,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
    粗体自己就够显了；再上一色就成了同一页两套强调语言。 */
 .post-body strong{ font-weight:600; }
 .post-body code{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:.85em;
+  font-family:"IBM Plex Mono",monospace; font-size:.85em;
   background:var(--glass); border:1px solid var(--glass-border);
   padding:2px 7px; border-radius:6px;
 }
@@ -200,7 +200,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
 .post-body .codeblock{ position:relative; margin:40px 0; }
 .post-body .codeblock[data-lang]::before{
   content:attr(data-lang); display:block; margin-bottom:8px;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
 }
 /* 代码块复制钮（§15，card/render 留给这一张卡的那半件）：
    ⚠️ **只挂在带 data-lang 的那一行上**——上一行那条伪元素已经把"语言标签行"画出来了，这一枚就站在
@@ -217,7 +217,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
   overflow-x:auto;                                    /* 长行不许把 680 栏撑破，也不许折行——折了就看不清代码的形状 */
   padding:16px; border-radius:8px;
   background:var(--glass); border:1px solid var(--glass-border);
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:.85em; line-height:1.75;
+  font-family:"IBM Plex Mono",monospace; font-size:.85em; line-height:1.75;
 }
 /* 里面的 `<code>` 只是语义壳（给复制钮与读屏软件一个明确的取值范围）：
    上面 `.post-body code` 那条会一并命中它，面/边/内垫/字号在这里逐项撤掉——
@@ -246,7 +246,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
 /* 列表：marker 上苔绿并换成等宽，数字与项目符号都跟正文同呼吸 */
 .post-body ul,.post-body ol{ margin:0 0 28px; padding-left:1.7em; }
 .post-body li{ margin-bottom:10px; }
-.post-body li::marker{ color:var(--moss); font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:.82em; }
+.post-body li::marker{ color:var(--moss); font-family:"IBM Plex Mono",monospace; font-size:.82em; }
 
 /* 引用：一条苔绿竖线贴着左缘（不是灰框、不是底色，避免又生出第四种材质） */
 .post-body blockquote{ position:relative; margin:40px 0; padding-left:28px; color:var(--ink-2); }
@@ -257,7 +257,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
 .post-body blockquote p{ margin-bottom:14px; }
 .post-body blockquote p:last-of-type{ margin-bottom:0; }
 .post-body blockquote footer{
-  margin-top:14px; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
+  margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
 }
 
 /* 分隔线用三个点，不用横线：横线已经被 h2 的短线和 .post-nav 占去了语义 */
@@ -265,17 +265,17 @@ html[data-focus="1"] .wrap::before{ display:none; }
   border:0; background:none; height:auto; margin:56px auto; text-align:center; overflow:visible;
 }
 .post-body hr::before{
-  content:"· · ·"; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; letter-spacing:.5em; color:var(--ink-3);
+  content:"· · ·"; font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.5em; color:var(--ink-3);
 }
 
 /* 脚注：正文里一个上标号，文末一条 ↩，:target 让跳过去的落点亮起来（零 JS） */
-.post-body sup.fnref{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:.6em; line-height:0; margin-left:2px; }
+.post-body sup.fnref{ font-family:"IBM Plex Mono",monospace; font-size:.6em; line-height:0; margin-left:2px; }
 .post-body sup.fnref a{ color:var(--moss-ink); text-decoration:none; }
 .post-body sup.fnref a:hover{ text-decoration:underline; }
 .post-body sup.fn-missing{ color:var(--ink-3); }   /* 门禁会拦下不配对的引用，这里只兜底不崩版式 */
 .footnotes{ position:relative; margin-top:72px; padding-top:28px; border-top:1px solid transparent; }
 .footnotes .fn-title{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; font-weight:500; letter-spacing:.14em;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:500; letter-spacing:.14em;
   color:var(--ink-3); margin:0 0 18px;
 }
 .footnotes .fn-title::before{ content:none; }      /* 不吃 .post-body h2 的苔绿短线 */
@@ -289,7 +289,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
    窄屏（默认）就地留在句间，用全角括号隔开正文；≥1240px 浮进 680 栏左侧的留白（§4 的"边注栏"） */
 .post-body .sidenote{ font-size:.78em; color:var(--ink-2); }
 .post-body .sn-mark{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:.72em; color:var(--moss-ink);
+  font-family:"IBM Plex Mono",monospace; font-size:.72em; color:var(--moss-ink);
   vertical-align:super; margin:0 2px 0 5px;
 }
 .post-body .sn-mark::before{ content:"（"; font-size:1.2em; vertical-align:baseline; }
@@ -329,7 +329,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 }
 .post-body figure.shot img{ display:block; width:100%; height:auto; border-radius:0; }
 .post-body figcaption{
-  margin-top:14px; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace;
+  margin-top:14px; font-family:"IBM Plex Mono",monospace;
   font-size:12px; letter-spacing:.12em; color:var(--ink-3);
 }
 /* 图版可点（灯箱）：`cursor:pointer` 是一枚提示，不是一枚权限——没有它这一张图也一样能被 Tab 到、
@@ -366,7 +366,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 /* 图注：与正文 `.post-body figcaption` 同一套话（12px 等宽 + .12em + `--ink-3` 装饰档），
    没有图注时这一枚 `<p>` 由脚本带着 `hidden`（§12"不许预留一个只会显示空缺的位置"）。 */
 .lightbox-cap{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
   color:var(--ink-3); text-align:center;
 }
 /* 收起钮在面板自己的右下角（flex 列的末项）：不进图、不压在像素上，横向对齐靠 align-self，
@@ -380,14 +380,14 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
   position:relative; border-top:1px solid transparent; padding-top:48px;
 }
 .post-nav a{
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-size:22px; font-weight:600;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:22px; font-weight:600;
   transition:color .3s cubic-bezier(.22,1,.36,1);
 }
 .post-nav a:hover{ color:var(--moss-ink); }
 .post-nav a:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 .post-nav span{
   display:block; margin-bottom:10px;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
 }
 .post-nav .next{ text-align:right; }
 

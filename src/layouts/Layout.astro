@@ -42,11 +42,7 @@ const links = [
   ['/about/', '关于', 'about'],
   ['/notes/', 'notes', 'notes'],
 ];
-/* css2 只拼没自托管旗的族（见 src/data/site.js 的 fonts 清单与 base.css 的自托管节）；
-   哪一天四族全解绑了，这一枚就该整行拆掉而不是发一个空查询——当场抛，不静默挂一枚坏 link */
-const remoteFonts = fonts.filter(f => !f.self);
-if (!remoteFonts.length) throw new Error('fonts 清单里没有远程族了，但 Layout 还在拼 css2 URL——全自托管那天应删掉这枚 <link>，而不是发空查询');
-const FONTS = `${FONT_HOST}/css2?${remoteFonts.map(f => 'family=' + f.q).join('&')}&display=swap`;
+const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&display=swap`;
 ---
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" data-phase="day" data-tier={tier}>
@@ -161,6 +157,31 @@ const FONTS = `${FONT_HOST}/css2?${remoteFonts.map(f => 'family=' + f.q).join('&
             <label><input type="radio" name="enter" value="auto"><span class="seg-c">自动</span></label>
             <label><input type="radio" name="enter" value="full"><span class="seg-c">完整</span></label>
           </span>
+        </div>
+      </div>
+    </div>
+    <!-- 站内搜索：入口与面板整块带 hidden —— 没有脚本就没有这一格，理由钉在 §9 新立的那枚
+         在册组件条目里（与 `[slug].astro` 那枚 `hidden` 的 post-focus、404 那枚纯 JS 的 li 同族）。
+         ⚠️ 它坐在 .display 与 .theme-toggle 之间、而不是胶囊最右端：面板靠 right:0 挂在自身那枚钮的
+         右缘下，放在最右就会顶到视口右边；夹在中间时它离右边天然留着一枚主题钮的宽度。 -->
+    <div class="search" id="search" hidden>
+      <button class="search-toggle" id="search-toggle" type="button"
+              aria-expanded="false" aria-controls="search-panel" aria-label="搜索" title="搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 21 21"/>
+        </svg>
+      </button>
+      <!-- 收起态同 .settings：CSS 的 visibility:hidden 退出可读树 + DOM 的 inert 挡住交互与聚焦，两边同向。
+           ⚠️ 这一枚 `class` 是两枚：`settings` 是抽屉那份材质的**唯一真值**（玻璃面 / 236px / 内垫 /
+           错落那一族 / 打印档撤掉它的那一行），`search-panel` 只管这一格自己的三件与窄屏那一档。
+           面板规则全部写成 `.settings.search-panel` 才压得过抽屉那份——顺序与权重都算过，见 base.css 那段。 -->
+      <div class="settings search-panel" id="search-panel" role="dialog" aria-label="站内搜索" inert>
+        <p class="settings-cap" id="search-cap">站内搜索</p>
+        <input class="search-input" id="search-input" type="search" placeholder="标题 / 摘要 / 正文"
+               autocomplete="off" spellcheck="false" maxlength="64" aria-labelledby="search-cap" aria-describedby="search-hint">
+        <div class="search-box">
+          <p class="search-hint" id="search-hint" aria-live="polite"></p>
+          <ul class="search-results" id="search-results"></ul>
         </div>
       </div>
     </div>

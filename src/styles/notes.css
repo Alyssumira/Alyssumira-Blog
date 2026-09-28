@@ -2,7 +2,7 @@
 .notes-list{ max-width:680px; margin:0 auto; padding-bottom:16vh; }
 .note{ display:flex; flex-direction:column; gap:10px; margin-bottom:56px; }
 .note time{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
   color:var(--ink-3);
 }
 .note p{ font-size:17px; color:var(--ink); max-width:36em; }

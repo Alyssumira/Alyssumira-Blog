@@ -57,7 +57,7 @@ html[data-phase="dawn"][data-theme="dark"]{ --bg-base:#0A140E; --bg-top:#0E1812;
    照片底色（§5 的斜坡），并且它是 §8.3 跨页转场那 80ms 里"有东西可露"的铺底；首页是实色底 + 照片层。
    值不一样不是漂移，硬合并才是改画面。 */
 body{
-  font-family:"Noto Sans SC","Noto Sans SC-fallback",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-base) 40vh);
   background-color:var(--bg-base);
   color:var(--ink);
@@ -204,12 +204,12 @@ html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:
 .settings.open > :nth-child(5){ transition-delay:.16s; }   /* 第四枚旋钮：错落收尾推到 .46s，仍在 §8.3 的交互档里 */
 .settings-cap{
   /* 标题栏是"这是什么面板"的唯一说明，功能件 ⇒ --ink-2（--ink-3 在亮色只有 2.30:1，够不到 §2.4 的 4.5） */
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.18em;
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em;
   color:var(--ink-2); margin-bottom:12px;
 }
 .seg{ display:grid; grid-template-columns:42px 1fr; align-items:center; gap:8px; margin-bottom:9px; }
 .seg:last-child{ margin-bottom:2px; }
-.seg-k{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }
+.seg-k{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }
 .seg-opts{ display:flex; gap:4px; }
 .seg label{ position:relative; flex:1; }
 /* 真 radio 只是"看不见"，不是"不存在"：焦点、方向键、屏幕阅读器全靠它，所以不 display:none */
@@ -218,7 +218,7 @@ html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:
    会盖掉 `.seg-opts{display:flex}`(0,1,0)，选项就竖着排成一列、抽屉长到 360px 高。 */
 .seg-c{
   display:block; padding:5px 0; border-radius:9px; text-align:center;
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-size:13px; letter-spacing:.06em;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:13px; letter-spacing:.06em;
   color:var(--ink-2); border:1px solid transparent;
   transition:color .25s cubic-bezier(.22,1,.36,1),background-color .25s cubic-bezier(.22,1,.36,1),border-color .25s cubic-bezier(.22,1,.36,1);
 }
@@ -282,11 +282,11 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   background:linear-gradient(180deg,transparent,var(--mist) 42%,var(--mist) 58%,transparent);
 }
 .page-title{
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif;
   font-size:var(--title-size); font-weight:600; letter-spacing:.02em;
 }
 .sec-label{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; letter-spacing:.14em;
+  font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.14em;
   color:var(--ink-3); white-space:nowrap;
 }
 .sec-label b{ color:var(--ink-2); font-weight:500; }
@@ -308,7 +308,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
    所以 §9 的 B/C 卡一并撤下，有封面时缩略图挂在编号右边。 */
 .year-block{ margin-bottom:96px; }
 .year-mark{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; font-weight:500; letter-spacing:.14em;
+  font-family:"IBM Plex Mono",monospace; font-size:13px; font-weight:500; letter-spacing:.14em;
   color:var(--ink-2); margin-bottom:6px;
 }
 .essay-index{ list-style:none; margin:0 0 24px; padding:0; }
@@ -321,7 +321,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .row:hover{ transform:translateX(6px); }
 .row:active{ transform:translateX(6px) scale(.995); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 .folio{
-  flex:none; width:26px; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.1em;
+  flex:none; width:26px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.1em;
   color:var(--ink-3); transition:color .3s cubic-bezier(.22,1,.36,1);
 }
 .row:hover .folio{ color:var(--moss); }
@@ -334,7 +334,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .row.homing .folio{ animation:homing 1.6s cubic-bezier(.22,1,.36,1) both; }
 .row-main{ flex:1 1 auto; min-width:0; }
 .row h3{
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-weight:600;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-weight:600;
   font-size:24px; line-height:1.45; letter-spacing:.02em;
 }
 /* 摘要常驻自己的两行位置，只切透明度：悬停不许重排（§8.8 属性口径） */
@@ -349,7 +349,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 /* 日期是要被读到的信息，走次要档 --ink-2；编号 01 只是路径感，留在装饰档 */
 .row-side{
   flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:6px;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.1em; color:var(--ink-2);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.1em; color:var(--ink-2);
 }
 
 /* 密度条：最近 12 个月每月几篇，构建期算好画成 SVG。空月份也画刻度——一把尺子比三根柱子诚实 */
@@ -362,10 +362,10 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .density g.now rect{ fill:var(--moss); opacity:.95; }
 /* 月份刻度走 --ink-2 不走 --ink-3：读不出月份就读不出这排柱子的横轴，
    和下面 .density-cap 那句"图例是看得懂刻度的前提"同一个理由（次要档，不是装饰档） */
-.density text{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:10px; letter-spacing:.06em;
+.density text{ font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.06em;
   fill:var(--ink-2); text-anchor:middle; }
 .density g.now text{ fill:var(--moss-ink); }
-.density-cap{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档 */
+.density-cap{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档 */
 
 /* ============ 404：把真实存在的地址一次性列全（零请求，也不留死锚点） ============ */
 .lost{ padding-bottom:22vh; }
@@ -375,7 +375,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .lost-list li:last-child{ border-bottom:1px solid var(--line); }
 .lost-list a,.lost-list button{
   display:flex; align-items:baseline; gap:18px; padding:20px 0;
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-size:22px; font-weight:600; letter-spacing:.02em;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:22px; font-weight:600; letter-spacing:.02em;
   transition:transform .5s cubic-bezier(.22,1,.36,1);
 }
 /* 「退回你来处」那一枚（§15 第九轮（404），`site.js` 现场造）是 `<button>`——`history.back()` 不是一个地址，
@@ -390,7 +390,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 }
 .lost-list a:hover,.lost-list button:hover{ transform:translateX(6px); }
 .lost-list span{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; font-weight:400; letter-spacing:.1em; color:var(--ink-2);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:400; letter-spacing:.1em; color:var(--ink-2);
 }
 
 .cover{
@@ -445,7 +445,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
 .chip{
   display:inline-block; padding:4px 10px; border-radius:9px;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
   color:var(--ink-2); background:transparent; border:1px solid var(--glass-border);
   transition:color .25s cubic-bezier(.22,1,.36,1),background-color .25s cubic-bezier(.22,1,.36,1),border-color .25s cubic-bezier(.22,1,.36,1);
 }
@@ -514,8 +514,8 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
      读起来像那块玻璃在照片上悬着；而"薄板贴着面"要的正是接触影那一下。 */
   box-shadow:var(--shadow-contact),var(--glass-edge);
 }
-.thing-bar h3{ font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-size:17px; font-weight:600; }
-.thing-bar span{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3); white-space:nowrap; }
+.thing-bar h3{ font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:17px; font-weight:600; }
+.thing-bar span{ font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3); white-space:nowrap; }
 
 /* ============ 关于：窄栏 680px（/about/） ============ */
 .about-inner{ max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:40px; padding-bottom:16vh; }
@@ -543,7 +543,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .portrait:not(:has(img))::after{
   content:"人像 → 褪色处理后放入"; position:absolute; inset:0; display:grid; place-items:center;
   padding:0 24px; text-align:center;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.14em; color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.14em; color:var(--ink-3);
 }
 /* 真图进来之后那圈方框就没有理由了：框是**占位期的容器**（它要托住那句提示文字、要有一块雾当底），
    而这张图自己是圆盘、四角透明，再套一层方框等于用直线框圆——所以只撤描边与雾底，
@@ -557,7 +557,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .about-now{ display:block; }
 .about-now summary{
   display:flex; align-items:center; gap:8px; list-style:none; cursor:pointer; width:fit-content;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; letter-spacing:.12em; color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.12em; color:var(--ink-3);
   transition:color .3s cubic-bezier(.22,1,.36,1);
 }
 .about-now summary::-webkit-details-marker{ display:none; }
@@ -569,7 +569,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .now-list li{ margin-bottom:10px; }
 .now-list li:last-child{ margin-bottom:0; }
 .now-list time{
-  display:block; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em;
+  display:block; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
   color:var(--ink-3);
 }
 /* 展开那一下：一次性入场（0.4s 吐纳），不占常驻预算。reduced-motion 下 animation:none
@@ -586,7 +586,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .contact-links{ display:flex; flex-direction:column; gap:28px; margin-bottom:32px; }
 .contact-links a{
   position:relative; width:fit-content; padding-left:0;
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-size:32px; font-weight:600;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:32px; font-weight:600;
   transition:padding-left .35s cubic-bezier(.22,1,.36,1),color .3s cubic-bezier(.22,1,.36,1);
 }
 .contact-links a::before{
@@ -599,7 +599,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 .contact-links a:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 .last-walk{
   /* 原来是 --ink-3（2.30:1），搬到关于页底后是 12px 信息文字，够不到 §2.4 的 4.5:1 ⇒ 降一档用 --ink-2 */
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
 }
 
 /* ============ 关于页：站点档案 colophon ============ */
@@ -608,11 +608,11 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 .colophon{ position:relative; margin-top:8px; padding-top:30px; border-top:1px solid transparent; }
 .col-title{ display:flex; align-items:baseline; gap:10px; font-size:18px; font-weight:600; }
 .col-title span{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-3);
 }
 .col-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 32px; margin:24px 0 0; }
 .col-grid > div{ display:flex; flex-direction:column; gap:5px; min-width:0; }
-.col-grid dt{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-2); }
+.col-grid dt{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-2); }
 .col-grid dd{ margin:0; font-size:14px; line-height:1.65; }
 /* 年度弧（§6 苔时弧那套画法的第二次使用，规格见 §15）：这一层只有尺寸与形状，**一枚新的颜色声明都没有**——
    描边走 var(--moss)、装饰档 opacity .42、1px，三样和 .dayring 逐字同值。
@@ -622,12 +622,12 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    所以这一个 24 不需要和 stats.js 对账，也不许把它当第二个真值去"归并"。
    ⚠️ 留在 mistwood.css、不塞进 base.css：palette-check 管的是色板令牌，SVG 进去只会让它的完备性数错东西（§17）。 */
 .col-year{ display:flex; align-items:center; gap:10px; margin:22px 0 0; }
-.col-year span{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }
+.col-year span{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }
 .yearring{ display:block; flex:none; width:24px; height:24px; fill:none; stroke:var(--moss); stroke-width:1; opacity:.42; }
 .col-note{ margin-top:26px; max-width:56ch; font-size:14px; line-height:1.8; color:var(--ink-2); }
 .col-visit{
   margin-top:14px;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
 }
 .col-visit::before{ content:""; display:inline-block; width:5px; height:5px; margin-right:8px; border-radius:50%; background:var(--moss); vertical-align:2px; }
 
