@@ -1,4 +1,4 @@
-/* search-check.mjs —— 站内搜索那一格的行为门禁（第十一轮 `card/search`；`npm run check` 的**第 ⑦ 项**）
+/* search-check.mjs —— 站内搜索那一格的行为门禁（第十一轮 `card/search`；`npm run gate` 里 build **之后**的第一项）
    用法  npm run build && node tools/search-check.mjs
          node tools/search-check.mjs --dist=<目录>   （换产物目录；指向空目录 ⇒ 红）
          node tools/search-check.mjs --edge=<路径>   （换浏览器可执行文件；找不到 ⇒ 红，不降级不跳过）
@@ -16,9 +16,11 @@
         · **新宿主装得下没有**——入口那一行在窄屏不许从 `.wrap` 的内容盒里溢出去（nowrap 那一行
           溢出之后是被 `body{overflow-x:hidden}` 裁掉的，裁掉的就是入口本身 ⇒ 比"出玻璃"更坏：点不到），
           面板逐档必须在视口之内，且首页那一档必须**朝上开**（那行字在首屏底部，朝下就掉出那一屏）。
-   ⚠️ **它读 dist/**，所以挂在 check 链上之后，`npm run check` 就多了一条前置：没建过产物 ⇒ 第 ⑦ 项红并点名
-      "先 npm run build"。这一条是**有意的**，不是疏漏："索引在、但是空的""正文来源被摘掉"这两种坏法
-      只存在于产物里，前六关（源码级）原理上抓不到 ⇒ 宁可红得有名，不许把这一格挪进只读源码的那几关。
+   ⚠️ **它读 dist/ 还起真浏览器，所以它不在 `npm run check` 里，在 `gate` 里 build 之后**（2026-09-29 合并时裁的）。
+      这一格第十一轮末曾被挂到 `check` 的末项，那与 §16 早先为 `runtime-check` 签过的口径打架——"第四类（运行时 DOM）
+      **不能**整个塞进 `check`：它在 build 之前跑，干净检出上会因为'没有产物'直接红——分层理由是依赖方向，不是口味"。
+      挪到 build 之后**一格判据都没少**：那两种坏法（"索引在、但是空的""正文来源被摘掉"）本来就只有产物里才存在，
+      而在源码级那六关里它们原理上就抓不到 ⇒ 少的是"没 build 就红"这一枚假红，不是牙。
 
    ── 为什么要有这一格：搜索坏掉的四种形状，前面那些尺子原理上都看不见 ──────────
      · **索引在、但只有标题（或干脆是空的）** —— `astro build` 绿（端点正常回 200 与合法 JSON）、
@@ -216,7 +218,7 @@ if (PROBE && !TITLEWORD) hard(`${PROBE.slug} 的标题「${(CORPUS.find(x => x.s
 const INDEX_PATH = join(DIST, 'search.json');
 let product = null;
 cell('①', 'dist/search.json 在、形状对、一个绝对地址都没有', () => {
-  assert.ok(existsSync(DIST), `没有构建产物目录 ${DIST} —— 先 npm run build（本工具读 dist/，它是 check 链的第 ⑦ 项，前六项不读产物）`);
+  assert.ok(existsSync(DIST), `没有构建产物目录 ${DIST} —— 先 npm run build（本工具读 dist/，它在 gate 里排在 build 之后）`);
   assert.ok(existsSync(INDEX_PATH), 'dist/search.json 不在 ⇒ 端点没产出（没跑过 build、build 半路炸、路由改动、当成 dev-only 都长这样）');
   const raw = readFileSync(INDEX_PATH, 'utf8');
   product = JSON.parse(raw);
