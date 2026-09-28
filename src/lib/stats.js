@@ -45,6 +45,32 @@ const p2 = n => String(n).padStart(2, '0');
 /* 构建戳用本机时钟：这是"这份 HTML 是什么时候生成的"，不是给访客看的时刻表，所以不做时区换算 */
 const stamp = d => `${d.getFullYear()}.${p2(d.getMonth() + 1)}.${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
 
+/* 年度弧（关于页 colophon，规范 §6 苔时弧那套画法的第二次使用）：只交形状、不交读数。
+   返回的是描边该画到哪（dasharray / dashoffset 一对），不返回"第 N 天"或百分比——
+   页面上出现的读数都得有人为它负责（§12），而这里连 `frac` 都不往外给，就是为了不给它长成一格数字的机会。
+
+   ⚠️ 比值向日历本身要：分母是"今年 1 月 1 日 → 明年 1 月 1 日"的真实毫秒差，于是
+   闰年 366 天、年初年末的边界都由日历算完，代码里不写 365/366 这类常量、也不判断边界。
+   两端都用本机时钟（和上面 `stamp` 同一个口径：本站不承诺访客时刻表，§6），
+   所以 DST 那一两个小时也自动落在真实的年长度里。
+
+   ⚠️ 几何只在这一处定义（`box` / `cx` / `r`），about.astro 从返回的对象里拿、CSS 只管 24px 那个尺寸与描边档。
+   这是苔时弧"周长不写死在 CSS 里，向几何本身要"的构建期版本：那边有 DOM 可以用 `getTotalLength()`，
+   这边没有 DOM，就向同一个 `r` 算——同一个数写两处迟早分叉。 */
+const ARC = { box: 24, r: 11 };
+export function yearArc(d){
+  const y = d.getFullYear();
+  const from = new Date(y, 0, 1).getTime();
+  const to = new Date(y + 1, 0, 1).getTime();
+  const frac = Math.min(1, Math.max(0, (d.getTime() - from) / (to - from)));
+  const len = 2 * Math.PI * ARC.r;
+  return {
+    box: ARC.box, cx: ARC.box / 2, r: ARC.r,
+    dasharray: len.toFixed(2),
+    dashoffset: (len * (1 - frac)).toFixed(2),
+  };
+}
+
 export function siteFacts(posts){
   const styles = readdirSync(join(ROOT, 'src', 'styles')).filter(f => f.endsWith('.css'));
   const cssBytes = styles.reduce((n, f) => n + statSync(join(ROOT, 'src', 'styles', f)).size, 0);
@@ -59,6 +85,11 @@ export function siteFacts(posts){
   const first = dot(git('git log --reverse --format=%ad --date=short').split('\n')[0]);
   const last = dot(git('git log -1 --format=%ad --date=short'));
 
+  /* ⚠️ 一个页面只许有一个构建时刻（规范 §16）：这一份档案里 `new Date()` 只许出现这一次，
+     构建戳与年度弧都吃同一个对象。两处各求一次就会在跨秒的那一次构建里自相打脸——
+     而 colophon 正是一页专门摆数字的地方，读者有权假定那两行说的是同一刻。 */
+  const now = new Date();
+
   return {
     posts: posts.length,
     words: posts.reduce((n, p) => n + cjkCount(p.body) + latinWords(p.body), 0),
@@ -68,6 +99,7 @@ export function siteFacts(posts){
     cssKb: +(cssBytes / 1024).toFixed(1),
     commits: commits || null,
     tended: commits && first ? { first, last } : null,
-    built: stamp(new Date()),
+    built: stamp(now),
+    arc: yearArc(now),
   };
 }

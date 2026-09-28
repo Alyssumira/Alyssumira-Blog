@@ -517,6 +517,16 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 .col-grid > div{ display:flex; flex-direction:column; gap:5px; min-width:0; }
 .col-grid dt{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-2); }
 .col-grid dd{ margin:0; font-size:14px; line-height:1.65; }
+/* 年度弧（§6 苔时弧那套画法的第二次使用，规格见 §15）：这一层只有尺寸与形状，**一枚新的颜色声明都没有**——
+   描边走 var(--moss)、装饰档 opacity .42、1px，三样和 .dayring 逐字同值。
+   弧画到哪（dasharray / dashoffset）、起点在几点（那个 rotate）都是 about.astro 标记上的属性，
+   由 src/lib/stats.js 算好：构建期没有 DOM，拿不到苔时弧那句 `getTotalLength()`，就向同一个 r 算。
+   ⚠️ CSS 里的 24px 是布局量、不是几何：viewBox 与半径的比例和像素尺寸无关（等比缩放），
+   所以这一个 24 不需要和 stats.js 对账，也不许把它当第二个真值去"归并"。
+   ⚠️ 留在 mistwood.css、不塞进 base.css：palette-check 管的是色板令牌，SVG 进去只会让它的完备性数错东西（§17）。 */
+.col-year{ display:flex; align-items:center; gap:10px; margin:22px 0 0; }
+.col-year span{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }
+.yearring{ display:block; flex:none; width:24px; height:24px; fill:none; stroke:var(--moss); stroke-width:1; opacity:.42; }
 .col-note{ margin-top:26px; max-width:56ch; font-size:14px; line-height:1.8; color:var(--ink-2); }
 .col-visit{
   margin-top:14px;

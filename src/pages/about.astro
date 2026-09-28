@@ -87,6 +87,22 @@ const walk = notes[0];
             <dd>{f.built}</dd>
           </div>
         </dl>
+        <!-- 年度弧（规范 §6 苔时弧那套画法的第二次使用，§15）：画的正是"构建这一刻，今年已经走完的这一段"。
+             ⚠️ 只给形状、不给读数：这一行不写"第 N 天"也不写百分比，页面上出现的那个 dashoffset 是 `f.arc` 里
+             算好的属性，读它的人只能读出"走过多少"这一件事。半径/圆心/视框与比值都来自 `src/lib/stats.js`
+             里**同一个** `now`——就是上面"构建于"那一格用的那一次求值（§16 一页只许有一个构建时刻），
+             所以这一枚弧与那一行时间戳不可能互相打脸。 -->
+        <p class="col-year">
+          <!-- ⚠️ 表达式里多打一个花括号是**静默**的：模板字符串照收，产物里 rotate 那一串就多出个尾巴，
+               astro build 与三类门禁全绿，而 SVG 解析 transform 失败会整条作废它——起点从 12 点掉到 3 点，
+               §6 那句"起点在 12 点方向"就地破掉。对账只认产物里那一串 rotate 是什么。
+               ⚠️ 这条注释里故意**不抄坏值**：注释会随产物一起发出去，抄一遍"坏例子"就等于在产物里
+               放了一个坏例子，拿 grep 当判据时它自己就被自己的例子命中（本轮真踩过）。 -->
+          <svg class="yearring" viewBox={`0 0 ${f.arc.box} ${f.arc.box}`} role="img" aria-label="今年已经走完的这一段">
+            <circle cx={f.arc.cx} cy={f.arc.cx} r={f.arc.r} transform={`rotate(-90 ${f.arc.cx} ${f.arc.cx})`} stroke-dasharray={f.arc.dasharray} stroke-dashoffset={f.arc.dashoffset}/>
+          </svg>
+          <span>年度弧</span>
+        </p>
         <p class="col-note">
           这是一份纯静态站点：没有服务端、没有 cookie、没有第三方统计脚本。
           所以这里不放"访问量"——那个数字我们真的拿不到，写一个出来就是假的。
