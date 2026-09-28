@@ -662,6 +662,9 @@ function runCell(cell, E, quiet) {
     for (const line of r.out) console.log(line);
     if (red) for (const m of r.failed.slice(0, 3)) console.log(`      · ${m}`);
     for (const m of r.failed) fail(m);
+    /* asserted=0 而一条 failed 都没有 = 这一格今天什么都没评就交了白卷。它必须自己生成一条红，
+       否则"空转"只会印在 stdout 上等人看见——那正是 §14 第 14 项登记的那个形状。 */
+    if (!r.asserted) fail(`${cell.id} ${cell.name}：asserted=0（这一格一个断言都没跑就交了白卷）。判据不许有"今天没东西可测"这个状态`);
   }
   return r;
 }
@@ -686,7 +689,10 @@ if (SELFTEST) {
      力气"，而 shipped 判据本身被改坏时它照样 exit 0（M3 实测到：日常那一跑红了、selftest 却还是绿的）。
      两半合起来才是"这一跑是 check 的超集"——反例证明判据有牙，真实那一跑证明牙还咬在被测物上。 */
   const onReal = CELLS.filter(c => c !== cell7).map(c => [c, runCell(c, REAL, true)]).filter(([, r]) => r.failed.length || !r.asserted);
-  for (const [, r] of onReal) for (const m of r.failed) fail(`selftest 前置（真实数据那一跑）：${m}`);
+  for (const [c, r] of onReal) {
+    for (const m of r.failed) fail(`selftest 前置（真实数据那一跑）：${m}`);
+    if (!r.asserted) fail(`selftest 前置：${c.id} 在真实数据上 asserted=0（交了白卷）`);
+  }
   for (const m of pre.failed) fail(`selftest 前置：${m}`);
   if (absent.length) fail(`selftest 前置：CELL_IDS 要求 ${absent.join(' ')}，登记表里没有这一格`);
   const preRed = pre.failed.length + absent.length + onReal.length;
