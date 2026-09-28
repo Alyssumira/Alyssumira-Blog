@@ -203,7 +203,9 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
   border:1px solid var(--glass-border);
   -webkit-backdrop-filter:blur(18px) saturate(1.1);
   backdrop-filter:blur(18px) saturate(1.1);
-  box-shadow:var(--shadow);
+  /* ⚠️ 与 `mistwood.css` 那份 `.nav` 逐字符同值（§17：这一族两份都要改，只改一份就是
+     "同一规则两份文件各一份、只改了一份"那个老形状）。接触影在前、环境影在中、厚度边在后。 */
+  box-shadow:var(--shadow-contact),var(--shadow),var(--glass-edge);
   opacity:0; animation:nav-in .6s cubic-bezier(.22,1,.36,1) 1.4s forwards;
   transition:background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
   max-width:calc(100vw - 32px);

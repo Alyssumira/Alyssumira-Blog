@@ -83,7 +83,11 @@ html[data-quiet="1"] .grain{ opacity:0; }
   border:1px solid var(--glass-border);
   -webkit-backdrop-filter:blur(18px) saturate(1.1);
   backdrop-filter:blur(18px) saturate(1.1);
-  box-shadow:var(--shadow);
+  /* 第九轮（`card/glass`）：散开的环境影 + 紧贴底边的接触影 + 玻璃的上下沿。
+     ⚠️ 层序是接触影在前——`.thing[href]` 那一族的过渡按"短的补透明影"插值，接触影排第一层
+     才会在悬停时**留在原地**、只让环境影长出来（见下面 `.thing` 那条）。
+     ⚠️ `home.css` 里那份 `.nav` 逐字符同值重写了一遍，两份都要改（§17）。 */
+  box-shadow:var(--shadow-contact),var(--shadow),var(--glass-edge);
   opacity:0; animation:nav-in .6s cubic-bezier(.22,1,.36,1) .3s forwards;
   transition:background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
   max-width:calc(100vw - 32px);
@@ -168,7 +172,9 @@ html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:
   background:var(--glass); border:1px solid var(--glass-border);
   -webkit-backdrop-filter:blur(18px) saturate(1.1);
   backdrop-filter:blur(18px) saturate(1.1);
-  box-shadow:var(--shadow);
+  /* 抽屉是全站唯一一块"压在内容上面"的玻璃，与胶囊同一层材质 ⇒ 同一套影与同一套厚度边。
+     不给它的话，胶囊有厚度而抽屉没有，同一族材料两种贴法（§0 磨砂不抛光管的是材质，不是位置）。 */
+  box-shadow:var(--shadow-contact),var(--shadow),var(--glass-edge);
   opacity:0; visibility:hidden; transform:translateY(-8px) scale(.94);
   /* 原点在"那枚按钮的圆心"：面板像是从手上长出来的，不是原地出现的一块东西。
      横向 100%−15px（按钮宽 30、与面板右缘对齐），纵向 −29px（面板顶在按钮下方 14px，按钮中心在自身下方 15px） */
@@ -391,6 +397,11 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   position:relative; overflow:hidden; border-radius:16px;
   border:1px solid var(--glass-border);
   background:linear-gradient(150deg,var(--bg-top),var(--glass));
+  /* 第九轮：这块面以前一根影都没有——它有 1px 玻璃描边、有雾底，却和纸**一样平**，
+     读起来是"印在纸上"而不是"一片贴在纸上"。给它接触影（贴着底边那一线），不给环境影
+     （目录行是文字版面，卡底散开一圈影会让 92px 的缩略图像要飞起来），也不给厚度边
+     （它不是能看穿的面，`--glass` 在这里只是占位雾）。 */
+  box-shadow:var(--shadow-contact);
 }
 .row .cover{ flex:none; width:92px; aspect-ratio:4/3; align-self:center; border-radius:10px; }
 
@@ -409,6 +420,11 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   position:relative; display:block; aspect-ratio:4/3; border-radius:16px; overflow:hidden;
   border:1px solid var(--glass-border);
   background:linear-gradient(150deg,var(--bg-top),var(--glass));
+  /* 第九轮：静止态只挂接触影——这块面**贴在纸上**，散开的那圈环境影要等它离地（悬停）才长出来。
+     ⚠️ 下面 `.thing[href]` 那条过渡是 §8.3 已签字的先例，一个字没动；box-shadow 两档的层数不同，
+     CSS 按"短的一边补透明影层"插值 ⇒ 静止 [接触] 补成 [接触, 透明]，悬停 [接触, 环境]，
+     于是接触影留在原地不动、环境影淡入——正是离地那一下该有的物理。 */
+  box-shadow:var(--shadow-contact);
 }
 /* ⚠️ 2026-09-28：那句"截图 → 替换"撤了。全站唯一还写着"没做完"的三个字，和 essays 已经做到的
    "空槽即不存在"（§15：没有封面就不画那个盒子）是两套口径。撤掉之后空卡剩的是 §8.4 登记过的
@@ -417,7 +433,11 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
    它量的是真截图要占的位置，截图填进 `site.js` 的 `shot` 就长出来，版式不跳。
    反馈也一起收：没有 `href` 的卡不是链接，不该有链接的手感（§8.3 每个**可点**元素 1 个主反馈）。 */
 .thing[href]{ transition:transform .5s cubic-bezier(.22,1,.36,1),box-shadow .5s cubic-bezier(.22,1,.36,1); }
-.thing[href]:hover{ transform:translateY(-4px); box-shadow:var(--shadow); }
+/* 悬停：接触影留在第一层、环境影从第二层"长出来"——CSS 给短的影列表**在末尾补透明影**，
+   所以静止 [接触] 补成 [接触, 透明]，悬停 [接触, 环境] ⇒ 过渡里接触影一动不动、只有环境影淡入。
+   反过写（环境在前）会让接触影插值成环境影：那张卡在离地的同时底边先亮起来再暗下去，读起来是"抖"。
+   ⚠️ 悬停仍然只有 transform + box-shadow 两个属性（§8.3 上限 3，`.shot` 那枚 scale 在另一个元素上）。 */
+.thing[href]:hover{ transform:translateY(-4px); box-shadow:var(--shadow-contact),var(--shadow); }
 .thing[href]:hover .shot{ transform:scale(1.03); }
 .thing[href]:active{ transform:translateY(-4px) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 .thing-bar{
@@ -426,6 +446,10 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   padding:12px 18px; border-radius:12px;
   background:var(--glass); border:1px solid var(--glass-border);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  /* 玻璃条自己就是一块浮在照片上的薄板：接触影打在照片上，上下沿给它厚度。
+     这里不给环境影（`--shadow`）——它离卡面只有几像素，散开的那一圈会从条子底下溢到卡边外面，
+     读起来像那块玻璃在照片上悬着；而"薄板贴着面"要的正是接触影那一下。 */
+  box-shadow:var(--shadow-contact),var(--glass-edge);
 }
 .thing-bar h3{ font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:17px; font-weight:600; }
 .thing-bar span{ font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3); white-space:nowrap; }
@@ -563,8 +587,12 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .row .cover{ display:none; }   /* §11：窄屏放不下缩略图，编号和日期留住就够了 */
   .year-block{ margin-bottom:64px; }
   .things-grid{ grid-template-columns:1fr; }
-  /* §11：移动卡片改实色+软影，模糊是性能杀手 ⇒ 入场虚焦只在桌面上演 */
-  .thing-bar{ background:var(--surface); box-shadow:var(--shadow); -webkit-backdrop-filter:none;backdrop-filter:none; }
+  /* §11：移动卡片改实色+软影，模糊是性能杀手 ⇒ 入场虚焦只在桌面上演
+     ⚠️ 这一档重写 box-shadow 时**故意只留接触影、把上下沿带走**：面已经不是玻璃
+     （backdrop-filter:none + `--surface` 实色），"玻璃厚度边"这个语义就不成立了——
+     在实面上它只会读成一道多出来的描边（§0 磨砂不抛光）。窄屏那档的接触影仍然该有：
+     那条玻璃条变成实色条，它还是压在照片上的一块面，还是要有贴地的那一下。 */
+  .thing-bar{ background:var(--surface); box-shadow:var(--shadow-contact),var(--shadow); -webkit-backdrop-filter:none;backdrop-filter:none; }
   .cover img,.thing .shot,.portrait img,.post-body img{ filter:var(--photo-look); }
   .contact{ margin-top:72px; }
   .contact-links a{ font-size:24px; }
