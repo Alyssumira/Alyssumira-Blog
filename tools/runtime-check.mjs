@@ -80,6 +80,12 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+/* 第十轮（`card/taxonomy`）：判"哪些稿件该出现在产物里"这件事只准用 shipped 的那一份规则。
+   `src/lib/taxonomy.js` 不 import 'astro:content'，所以 node 侧能直接拿它跑（带 astro:content 的
+   `posts.js` 反而拿不了——那一层只做"取集合 + 滤草稿 + 排序"，规则本身在这份里）。
+   front matter 的读法同 `new-post.mjs --check` 那一份：两处各写一个 split 迟早对"什么算草稿"读成两种。 */
+import { splitFm, readTaxonomy } from './frontmatter.mjs';
+import { isDraft, sortPosts, categoryOf, tagGroups, bySize, groupBy } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -193,25 +199,98 @@ const toUrl = p => {
 const PAGES = htmlFiles.map(p => ({ file: p, url: toUrl(p) })).sort((a, b) => a.url.localeCompare(b.url));
 if (!PAGES.length) die(`${DIST} 里一份 HTML 都没有`, '  dist/ 空＝build 没产出＝断言环节根本没走到，不许算过');
 
-/* ---------- 1b. 正文结构对账（不碰浏览器）----------
+/* ---------- 1b. 正文结构 + 草稿可见性对账（不碰浏览器）----------
    build 全绿 ≠ 正文成了形。这一格盯的是"整篇塌成一枚 <p>"那类事故：切块用 /\n{2,}/，而 `core.autocrlf=true`
    的 checkout 会把稿件落成 CRLF（'\r\n\r\n' 里两枚 '\n' 不相邻）⇒ 那时 build 一点不红，三篇稿子全成一段、
    '## ' 以字面量上屏（2026-09-28 在 worktree 里实测到，规范 §16）。
    ⚠️ 尺子不许走渲染器：拿 renderMd 的输出去对 renderMd 的输出，渲染器塌了两边一起塌，正好互相赦免。
    所以期望值从**源码行首的 '## '** 独立数出来（这条读法对行尾天然免疫：'^' 只看 '\n' 之后）。
    ⚠️ 产物侧要摘掉脚注那枚标题：footnotes() 发的是 '<h2 class="fn-title">注</h2>'（markdown.js:85），
-   今天三篇都没写脚注所以朴素计数恰好相等——但有人加一枚 [^1] 的那天，不摘的尺子就会假红。 */
+   今天三篇都没写脚注所以朴素计数恰好相等——但有人加一枚 [^1] 的那天，不摘的尺子就会假红。
+
+   ⚠️ 第十轮（`card/taxonomy`）这一格多担两件事，因为它们是"产物侧才看得见"的那种事故：
+   ① **草稿泄漏**：`getStaticPaths` 里漏掉 filter 时，列表页搜不到这一篇、地址却照样烘出来（og:url、
+      prev/next 还都带着它）——astro build 与 `npm run check` 那几关全都不会红。这一格是那一格唯一的牙。
+      判据与页面**同源**：`isDraft` / `sortPosts` 直接 import `src/lib/taxonomy.js`（那份不碰 astro:content），
+      front matter 的读法 import `tools/frontmatter.mjs`（三处工具共用一份），不在本文件里再猜一遍"什么算草稿"。
+   ② **关于页那几个数**：colophon 报的"N 篇"必须等于**可见**稿件数——喂给 siteFacts 的若是整份集合，
+      草稿会从列表消失却仍然被数进档案（§15 那条"两处必须同一把尺子"讲的正是这一对）。
+   ⚠️ 顺序也在这里对：`/essays/` 里各行出现的先后必须等于 `sortPosts()` 给的那个顺序（置顶在最前）。
+      文本判据管不住"比较函数写反"，这一条读的是产物。 */
 const POSTS_DIR = join(ROOT, 'src', 'content', 'posts');
 const postFiles = existsSync(POSTS_DIR) ? readdirSync(POSTS_DIR).filter(f => /\.md$/i.test(f)).sort() : [];
 if (!postFiles.length) problems.push(`正文结构对账没跑：${POSTS_DIR} 里一篇 .md 都没有 ⇒ 这一格判据空转（读不到稿件不算过）`);
+/* 源码侧的"应该看得见的那批"，用 shipped 的那两个函数算，不在此处重写规则 */
+const corpus = [];
 for (const name of postFiles) {
   const slug = name.replace(/\.md$/i, '');
-  const out = join(DIST, 'essays', slug, 'index.html');
-  if (!existsSync(out)) { problems.push(`${slug}：源码有稿而 dist/essays/${slug}/index.html 不在 ⇒ 这一页根本没构建出来，结构对账无从谈起`); continue; }
-  const want = (readFileSync(join(POSTS_DIR, name), 'utf8').match(/^## /gm) || []).length;
+  const raw = readFileSync(join(POSTS_DIR, name), 'utf8');
+  const parsed = splitFm(raw);
+  if (!parsed) { problems.push(`${slug}：front matter 不成形，这一格的可见性判据读不出它是草稿还是已发布（宁缺不假绿）`); continue; }
+  const tax = readTaxonomy(parsed.fmText);
+  if (tax.errors.length) { problems.push(`${slug}：front matter 的四枚新键读不过预检（${tax.errors[0]}）——--check 那一格本该先拦下`); continue; }
+  corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, date: new Date(parsed.fm.date) } });
+}
+const visible = sortPosts(corpus.filter(p => !isDraft(p)));
+const drafts = corpus.filter(p => isDraft(p));
+const READABLE = ['dist/essays/index.html', 'dist/index.html', 'dist/rss.xml', 'dist/atom.xml']
+  .map(rel => ({ rel, path: join(DIST, ...rel.split('/')), html: null }))
+  .filter(t => existsSync(t.path));
+if (!drafts.length) notes.push(`草稿对账：源码里没有一篇 draft ⇒ 这一格今天没有对象（读得到稿件、判据仍然算跑过：可见 ${visible.length} 篇已逐个点名）`);
+for (const p of drafts) {
+  const out = join(DIST, 'essays', p.id, 'index.html');
+  if (existsSync(out)) problems.push(`${p.id}：draft: true 而 dist/essays/${p.id}/index.html 还在 ⇒ 详情页照样能访问（getStaticPaths 那一格漏了过滤，这是"列表没有、地址活着"那一族假完成）`);
+  for (const t of READABLE) {
+    const txt = (t.html ??= readFileSync(t.path, 'utf8'));
+    if (txt.includes(`/essays/${p.id}/`)) problems.push(`${p.id}：draft: true 却仍出现在 ${t.rel} ⇒ 那一处的 getCollection 没走 visiblePosts()`);
+  }
+}
+/* 列表顺序 ⇄ 产物里各行的先后 */
+{
+  const listPath = join(DIST, 'essays', 'index.html');
+  if (!existsSync(listPath)) problems.push('dist/essays/index.html 不在 ⇒ 顺序与草稿泄漏两笔判据都没了对象（这一格在空转）');
+  else {
+    const html = readFileSync(listPath, 'utf8');
+    const seen = [...html.matchAll(/\/essays\/([a-z0-9-]+)\//g)].map(m => m[1]);
+    const uniq = seen.filter((v, i) => seen.indexOf(v) === i);
+    const want = visible.map(p => p.id);
+    if (uniq.join(' ') !== want.join(' ')) problems.push(`/essays/ 里各行的先后是 ${uniq.join(' ')}，而 visiblePosts() 给的是 ${want.join(' ')} ⇒ 列表自己又排了一遍（或置顶没生效）——顺序只许住在 lib/posts.js`);
+    else notes.push(`列表顺序对账：产物 ${uniq.length} 行 ＝ visiblePosts() 的顺序（置顶在最前，其余按日期倒序）✓`);
+    /* 门牌必须连着数：置顶插到最前之后，folio 仍旧 01 02 03…（§15 那一格点名的就是这一条——
+       编号是从渲染顺序加出来的，不是从日期算的，所以它比"顺序对不对"更狠一点：漏一号也是红） */
+    const folios = [...html.matchAll(/class="folio">(\d{2})</g)].map(m => Number(m[1]));
+    const expect = want.map((_, i) => i + 1);
+    if (folios.join(' ') !== expect.join(' ')) problems.push(`/essays/ 的门牌读出来是 ${folios.join(' ')}，应该是 01…${String(want.length).padStart(2, '0')} 连续一号 —— 编号跨了分节就会断，断在那儿没人报告`);
+    else notes.push(`门牌对账：${folios.length} 号连续（01…${String(folios.length).padStart(2, '0')}）✓`);
+  }
+}
+/* 关于页的篇数 ⇄ 可见稿件数（同一把尺子，§15） */
+{
+  const aboutPath = join(DIST, 'about', 'index.html');
+  if (!existsSync(aboutPath)) problems.push('dist/about/index.html 不在 ⇒ "档案那几个数与列表同一把尺子"这条判据没吃到东西');
+  else {
+    const m = /(\d+)\s*篇 · 约/.exec(readFileSync(aboutPath, 'utf8').replace(/<[^>]+>/g, ''));
+    if (!m) problems.push('关于页的站点档案里读不到"N 篇 · 约 …"那一行 ⇒ 对账的尺子落空（模板换了写法要同步改这里）');
+    else if (Number(m[1]) !== visible.length) problems.push(`关于页站点档案报 ${m[1]} 篇，可见稿件是 ${visible.length} 篇 ⇒ siteFacts() 吃的不是 visiblePosts()，草稿被数进档案而列表里没有`);
+    else notes.push(`站点档案对账：关于页 ${m[1]} 篇 ＝ 可见稿件 ${visible.length} 篇（草稿没被数进去）✓`);
+  }
+}
+/* 分类 / 标签两族页面：清单里有的，产物里必须在；一枚都没有时索引页必须在（空态不是白屏） */
+for (const [key, groups, dir] of [['分类', bySize(groupBy(visible, categoryOf)), 'categories'], ['标签', bySize(tagGroups(visible)), 'tags']]) {
+  if (!existsSync(join(DIST, dir, 'index.html'))) { problems.push(`dist/${dir}/index.html 不在 ⇒ 一个分类/标签都没有时这一页必须走空态，不是不构建`); continue; }
+  for (const g of groups) {
+    if (!g.slug) { problems.push(`${key}"${g.name}" 归一化之后没有地址 ⇒ 页面上会出现一枚指向 /${dir}// 的死锚点（§12）`); continue; }
+    if (!existsSync(join(DIST, dir, g.slug, 'index.html'))) problems.push(`${key} "${g.name}" 在清单里，dist/${dir}/${g.slug}/index.html 却不在 ⇒ 索引页那枚胶囊是死锚点（getStaticPaths 与清单不同源）`);
+  }
+  notes.push(`${key}清单对账：${groups.length} 枚（${groups.map(g => `${g.slug}×${g.posts.length}`).join(' ') || '一枚都没有 ⇒ 索引页走空态'}）`);
+}
+for (const p of visible) {
+  const out = join(DIST, 'essays', p.id, 'index.html');
+  if (!existsSync(out)) { problems.push(`${p.id}：源码有稿而 dist/essays/${p.id}/index.html 不在 ⇒ 这一页根本没构建出来，结构对账无从谈起`); continue; }
+  const want = (p.body.match(/^## /gm) || []).length;
   const got = (readFileSync(out, 'utf8').match(/<h2\b[^>]*>/g) || []).filter(t => !/fn-title/.test(t)).length;
-  if (got !== want) problems.push(`${slug}：源码有 ${want} 枚行首 "## "，产物里只有 ${got} 个 <h2> ⇒ 块级结构在渲染器里塌了（切块口径见 markdown.js:121；成段塌成一枚 <p> 是最常见的形状）`);
-  else notes.push(`结构对账 ${slug}：源 ${want} 枚 "## " ＝ 产物 ${got} 个 <h2> ✓（fn-title 那枚已摘除；全绿时也要看得见这两枚数，否则"没匹配到"与"全过"长得一样）`);
+  if (got !== want) problems.push(`${p.id}：源码有 ${want} 枚行首 "## "，产物里只有 ${got} 个 <h2> ⇒ 块级结构在渲染器里塌了（切块口径见 markdown.js:121；成段塌成一枚 <p> 是最常见的形状）`);
+  else notes.push(`结构对账 ${p.id}：源 ${want} 枚 "## " ＝ 产物 ${got} 个 <h2> ✓（fn-title 那枚已摘除；全绿时也要看得见这两枚数，否则"没匹配到"与"全过"长得一样）`);
 }
 
 /* ---------- 2. 浏览器 ---------- */

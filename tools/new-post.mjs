@@ -1,11 +1,15 @@
 /* 建稿脚本：一条命令生成 src/content/posts/<slug>.md（标题、日期、摘要都在文件头，不再有第二份清单）
    用法  node tools/new-post.mjs <slug> "标题" [--date 2026.09.27] [--excerpt "一句话摘要"]
    自检  node tools/new-post.mjs --check        （每篇的 front matter 是否合规矩，发布前跑）
+   ⚠️ --check 认的键与 schema 同源（front matter 的读法在 tools/frontmatter.mjs，
+      分类/标签的归一化与撞名判断直接 import `src/lib/taxonomy.js`——两份实现会各自赦免同一个错）。
 */
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { safe } from '../src/lib/markdown.js';   /* 锚点归一化只有一份实现，检查脚本不许自己再猜一遍 */
+import { splitFm, readTaxonomy } from './frontmatter.mjs';
+import { groupMany } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const POSTS = join(ROOT, 'src', 'content', 'posts');
@@ -36,25 +40,21 @@ function argList(argv) {
   return out;
 }
 
-/* front matter 认 title/date/excerpt/cover 四个键，外加可选的 hour（0–23，写作时刻）。
-   骨架不写 hour：它空着比写一个 0 好——0 会被读成"凌晨写的"。要填自己加一行 */
+/* front matter 认 title/date/excerpt/cover 四个键，外加可选的 hour（0–23，写作时刻）；
+   第十轮起再多四枚可空键：category / tags / draft / pinned（schema 在 content.config.ts）。
+   骨架不写 hour：它空着比写一个 0 好——0 会被读成"凌晨写的"。要填自己加一行。
+   四枚新键骨架**给空值**（`category: ""` / `tags: []` / `draft: false` / `pinned: false`）：
+   空值与缺省同解（页面上不出现胶囊、不生成分类页、算已发布、不置顶），
+   而"顺手编一个分类名填上"是 §12 的假内容族——建稿脚本不许替作者起名字。 */
 function splitMd(raw) {
-  if (!raw.startsWith('---\n')) return null;
-  const end = raw.indexOf('\n---\n', 3);
-  if (end < 0) return null;
-  const fm = {};
-  for (const line of raw.slice(4, end + 1).split('\n')) {
-    const m = line.match(/^(\w+):\s*(.*)$/);
-    if (!m) continue;
-    fm[m[1]] = m[2].replace(/^"(.*)"$/, '$1');
-  }
-  return { fm, body: raw.slice(end + 5).replace(/^\r?\n/, '') };
+  return splitFm(raw);          /* { fm, fmText, body }；front matter 不成形就是 null */
 }
 
 async function check() {
   if (!existsSync(POSTS)) { console.log(`✗ ${POSTS} 不存在`); return 1; }
   const files = readdirSync(POSTS).filter(f => f.endsWith('.md'));
   let bad = 0;
+  const taxPosts = [];                 /* 撞名要跨篇比，所以先收齐（顺序＝文件名序，可复现） */
   for (const f of files) {
     const slug = f.slice(0, -3);
     const parsed = splitMd(read(join(POSTS, f)));
@@ -82,6 +82,22 @@ async function check() {
       if (keyed.has(k)) { console.log(`✗ ${f}：[^${keyed.get(k)}] 与 [^${d}] 归一化后都成 "${k}"，锚点会撞车`); bad++; }
       keyed.set(k, d);
     }
+    /* 分类 / 标签 / 草稿 / 置顶（第十轮 `card/taxonomy`）。这四枚键的坏写法**都让构建炸**（zod 抛），
+       但炸出来的是一段英文堆栈，不是人话——所以在这里提前拦，并把后果说清（同上面脚注那两条的口径）。
+       读法不在这里重写：`tools/frontmatter.mjs` + `src/lib/taxonomy.js` 是页面用的那一份。 */
+    const tax = readTaxonomy(parsed.fmText);
+    for (const e of tax.errors) { console.log(`✗ ${f}：${e}`); bad++; }
+    /* 撞名是跨篇的事，先收着，循环结束后拿 shipped 的 groupMany() 复算（见下面那格） */
+    if (!tax.errors.length) taxPosts.push({ id: slug, data: { category: tax.category, tags: tax.tags } });
+    if (tax.draft) { console.log(`· ${f}：draft: true —— 这一篇不进列表、不进首页那三篇、没有详情页地址、不进两枚订阅源，关于页那几个数也不数它`); }
+    if (tax.pinned) { console.log(`· ${f}：pinned: true —— 它排在 / 与 /essays/ 的最前面（目录行的门牌 folio 跟着新顺序继续连号）`); }
+  }
+  /* ⚠️ 用 shipped 的那个分组函数，不在工具里再猜一遍归一化：两份实现会各自赦免同一个错，
+     于是"预检全绿、astro build 当场抛"（或反过来）都会发生。构建期那一侧是**抛**——
+     静默合并等于替作者把两件事说成一件（§12 假语境的近亲），起名是他的活，不是机器的。 */
+  for (const [what, pick] of [['分类', p => [p.data.category]], ['标签', p => p.data.tags]]) {
+    try { groupMany(taxPosts, pick, what); }
+    catch (e) { console.log(`✗ 撞名（跨篇）：${e.message}`); bad++; }
   }
   /* 数量直接 import 来数：site.js 是真模块，按文本猜格式会静默读成 0 */
   const { things, notes } = await import(pathToFileURL(DATA).href);
@@ -110,13 +126,21 @@ function create() {
   if (existsSync(md)) { console.log(`✗ src/content/posts/${slug}.md 已存在，不覆盖`); return 1; }
 
   /* 标题在 front matter，正文不要再写 # 一级标题——渲染器只认 ## ，写了会变成一行带井号的正文
-     示例图用括号内空格写成"哑"的：作者没删空格前它不会变成真图，也不会让 build 因缺图失败 */
+     示例图用括号内空格写成"哑"的：作者没删空格前它不会变成真图，也不会让 build 因缺图失败
+     ⚠️ 四枚新键给的是**空值**（`""` / `[]` / `false`），不是编好的示例：
+        空值与"没写这一行"同解——不画胶囊、不生成分类页、算已发布、不置顶（§12"没填 ⇒ 不出现"那条）。
+        建稿脚本替作者填一个分类名就是替他起名字，那是假内容族（AI 生成内容同族），不做。
+        hour 仍旧不写：那一枚空着比写 0 好（0 会被读成"凌晨写的"）。 */
   write(md, [
     '---',
     `title: "${q(title)}"`,
     `date: ${date.replace(/\./g, '-')}`,
     `excerpt: "${q(excerpt)}"`,
     'cover: ""',
+    'category: ""',
+    'tags: []',
+    'draft: false',
+    'pinned: false',
     '---',
     '',
     '正文从这里开始。可以写 *斜体词*、`code`、[链接](/things/)。',
@@ -151,6 +175,10 @@ function create() {
 
   console.log(`✓ src/content/posts/${slug}.md（date ${date}）`);
   console.log(`  配图放 public/assets/posts/${slug}/，md 里写 /assets/posts/${slug}/photo.jpg（开头的斜杠不能省）`);
+  /* 四枚新键的写法与后果一次说清——`--check` 那格拦的是坏写法，这一行管的是"忘了有这四枚" */
+  console.log(`  分类 category: "散文"（一篇一个，进 /categories/<名字>/）；标签 tags: [甲, 乙] 或下面几行"- 甲"（不是逗号字符串）`);
+  console.log(`  draft: true ⇒ 这一篇从站上完全消失（列表／详情／订阅源／关于页那几个数）；pinned: true ⇒ 排在 / 与 /essays/ 最前面`);
+  console.log(`  都空着就是"没填"：不画胶囊、不生成分类页——本站不许替作者起名字，也不许留一枚指向空页的锚点`);
   console.log(`  本地看：npm run dev → /essays/${slug}/`);
   return 0;
 }

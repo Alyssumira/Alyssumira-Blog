@@ -1,13 +1,15 @@
 ---
 import '../styles/home.css';
 import Layout from '../layouts/Layout.astro';
-import { getCollection } from 'astro:content';
 import { things, notes } from '../data/site.js';
 import { fmtDate, inlineMd } from '../lib/markdown.js';
+import { visiblePosts } from '../lib/posts.js';
 import { readMinutes, tone } from '../lib/stats.js';
 
 const pad = n => String(n).padStart(2, '0');
-const posts = (await getCollection('posts')).sort((a, b) => b.data.date - a.data.date);
+/* 只准走 visiblePosts()：草稿不进首页那三篇、也不进 .hero-log 那个数（一处 filter＝六处同一个口径）。
+   顺序由 lib 给：置顶在最前，其余按日期倒序——首页那三篇吃的就是这个数组的前三个。 */
+const posts = await visiblePosts();
 const counts = { essays: posts.length, things: things.length, notes: notes.length };
 /* 首页下半段只是"最近三篇"，不是第二个 /essays/：超过三条就把尾巴剪掉，宁缺不挤 */
 const recent = posts.slice(0, 3);

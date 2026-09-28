@@ -414,6 +414,59 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .cover img.in,.thing .shot.in,.portrait img.in,.post-body img.in{ filter:var(--photo-look); }
 /* 正文图不裁框：essay.css 里把 position/尺寸改回原比例，只保留褪色与雾散开 */
 
+/* ============ 标签胶囊（§9 那条在册候选，第十轮 `card/taxonomy` 启用） ============ */
+/* §9 当年登记的是这一句："标签（圆角胶囊、1px 描边、悬停填 8% 苔绿——图鉴玻璃条上的 tag 是等宽文字不是胶囊）"。
+   今天启用它，四条口径：
+   ① 半径 **9px**——§4 那根 11 档梯子上"chip"就是这一档，抽屉里那排 `.seg-c` 用的也是它
+      （同族同档，不为胶囊新开一档圆角）；1px 描边取 `--glass-border`（§2 的分工：玻璃面描边）。
+   ② 零新字面量。文字 `--ink-2`（次要档：胶囊是导航件，`--ink-3` 在亮色只有 2.30:1，够不到 §2.4 的 4.5 线）；
+      悬停那"8% 苔绿"写成 `color-mix(in srgb,var(--moss) 8%,transparent)`——从在册令牌按比例解出来，
+      既不是新 hex 也不是新 rgba（§12"第五色"与 palette-check 都数不到它），而 color-mix 这个口子
+      `essay.css:34` 早就开过（正文链接那 40% 的下划线）。⚠️ 不直接用 `--moss` 铺满：那是一整块苔绿面，
+      §1.2 那"至多两处点缀"的配额会被这一排胶囊一次用完。
+   ③ 悬停恰好 3 个属性（§8.3 上限）：`color` / `background-color` / `border-color`，
+      .25s 吐纳照 `.seg-c` 那一族；按下那一下用 §8.1 的回弹档（唯一合法用途就是"按下"）。
+   ④ 胶囊是**真 `<a>`**（指向 `/categories/…` 与 `/tags/…`），不是 JS 按钮：无脚本、键盘、读屏都是链接，
+      焦点环吃 `base.css` 现成那条。
+   ⚠️ §9 那条并列的候选"筛选器（文字标签排 + 底部苔绿短线滑动）"这一轮**不引入**：那枚短线和
+      §9 的 2px 悬停记号、§15 详情页那枚 32px"章"记号撞语义（§12 刚为"同一个符号表达两种意思"修过一次）。
+   ⚠️ 没填分类/标签的稿子**一枚胶囊都不画**（"没填 ⇒ 不出现"，与可选键 `hour` 同一条路）——
+      空态由 /categories/ 与 /tags/ 那两个索引页自己说（见下面那格）。 */
+.chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.chip{
+  display:inline-block; padding:4px 10px; border-radius:9px;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
+  color:var(--ink-2); background:transparent; border:1px solid var(--glass-border);
+  transition:color .25s cubic-bezier(.22,1,.36,1),background-color .25s cubic-bezier(.22,1,.36,1),border-color .25s cubic-bezier(.22,1,.36,1);
+}
+.chip:hover{ color:var(--moss-ink); background:color-mix(in srgb,var(--moss) 8%,transparent); border-color:var(--moss); }
+.chip:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+/* 胶囊里那枚篇数：数字单独一档灰，但仍在次要档（它是"这一类有几篇"这句话本身，不是氛围） */
+.chip-n{ margin-left:6px; color:var(--ink-2); }
+
+/* ============ 空态：一个分类/标签都没有时这一页说什么 ============ */
+/* 不许白屏、不许 500、不许在导航里挂一枚指向空页的死锚点（§12）。
+   选的形态：**页头照旧（标题 + 数），清单那一整块不出现，下面换成一句作者口吻的话 + 几条真地址**。
+   为什么不是"整页什么都不画"：那读起来像坏了；为什么不是"编几个分类填上"：那是 §12 的假内容族
+   （AI 生成内容同族），分类名只能来自作者的 front matter。句子里的篇数是 `visiblePosts()` 的真数。
+   ⚠️ 一个垂直方向的固定 px 都没有：上下那点距离由 `.page-head` 自己那条 64px 收尾段给（已上格，C 档在册）。
+   行内链接走 §8.3 那套"正文链接"语言（`--moss-ink` + 40% 下划线 → 悬停补满 + 变粗 2px），不新开一种悬停。 */
+.tax-empty{ max-width:52ch; font-size:15px; line-height:1.85; color:var(--ink-2); }
+.tax-empty a{
+  color:var(--moss-ink); text-decoration-line:underline; text-decoration-thickness:1px;
+  text-underline-offset:3px; text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);
+  transition:text-decoration-color .3s cubic-bezier(.22,1,.36,1),text-decoration-thickness .3s cubic-bezier(.22,1,.36,1);
+}
+.tax-empty a:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; }
+/* 分类页/标签页页头那枚"全部分类 / 全部标签"回链：它住在 `.sec-label` 那一行里，所以不另开一行版面。
+   颜色从 --ink-3（那一行的装饰档）提回 --ink-2——一枚链接必须读得出它是链接（§2.4）。 */
+.tax-back{
+  color:var(--ink-2); text-decoration-line:underline; text-decoration-thickness:1px;
+  text-underline-offset:3px; text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);
+  transition:text-decoration-color .3s cubic-bezier(.22,1,.36,1);
+}
+.tax-back:hover{ text-decoration-color:currentColor; }
+
 /* ============ 小东西：图鉴网格（/things/） ============ */
 .things-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:32px; padding-bottom:16vh; }
 .thing{
