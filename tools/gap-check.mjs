@@ -15,7 +15,7 @@
      X 纯块间距·在册偏差 ＝ 同一类里还没上 8 格的那些 → 不判 8 的倍数，判"枚数不许悄悄变"（要动就动那枚登记值，
                              那是 §16 说的三处同源：规范那一格 / 本文件字面量 / 盘上的声明）。
    在册枚数（顶部这一行、下面 `REGISTERED` 那枚字面量、§16 那一格、§4 那三行是同一句话的四处，动一处必红）：
-     **A 14 ／ B 10 ／ C 49 ／ X 63 ＝ 136 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
+     **A 14 ／ B 10 ／ C 50 ／ X 64 ＝ 138 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
    ⚠️ 防空转是硬要求（§16 记过一次"rgba 漂移检查静默空转、退出码 0、长得像全绿"）：
      注册表为空 ⇒ 红；扫描器一枚都没抓到 ⇒ 红并打印"判据正在空转"；
      注册表里一条盘上找不到（幻影）⇒ 红；盘上一枚没人认领 ⇒ 红；
@@ -33,8 +33,8 @@ const FILES = ['base.css', 'mistwood.css', 'home.css', 'essay.css', 'notes.css']
 const VPROPS = ['margin', 'margin-top', 'margin-bottom', 'padding', 'padding-top', 'padding-bottom', 'gap', 'row-gap'];
 const TIERS = { A: '视口比例', B: '行距派生', C: '纯块间距·已上格', X: '纯块间距·在册偏差' };
 /* ⚠️ 在册枚数（§16 那一格与 §4 那三行说的就是这几个数，三处同源，动一处必红）：
-   A 14 / B 10 / C 49 / X 63 ＝ 136 枚垂直间距槽位，覆盖 5 份样式表。 */
-const REGISTERED = { A: 14, B: 10, C: 49, X: 63 };
+   A 14 / B 10 / C 50 / X 64 ＝ 138 枚垂直间距槽位，覆盖 5 份样式表。 */
+const REGISTERED = { A: 14, B: 10, C: 50, X: 64 };
 /* needle：盘上扫不到这一条就是判据空转，不是"这一档刚好没东西" */
 const NEEDLE = ['essay.css', '', '.post-body h2', 'margin', '64px', 'C'];
 
@@ -176,6 +176,8 @@ const REGISTRY = [
   ['essay.css', '', '.post-nav', 'gap', '32px', 'C', '左右两枚链接之间（≤720 转竖排时这一枚就是行距）'],
   ['essay.css', '', '.post-nav', 'padding-top', '48px', 'C', '封口线与"上一篇／下一篇"之间'],
   ['essay.css', '', '.post-nav span', 'margin-bottom', '10px', 'X', '标签行与其下那枚 22px 标题之间（值与 li 同档，机制不同）'],
+  ['essay.css', '', '.lightbox', 'padding', '16px', 'C', '灯箱面板的上下内垫：与代码面那枚 16 同一档（一张面的内衬，不是新的留白档）'],
+  ['essay.css', '', '.lightbox', 'gap', '14px', 'X', '大图／图注／收起钮三者之间：沿用这一页那族 14px（图注、副题、回执行都是它），flex column ⇒ 真行距'],
   ['essay.css', '@media (max-width:720px)', '.post-head', 'padding', '18vh', 'A', '窄屏开场降一档（24vh → 18vh）'],
   ['essay.css', '@media (max-width:720px)', '.post-head', 'padding', '40px', 'C', '窄屏收尾段（56 → 40）'],
   /* ===== notes.css：/notes/ ===== */

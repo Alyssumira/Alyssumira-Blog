@@ -5,6 +5,10 @@ import { renderMd, fmtDate } from '../../lib/markdown.js';
 import { visiblePosts } from '../../lib/posts.js';
 import { categoryOf, tagsOf, taxSlug } from '../../lib/taxonomy.js';
 import { lastRevisionDate, whenLine } from '../../lib/revised.js';
+/* 字数向 stats.js 要，不在这一页重新数一遍（文件头那句"列表页与关于页的总计必须是同一把尺子"
+   同样管详情页）：cjkCount / latinWords 是 readMinutes 与 siteFacts.words 已经在吃的同一对函数，
+   所以每一篇报的字数与关于页那个总数逐篇相加一定对得上——第三把尺子从一开始就不许存在。 */
+import { cjkCount, latinWords } from '../../lib/stats.js';
 
 export async function getStaticPaths(){
   /* ⚠️ 这一格最容易漏：草稿过滤漏在 getStaticPaths 里，就是"列表搜不到、详情页照样能访问"那种最坏的假完成
@@ -43,20 +47,31 @@ const whenText = whenLine(when, post.data.date, revised);
 const cat = categoryOf(post), catSlug = taxSlug(cat);
 const tags = tagsOf(post);
 const hasTax = !!catSlug || tags.length > 0;
+/* 每篇字数：构建期从**渲染前的稿子**（post.body，那份 md 原文）数，数得出才写（§12 假数字那一格）。
+   ⚠️ 入参与 siteFacts 数 `p.body` 同一份，不是渲染后的 HTML：标签里的字母会被数成字。
+   ⚠️ 没有"约"、没有向上取整、没有估——它是一枚加法的结果，读者拿稿子自己数应当一模一样。 */
+const words = cjkCount(post.body) + latinWords(post.body);
+/* 正文里有没有图版：渲染结果里那一枚 `<figure class="shot">` 的开标签，构建期数一次。
+   零枚 ⇒ 下面那一整块 `<dialog>` 连同它的收起钮**一个字节都不进产物**（"没填 ⇒ 整块不出现"，
+   与 hasTax / whenText 同一条模式；不是发一块再 display:none）。
+   ⚠️ 判据不写成运行时的 querySelectorAll：那样静态产物里就永远躺着一枚没人认领的空 dialog。 */
+const bodyHtml = renderMd(post.body);
+const hasShot = /<figure class="shot"/.test(bodyHtml);
 ---
-/* JSON-LD 要的这两枚就取自上面已经算好的 prop，不另问一次 git、也不从 slug 反推路径（:10-12 那条禁令同样管这里）：
-   revised 是 git 里最后一次改动型提交的日历日（问不到＝undefined ⇒ Seo 那一键整块不写），date 是 front matter 那天。
-   ⚠️ 这里只是把「已经在这儿的值」交给 Layout，页面上那行「改于」的判据与灰度一个字没动（§7 / §15）。 */
 <Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays" type="article" date={post.data.date} revised={revised}>
+  <!-- JSON-LD 要的这两枚就取自上面已经算好的 prop，不另问一次 git、也不从 slug 反推路径（:10-12 那条禁令同样管这里）：
+       revised 是 git 里最后一次改动型提交的日历日（问不到＝undefined ⇒ Seo 那一键整块不写），date 是 front matter 那天。
+       ⚠️ 这里只是把「已经在这儿的值」交给 Layout，页面上那行「改于」的判据与灰度一个字没动（§7 / §15）。 -->
   <div id="progress" aria-hidden="true"></div>
-  <!-- 章节刻度（§6.3）：同一批 H2 在这条线上的位置。右侧目录给名字，这一排给形状——
-       窄屏没有目录，刻度还在。aria-hidden：它是这一篇结构的图形化重述，读屏已经有目录 -->
+  <!-- 章节刻度（§6.3）：同一批标题（H2 ＋ 本轮起也算 H3，与右侧目录同一个选择器）在这条线上的位置。
+       右侧目录给名字，这一排给形状——窄屏没有目录，刻度还在。
+       aria-hidden：它是这一篇结构的图形化重述，读屏已经有目录 -->
   <div id="progress-marks" aria-hidden="true"></div>
   <nav id="toc" aria-label="目录"></nav>
 
   <main class="wrap">
     <header class="post-head reveal">
-      <p class="post-meta">{fmtDate(post.data.date)} · essay</p>
+      <p class="post-meta">{fmtDate(post.data.date)} · essay · {words} 字</p>
       <h1 class="post-title">{post.data.title}</h1>
       {whenText && <p class="post-when">{whenText}</p>}
       {sub && <p class="post-sub">{sub}</p>}
@@ -69,7 +84,21 @@ const hasTax = !!catSlug || tags.length > 0;
     </header>
 
     <!-- 正文走 §15 的排版白名单解析器，构建期落成静态 HTML -->
-    <article class="post-body reveal" id="post-body" set:html={renderMd(post.body)}></article>
+    <article class="post-body reveal" id="post-body" set:html={bodyHtml}></article>
+
+    <!-- 正文配图灯箱：`hasShot` 为假 ⇒ 这一整块不存在（连那枚原生对话框的开标签都不落进产物，
+         所以"数产物里有没有灯箱"这条判据读得到的是节点、不是这句说明——同 §14 那条"注释里的地址
+         访客走不到"的口径，本卡实测过一次假红，说明里就不许写那个字面量）。
+         在场的时候它也只有这一枚收起钮——大图与图注由 site.js 在第一次打开时造出来：
+         那时才知道要点哪一张，而造早了就是一张没有 src 的空面（假位置，§12）。
+         ⚠️ 收起钮是文字钮、吃 .post-act 那条声明（与盖章/专注同族，零新按钮形状）；
+         Esc 与焦点陷阱由原生对话框的 showModal() 给，不是我们模仿的（§12:788 那条教训的反面：
+         能点开的东西必须也能 Tab 到、也能按下去，触屏也收得回来）。 -->
+    {hasShot && (
+      <dialog id="lightbox" class="lightbox" aria-label="正文配图 · 放大看这一张">
+        <button class="post-act lightbox-close" type="button">close · 收起这一张</button>
+      </dialog>
+    )}
 
     <!-- 盖章：分享＝把这一篇收下来。只落一行手记字，不画圆章（理由见 essay.css 与 §15） -->
     <div class="post-tail reveal">

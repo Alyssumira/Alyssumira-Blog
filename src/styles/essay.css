@@ -101,6 +101,12 @@ html[data-focus="1"] .wrap::before{ display:none; }
 #toc a:hover{ color:var(--ink); }
 #toc a.on{ color:var(--moss-ink); }
 #toc a.on::before{ background:var(--moss); width:10px; }
+/* H3 在目录里是二级条目：只往**缩进**那一格走，不新造记号。
+   14 是一级条目自己的左缘（`#toc a` 那条 padding-left），再加的那 12 就是这一列自己的行距档
+   （`#toc` 的 gap:12px，同一份表里已有的数）——不是新档位，也不是一枚新符号（§9:722 刚为
+   "同一个符号表达两种状态"改过一次，§12:810 又点名目录不许再加一枚竖线）。
+   短线记号（`::before` 那枚 6px）一级二级都用它：它说的是"这是一条目录条目"，深度由左缘读。 */
+#toc a.sub{ padding-left:26px; }
 @media (max-width:1240px){ #toc{ display:none; } }
 
 /* 正文：衬线长文，680 栏 */
@@ -196,6 +202,17 @@ html[data-focus="1"] .wrap::before{ display:none; }
   content:attr(data-lang); display:block; margin-bottom:8px;
   font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
 }
+/* 代码块复制钮（§15，card/render 留给这一张卡的那半件）：
+   ⚠️ **只挂在带 data-lang 的那一行上**——上一行那条伪元素已经把"语言标签行"画出来了，这一枚就站在
+      同一行的右端（`top:0` 落在那一行的盒顶，字号与字距都吃 `.post-act` 那一条声明，所以两半是同一行、
+      同一种等宽小字，不是两块新面）。围栏没带语言标识 ⇒ 渲染器不写这枚属性 ⇒ 那一行本来就不存在 ⇒
+      脚本连钮都不造（`site.js` 的选择器就是 `.codeblock[data-lang]`）：宁可不给复制，不新造一行版面占位。
+   ⚠️ `position:absolute` 的包含块是外壳 `.codeblock`（`position:relative` 是上一张卡特意留给这一件的，
+      理由见它自己那段注释：`overflow-x:auto` 开在 `pre` 上 ⇒ 钮挂在滚动容器里就会跟着代码横向跑）。
+   ⚠️ 零新垂直 px：这里只写 `top/right`（偏移不是间距槽位，gap-check 的口径不看它），不 padding、不 margin。
+   ⚠️ 与盖章/专注同一条声明（`.post-act`）⇒ 零新按钮形状、悬停预算一个字没扩（§8.3 那三个属性）。 */
+.post-body .codeblock .code-copy{ position:absolute; top:0; right:0; }
+
 .post-body pre{
   overflow-x:auto;                                    /* 长行不许把 680 栏撑破，也不许折行——折了就看不清代码的形状 */
   padding:16px; border-radius:8px;
@@ -296,7 +313,14 @@ html[data-focus="1"] .wrap::before{ display:none; }
 .post-body a:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; }
 
 /* 正文图片：不裁框，按原比例走满栏宽；雾散开 + 褪色由共享底座负责（§8.4 / §10.5） */
-.post-body img{ position:static; width:auto; max-width:100%; height:auto; border-radius:8px; }
+/* ⚠️ 选择器多带一枚 `article`（权重 (0,1,2) 压过 `mistwood.css:409` 那条 (0,1,1)）——**这不是顺手加权重，
+   是还 §8.4 末那格登记的那笔债**：共享底座给"内容位照片"写的是 `position:absolute; inset:0; object-fit:cover`
+   （封面/图鉴/人像那一族要的是裁框），正文图版要的是"走满栏宽不裁比例"，两条权重同为 (0,1,1) 时
+   谁赢取决于打包顺序 ⇒ 真产物上 `.frame` 塌成 2px、照片被 `overflow:hidden` 裁进 0 高内容盒。
+   当年那句"没在真页面上暴露只因为没有载体"今天有了载体（这张卡要挂灯箱），所以先按 §8.4 写下的
+   触发条件第 ① 步把债还掉：**靠权重赢，不靠打包顺序**（§8.8 那句"那是运气不是设计"同一条）。
+   今天三篇稿子零枚正文配图 ⇒ 这一条对现有产物是 Δ0（改动前后逐字节相同），它只在有图的那一页说话。 */
+article.post-body img{ position:static; width:auto; max-width:100%; height:auto; border-radius:8px; }
 .post-body figure.shot{ margin:44px 0; }
 .post-body figure.shot .frame{
   display:block; position:relative; border-radius:16px; overflow:hidden;
@@ -308,6 +332,47 @@ html[data-focus="1"] .wrap::before{ display:none; }
   margin-top:14px; font-family:"IBM Plex Mono",monospace;
   font-size:12px; letter-spacing:.12em; color:var(--ink-3);
 }
+/* 图版可点（灯箱）：`cursor:pointer` 是一枚提示，不是一枚权限——没有它这一张图也一样能被 Tab 到、
+   被 Enter 按下（`site.js` 给图版补的是 tabindex/role/键盘，触屏点的是这一整块）。
+   ⚠️ 零 hover 属性变化：§8.3 的预算给的是"每个可点元素 1 个主反馈"，而这里的"反馈"是**打开大图**这件事
+      本身；再叠一层悬停就是拿材质换提示，而 §12:788 那条教训禁的恰恰是"只有悬停才看得见"。 */
+.post-body figure.shot.zoomable{ cursor:pointer; }
+
+/* ===== 正文配图灯箱（§15）===== */
+/* 三条口径钉在这里，逐条对着 §1.4 / §12 / §8.4：
+   ① **材质没开第四种**：面 = 图版框那一枚 `--glass` + `--glass-border` + 圆角 16（同一个 `.frame` 的画法），
+      遮罩 = `::backdrop{ background:var(--halo) }`——`--halo` 是 base.css 那两份板子里的在册令牌
+      （亮 `rgba(242,244,239,.55)` / 夜林 `rgba(14,19,13,.6)`），所以零新 hex、零 `rgba(255,255,255,…)`、
+      零第四种模糊：**这里一枚 blur 半径都没有**，散开那一下走的是 §8.4 已有的入场虚焦
+      （`mistwood.css` 那条 filter 声明，`--photo-look` + `blur(10px)` → `.in` 之后 0.6s 吐纳收清，
+      灯箱里的图是它新增的第五个使用点，数值一处真值）。
+   ② **键盘与触屏都到得了**：原生 `<dialog>` + `showModal()` ⇒ 焦点陷阱与 Esc 是浏览器给的；
+      收起钮是 `.post-act` 那一族的文字钮（§9 那句"没有一枚是胶囊形"照旧成立），点图版外那片雾也收。
+   ③ **减弱偏好下退成什么**（§1:31 那句"凡是随输入更新的样式都要单独问一句"）：答在 `mistwood.css`
+      那条 `@media (prefers-reduced-motion:reduce)` 的名单里——大图**直接实**（起手态那枚 blur 一起撤，
+      而 `filter` 也早被 base.css 同档那条 `transition-property !important` 请出了可过渡名单），不演散雾；
+      面板、遮罩、开关、图注全没有 `animation`，因此也没有 `infinite` 可留（§12:875 那一族）。
+   ⚠️ 面板 `padding:16px` 与内部 `gap:14px` 两枚垂直槽位都在 `tools/gap-check.mjs` 的注册表里认领了
+      （16 走 C 档＝代码面那枚同一个数，14 走 X 档＝图注/副题那一族的既有数），没有新开档位。 */
+.lightbox{
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  padding:16px; margin:auto; width:min(92vw,1120px); max-height:88vh;
+  border:1px solid var(--glass-border); border-radius:16px; overflow:hidden;
+  background:linear-gradient(150deg,var(--bg-top),var(--glass));
+  color:var(--ink);
+}
+.lightbox::backdrop{ background:var(--halo); }
+.lightbox img{ max-width:100%; max-height:66vh; height:auto; object-fit:contain; border-radius:8px; }
+/* 图注：与正文 `.post-body figcaption` 同一套话（12px 等宽 + .12em + `--ink-3` 装饰档），
+   没有图注时这一枚 `<p>` 由脚本带着 `hidden`（§12"不许预留一个只会显示空缺的位置"）。 */
+.lightbox-cap{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em;
+  color:var(--ink-3); text-align:center;
+}
+/* 收起钮在面板自己的右下角（flex 列的末项）：不进图、不压在像素上，横向对齐靠 align-self，
+   纵向那一格由上面那枚已认领的 gap:14px 给——这里不写第二枚垂直数。 */
+.lightbox-close{ align-self:flex-end; }
+
 
 /* 上下篇：大号文字链接，同页脚语言 */
 .post-nav{
@@ -338,4 +403,18 @@ html[data-focus="1"] .wrap::before{ display:none; }
 @media (prefers-reduced-motion:reduce){
   #toc{ opacity:1; }
   .post-body{ -webkit-mask-image:none; mask-image:none; }
+}
+
+/* 系统要求"减少透明度"：灯箱那层遮罩与那块面都退回实面。
+   在册的先例是 `mistwood.css` 末尾那一条（`.nav` / `.thing-bar` 钉成 `--surface !important`），
+   这一条不是新增一档口径，是同一档口径管到本轮新发的那两枚面上——
+   ⚠️ 它住 `essay.css` 而不是那个媒体块：§17 那条"一枚规则只住在谁用得到它的那一层"是按**被覆写者**
+      走的，`.lightbox` 面板与它的 `::backdrop` 本体都在这份表里（先例是专注模式那两条覆写也住在
+      用它的那一页，而不是覆写对象的本家）。
+   ⚠️ `::backdrop` 必须点名：它是**不在文档树里**的那一族（§8.3 那条 view-transition 同族的例子），
+      `*{…}` 与任何一条通配都不会替我们说到它。
+   ⚠️ `!important` 不是偷懒，照上面那条先例：不靠"我这行写在后面"这种运气赢自己那份表。*/
+@media (prefers-reduced-transparency:reduce){
+  .lightbox{ background:var(--surface) !important; }
+  .lightbox::backdrop{ background:var(--surface) !important; }
 }

@@ -264,6 +264,16 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   html .post-tail, html .post-nav,
   html .wrap::before, html .page-head::before{ display:none; }
 
+  /* 详情页本轮那两枚**条件件**在纸上也不存在（§19.1 那条口径："以后任何一层新东西落地那天，
+     必须同时回答它在 19.1 是哪一行"）：
+     · `.code-copy`——代码块复制钮由脚本挂在 `.codeblock[data-lang]` 上，落在 `.post-tail` 那行的管辖
+       之外，而纸上一枚点不动的钮就是一句假承诺（与 §19.1 撤盖章同一理由，盖章撤的是它自己那一行）；
+     · `.lightbox`——正文配图灯箱。闭合的 `<dialog>` 本来就 `display:none`，这一行管的是"开着大图
+       按 Ctrl+P"那一档：那时它也不该把一张印不出墨的浮层留在纸上。图版本身（figure.shot）照旧上纸，
+       §19.6 那条 break-inside:avoid 已经带着它，纸上读的是那张图、不是那层雾。
+     ⚠️ 两条都带 `html ` 前缀（§19 那一节的选择器一律加一枚类型权重，压过页面层、不靠打包顺序）。 */
+  html .code-copy, html .lightbox{ display:none; }
+
   /* 身后的雾（`essay.css:97-98`）：`--read-fog` 是 site.js 每个滚动帧写一次的，纸上没有那个驱动者，
      起始值 -9999px 会把整段正文推进"淡到底"那一侧 ⇒ 印出来是一片看不见的字。与上面同族，同一个病。 */
   html article.post-body{ -webkit-mask-image:none; mask-image:none; }

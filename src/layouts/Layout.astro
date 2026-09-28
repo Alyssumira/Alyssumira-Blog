@@ -1,37 +1,16 @@
 ---
 import '../styles/base.css';
 import '../styles/mistwood.css';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import Seo from '../components/Seo.astro';
-import { ROOT } from '../lib/stats.js';
 import { fonts, FONT_HOST, FONT_FILE_HOST } from '../data/site.js';
 
 /* revised / date 只有详情页（src/pages/essays/[slug].astro 那个 <Layout> 标签）会传：其余五页没有 ⇒
    Seo 那一格整字段不写，不许拿别的日期顶上（§13a） */
-const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website', revised, date, ogCard } = Astro.props;
+const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website', revised, date } = Astro.props;
 /* 绝对地址：社交卡与 og:url 拿的是访客之外第三双眼睛看到的 URL，相对路径在那边不成立。
    Astro.site 现在是占位域名（§16），改了 astro.config.mjs 这两行跟着变，不另抄一份 */
 const canonical = new URL(Astro.url.pathname, Astro.site);
-/* 逐篇社交卡（§13a 那一格，2026-09-29）：这一页有自己那张卡就用它，没有就干净退回站点级 /og.png。
-   两枚来源，一条优先级：
-   ① `ogCard` prop 是正门——哪一页要指定自己的卡，传一枚站内相对路径（必须以 / 开头）。
-   ② 详情页那一份模板本轮不许动（另一张卡在上面），所以 /essays/<slug>/ 这一格由**本页地址 + 盘上有没有那张图**派生。
-      判据是 existsSync(public/og/<slug>.png)：public/ 整目录被原样拷进 dist/，所以"构建期看得见这枚文件"
-      与"访客取不到它"这两件事不可能同时成立——盘上有就是取得到，盘上没有就是这一篇还没出图。
-   ⚠️ 不许在这里出现裸域名：两枚来源都只给相对路径，绝对地址仍然只由 Astro.site 拼一份（§16 那枚开关）。
-   ⚠️ 缺一张卡**不是**错：那一页退回站点级那张，与改动前逐字节相同。反过来才危险——
-      把没有图的地址写进 og:image，转发出去是一片空白，那比"这张卡长得跟站点那张一样"更糟。 */
-const SITE_CARD = '/og.png';
-function cardFor(pathname){
-  const m = /^\/essays\/([a-z0-9][a-z0-9._-]*)\/$/.exec(pathname);
-  if (!m) return null;
-  return existsSync(join(ROOT, 'public', 'og', `${m[1]}.png`)) ? `/og/${m[1]}.png` : null;
-}
-if (ogCard !== undefined && ogCard !== null && !ogCard.startsWith('/')) {
-  throw new Error(`Layout.astro 的 ogCard prop 只吃站内相对路径，收到 "${ogCard}"——绝对地址一律由 Astro.site 拼一份（§16），这里不许出现第二处域名`);
-}
-const ogImage = new URL(ogCard || cardFor(Astro.url.pathname) || SITE_CARD, Astro.site);
+const ogImage = new URL('/og.png', Astro.site);
 /* 站名从字面量提成变量：og:site_name 与 JSON-LD 的 WebSite.name 吃同一枚值（§13a）。
    ⚠️ 只折了这两处消费——下面那条 rss 的 title、各页页题尾巴上的 ' · mistwood' 还各自写着，散在本卡不许碰的文件里 */
 const SITE_NAME = 'mistwood';
