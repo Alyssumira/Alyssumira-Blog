@@ -149,6 +149,40 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 .reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); transition-delay:calc(var(--cascade,0) * 80ms); }
 .reveal.in{ opacity:1; transform:none; }
 
+/* ============ 长分隔线的两端渐隐（§9 那一格，2026-09-29）============ */
+/* 均匀 1px 实线是机器画的。手工画的线两端轻——笔抬起来那一段墨少了。
+   ⚠️ 两步的顺序不许倒：先把线画进伪元素，再**只对伪元素**加 mask。`mask-image` 罩的是整个元素盒，
+   而这四枚宿主的边框和文字在同一个盒子里（`.colophon` 的两栏档案表、`.footnotes` 的注文、
+   `.post-nav` 两枚链接标题、`.essay-index li` 的标题行）——直接罩宿主就是让那些字跟着两端一起淡掉。
+   ⚠️ 四枚宿主各自留一条 `border-top:1px solid transparent` 占位（`mistwood.css:487` 那个手法）：
+   把边框直接删掉会在每一行上少掉 1px 高度、目录那几行会逐行往上漂。占位 border 留下了盒子，
+   但它同时把 **padding box** 的顶往下推了 1px（绝对定位的包含块正是 padding box），
+   所以线必须写 `top:-1px` 才回到原来那根边框占的那一行。
+   ⚠️ 这条不是推演，是量出来的：第一版写的是 `top:0`，整幅差分当场报出"每一行只有 y(线+1) 一行变了、
+   y(线) 一行从线变回底"＝一根线整体下移一行的签名（`about-1440x900-light .colophon`：改前线在 y1008
+   L=0.743371、改后 y1008=0.853922 变回底而 y1009=0.743371 长出线，逐行 Δ 在 1008 是 +111.12e-3、
+   在 1009 是 −111.12e-3）。改成 `top:-1px` 之后两侧落进同一行，那个成对的 ± 才消失。
+   `:last-child` 的下沿那根同一个方向，写 `bottom:-1px`。
+   ⚠️ 探出 padding box 的这 1px 不会被裁：四枚宿主都没有 `overflow:hidden`（`body{overflow-x:hidden}` 只管横向）。
+   ⚠️ 这一条归 `base.css`：四枚宿主跨 `mistwood.css` / `essay.css` 两份表，只有这一份全站加载（§17
+   "一枚规则只住在一个地方"）。同一个 64 写在这里一处，不复制到各宿主那份表里去。
+   ⚠️ `black` 在这里是 mask 的 **alpha 通道**，不是画布上的墨——§2.2 那句"绝不纯黑"管的是可见墨。
+   两条前缀都要写，产物里两条都在（§1 预算表末行那条反直觉事实，§9 第 10 条本轮复证）。
+   ⚠️ `.post-nav` 是 `display:flex`：摘掉这里的 `position:absolute`，这枚 `::before` 就变成**第三枚
+   flex 项目**，`justify-content:space-between` 会把左右两枚链接重新挤一遍。
+   ⚠️ 打印档在下面 §19 那一节里把这一整组撤掉（纸上退回均匀实线，灰度不可信），不是忘了。 */
+.colophon::before,
+.footnotes::before,
+.post-nav::before,
+.essay-index li::before,
+.essay-index li:last-child::after{
+  content:""; position:absolute; left:0; right:0; height:1px; background:var(--line);
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,black 64px,black calc(100% - 64px),transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,black 64px,black calc(100% - 64px),transparent 100%);
+}
+.colophon::before,.footnotes::before,.post-nav::before,.essay-index li::before{ top:-1px; }
+.essay-index li:last-child::after{ bottom:-1px; }
+
 /* ============ 移动端：导航壳在窄屏收起时钟（§11）============ */
 /* ⚠️ 只有 `.nav-clock` 归并了。同一条媒体查询里的 `.nav{gap;padding}` 两份表**字面取值不同**
    （子页 9px 14px / 首页 9px 16px），留两份是分层不是漂移。
@@ -263,6 +297,19 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   html .post-body h2::before{ background:none; height:0; border-top:1px solid var(--moss); }
   html .post-body blockquote::before{ background:none; width:0; border-left:1px solid var(--moss); }
 
+  /* ---- §9 那批两端渐隐的封口线：纸上**不**渐隐，退回改动前那根均匀实线 ---- */
+  /* 两条理由，任一条都足够：① mask 的坡道是一段 **alpha 斜坡＝灰度**，而 §19.4 开头刚判过"灰度在纸上
+     不可信"（`--ink-3` 对纸白只有 2.55:1，差的激光机能让它彻底消失＝丢信息），淡出去的那两头正是最可能
+     被吃掉的一段；② 伪元素那根线是 `background:` 画的，而这一节"纸本身：不给它任何面"的口径就是
+     纸上留下的每一样都不靠背景表达（同上面那条"章记号从面改由边画"是同一个病）。
+     所以这里不是另起一套打印规格，是把上面那一组**整体 undo**：撤掉伪元素（`content:none`，
+     与 `essay.css:193` 那枚 `.fn-title::before` 同一手法），再把那枚 1px 占位 border 的颜色填回来。
+     ⚠️ `html footer.print-foot` 那条页脚线一个字不碰——它是"这张纸出自哪儿、是哪一篇"的收据行，
+     不是版面分隔线，而且它本来就画在 border 上、没有伪元素可撤。 */
+  html .colophon::before, html .footnotes::before, html .post-nav::before,
+  html .essay-index li::before, html .essay-index li:last-child::after{ content:none; }
+  html .colophon, html .footnotes, html .essay-index li{ border-top-color:var(--line); }
+  html .essay-index li:last-child{ border-bottom-color:var(--line); }
   /* ---- 链接：只把外链的 URL 带到纸上（§19.2）---- */
   /* 站内链接不附——纸上的 `/essays/xxx/` 既点不动、也不是读者能核对的东西，附一条同站地址是噪音。
      ⚠️ 判据是 `href^="http"`，所以将来 `SITE` 换成真域名之后有人写站内全址会被一起附上，

@@ -185,7 +185,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
 .post-body sup.fnref a{ color:var(--moss-ink); text-decoration:none; }
 .post-body sup.fnref a:hover{ text-decoration:underline; }
 .post-body sup.fn-missing{ color:var(--ink-3); }   /* 门禁会拦下不配对的引用，这里只兜底不崩版式 */
-.footnotes{ margin-top:72px; padding-top:28px; border-top:1px solid var(--line); }
+.footnotes{ position:relative; margin-top:72px; padding-top:28px; border-top:1px solid transparent; }
 .footnotes .fn-title{
   font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:500; letter-spacing:.14em;
   color:var(--ink-3); margin:0 0 18px;
@@ -241,7 +241,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
 /* 上下篇：大号文字链接，同页脚语言 */
 .post-nav{
   max-width:680px; margin:14vh auto 0; display:flex; justify-content:space-between; gap:32px;
-  border-top:1px solid var(--line); padding-top:48px;
+  position:relative; border-top:1px solid transparent; padding-top:48px;
 }
 .post-nav a{
   font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:22px; font-weight:600;

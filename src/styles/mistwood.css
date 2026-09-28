@@ -312,8 +312,8 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   color:var(--ink-2); margin-bottom:6px;
 }
 .essay-index{ list-style:none; margin:0 0 24px; padding:0; }
-.essay-index li{ border-top:1px solid var(--line); }
-.essay-index li:last-child{ border-bottom:1px solid var(--line); }
+.essay-index li{ position:relative; border-top:1px solid transparent; }
+.essay-index li:last-child{ border-bottom:1px solid transparent; }
 .row{
   display:flex; align-items:baseline; gap:24px; padding:26px 0;
   transition:transform .5s cubic-bezier(.22,1,.36,1);
@@ -542,7 +542,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 /* ============ 关于页：站点档案 colophon ============ */
 /* 每一行都能从仓库里复算，所以这里没有"访问量"。整块用一条发丝线封口，而不是再立一张卡：
    colophon 在印刷书里就是书页末尾那几行小字，它不该比正文更像界面。 */
-.colophon{ margin-top:8px; padding-top:30px; border-top:1px solid var(--line); }
+.colophon{ position:relative; margin-top:8px; padding-top:30px; border-top:1px solid transparent; }
 .col-title{ display:flex; align-items:baseline; gap:10px; font-size:18px; font-weight:600; }
 .col-title span{
   font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-3);
