@@ -132,8 +132,17 @@ const PHASES = ['dawn', 'day', 'dusk', 'night'], MOONS = ['*', 'full'];
 
 const args = process.argv.slice(2);
 const { per, light, dark, lightFn, darkFn } = readSheets();
-/* 基准板读不到就别往下算了：没有 --bg-base 的话后面每一格都是 NaN，
-   而 NaN 与"达标"在一张打印表里长得太像（§16 那一串空转教训） */
+/* 防空转闸（放在所有表之前，免得"没扫到东西"长得像"扫过且全绿"）：
+   ① 基准板读不到底 —— 后面每一格都是 NaN；
+   ② base.css 里一枚色板令牌都没扫到 —— 这一关没东西可比。
+      注意它和 ① 是两件事：把色板搬回 mistwood.css 也能过 ①（基准板是三份表合并读的），
+      所以必须有这一条守着"真值确实在 base.css"。 */
+if (per.length < 2){ console.log(`✗ 只扫到 ${per.length} 份样式表，"一处真值"这条判据正在空转`); process.exit(1); }
+{
+  let n = 0;
+  for (const p of per) if (p.file === 'base.css') for (const b of p.blocks) n += Object.keys(b.toks).length + Object.keys(b.fn).length;
+  if (!n){ console.log('✗ base.css 里一枚色板令牌都没扫到 —— 双表漂移判据正在空转'); process.exit(1); }
+}
 for (const [n, t] of [[':root', light], ['html[data-theme="dark"]', dark]])
   if (!t['--bg-base'] || !t['--bg-top']){ console.log(`✗ 读不到 ${n} 的 --bg-base / --bg-top —— 色板闸正在空转（base.css 是不是没被扫到？）`); process.exit(1); }
 const themes = [['亮色', light], ['暗色', dark]];
@@ -191,7 +200,7 @@ const BASE_SET = {
   'html[data-phase="night"][data-theme="light"]': ['--bg-base', '--bg-top', '--shadow'],
   'html[data-theme="dark"][data-moon="full"]': ['--shadow'],
 };
-let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0;
+let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingKeys = 0, needTotal = 0;
 {
   const table = new Map();
   for (const { file, blocks } of per)
@@ -207,6 +216,7 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0;
   for (const [id, hits] of table){
     const files = [...new Set(hits.map(h => h.file))];
     if (files.length < 2) continue;
+    dupKeys++;
     console.log(`  ✗ ${id} 在 ${files.length} 份表里各声明了一次：` + hits.map(h => `${h.file} ${h.v}`).join(' vs '));
     drift++;
   }
@@ -214,17 +224,13 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0;
   const inBase = new Map();
   for (const [id, hits] of table) for (const h of hits) if (h.file === 'base.css') inBase.set(id, h);
   for (const [sel, list] of Object.entries(BASE_SET)) for (const k of list){
+    needTotal++;
     const id = `${sel} ${k}`;
-    if (!inBase.has(id)){ console.log(`  ✗ base.css 里没有 ${sel} 的 ${k} —— 基础色板缺了一枚（判据不许靠"删掉就绿"过关）`); drift++; }
+    if (!inBase.has(id)){ missingKeys++; console.log(`  ✗ base.css 里没有 ${sel} 的 ${k} —— 基础色板缺了一枚（判据不许靠"删掉就绿"过关）`); drift++; }
   }
   console.log('\n=== 一处真值（base.css ← mistwood.css / home.css / essay.css）===');
-  if (!basePalette){
-    console.log('  ✗ base.css 里一枚色板令牌都没扫到 —— 双表漂移判据正在空转');
-    process.exit(1);
-  }
-  if (per.length < 2){ console.log(`  ✗ 只扫到 ${per.length} 份样式表，"一处真值"这条判据正在空转`); process.exit(1); }
-  console.log(`  ${drift ? '✗ ' + drift + ' 处分叉' : '✓'} base.css 集中了 ${baseHex} 枚 hex + ${baseRgba} 枚含 rgba() 的色板令牌（面/影/纱），` +
-    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 0 处、基础板 ${Object.values(BASE_SET).reduce((n, a) => n + a.length, 0)} 枚全在位`);
+  console.log(`  ${drift ? '✗ 这一关没过' : '✓'} base.css 集中了 ${baseHex} 枚 hex + ${baseRgba} 枚含 rgba() 的色板令牌（面/影/纱）；` +
+    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 ${dupKeys} 处、基础板 ${needTotal - missingKeys}/${needTotal} 枚在位`);
 }
 
 /* ---------- ② 时段 / 月相块 + ③ 方向光：随时间变的色板与照度也要过闸 ---------- */
