@@ -682,12 +682,18 @@ if (SELFTEST) {
   const absent = CELL_IDS.filter(id => !CELLS.some(c => c.id === id));
   const cell7 = CELLS.find(c => c.id === '⑦');
   const pre = cell7 ? runCell(cell7, REAL, true) : { asserted: 0, failed: ['登记表里没有 ⑦ 那一格（守登记表的那格自己没了）'] };
-  const preRed = pre.failed.length + absent.length;
+  /* 前置的第二半：把每一格在**真数据**上再跑一遍，要求全绿。少了这一半，`--selftest` 只会验"反例有没有
+     力气"，而 shipped 判据本身被改坏时它照样 exit 0（M3 实测到：日常那一跑红了、selftest 却还是绿的）。
+     两半合起来才是"这一跑是 check 的超集"——反例证明判据有牙，真实那一跑证明牙还咬在被测物上。 */
+  const onReal = CELLS.filter(c => c !== cell7).map(c => [c, runCell(c, REAL, true)]).filter(([, r]) => r.failed.length || !r.asserted);
+  for (const [, r] of onReal) for (const m of r.failed) fail(`selftest 前置（真实数据那一跑）：${m}`);
   for (const m of pre.failed) fail(`selftest 前置：${m}`);
   if (absent.length) fail(`selftest 前置：CELL_IDS 要求 ${absent.join(' ')}，登记表里没有这一格`);
+  const preRed = pre.failed.length + absent.length + onReal.length;
   if (preRed) {
     for (const m of pre.failed.slice(0, 3)) console.log(`  ✗ 前置：${m}`);
-    console.log(`  ⚠️ 登记表自己就不齐 —— 下面每一格朝窄侧若报红，那是连锁，不是那一格的错`);
+    for (const [c, r] of onReal.slice(0, 3)) console.log(`  ✗ 前置：${c.id} 在真实数据上${r.asserted ? `红了 ${r.failed.length} 条` : '一个断言都没跑'} —— ${r.failed[0] || 'asserted=0'}`);
+    console.log(`  ⚠️ 登记表或 shipped 判据自己就不对 —— 下面每一格朝窄侧若报红，那是连锁，不是那一格的错`);
   }
   const missing = [];
   let contraRan = 0, narrowRan = 0;
