@@ -300,7 +300,7 @@ html[data-revisit] .hero-watch{ animation-delay:.9s; }
   .home-note time{ padding-top:0; }
 }
 
-/* ============ 320px 那一档：只收布局量，与 `mistwood.css` 同值 ============ */
+/* ============ 320px 那一档：只收布局量与胶囊自己那枚上限，与 `mistwood.css` 同值 ============ */
 /* ⚠️ 实测：首页在 ≤720 生效的 `.nav` padding 一直是 **14px**、不是下面这条之上的 16px——
    Astro 把 `Layout.css`（= base + mistwood）排在页面 CSS 之后，同权重下后写的赢。
    所以规范 §17 那句"窄屏 `.nav` padding 首页 9px 16px / 子页 9px 14px，是版面不是漂移"
@@ -308,9 +308,13 @@ html[data-revisit] .hero-watch{ animation-delay:.9s; }
    这一档**照写一份**不是为了现在生效，是为了那份顺序哪天翻过来（§8.8 早就点名"那是运气不是设计"）
    时首页不会一个人退回 16px——那正是"同一规则两份文件各一份、只改了一份"的老形状。
    `.nav-links` 不在这里写：它全家只住 `mistwood.css`（上面 171 行那条删副本的注释就是这件事），
-   首页的胶囊宽度本来就由那一份管。gap 10→8 落在那边。 */
+   首页的胶囊宽度本来就由那一份管。gap 10→8 落在那边。
+   ⚠️ `max-width` 这一枚**两份都写**（值与 `mistwood.css` 逐字符相同，来历与取舍写在那边的注释里）：
+   它改的是胶囊离视口边的地板（16 → 10），与 32px 一样是 `.nav` 私有的——内容区留白走 `.hero` /
+   `.home-lower` 的 `padding:0 8vw`，不共享这个常数。首页这条现在被 `Layout.css` 的排列顺序压住
+   （和 padding 那一份同样的运气），留着它就是为了顺序哪天翻过来时首页不一个人退回旧档。 */
 @media (max-width:340px){
-  .nav{ padding:9px 12px; }
+  .nav{ padding:9px 12px; max-width:calc(100vw - 20px); }
 }
 
 /* ============ 减弱动态偏好：落到终态，一个循环都不留（§1 预算表末行）============ */
