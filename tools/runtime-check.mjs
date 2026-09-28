@@ -193,6 +193,27 @@ const toUrl = p => {
 const PAGES = htmlFiles.map(p => ({ file: p, url: toUrl(p) })).sort((a, b) => a.url.localeCompare(b.url));
 if (!PAGES.length) die(`${DIST} 里一份 HTML 都没有`, '  dist/ 空＝build 没产出＝断言环节根本没走到，不许算过');
 
+/* ---------- 1b. 正文结构对账（不碰浏览器）----------
+   build 全绿 ≠ 正文成了形。这一格盯的是"整篇塌成一枚 <p>"那类事故：切块用 /\n{2,}/，而 `core.autocrlf=true`
+   的 checkout 会把稿件落成 CRLF（'\r\n\r\n' 里两枚 '\n' 不相邻）⇒ 那时 build 一点不红，三篇稿子全成一段、
+   '## ' 以字面量上屏（2026-09-28 在 worktree 里实测到，规范 §16）。
+   ⚠️ 尺子不许走渲染器：拿 renderMd 的输出去对 renderMd 的输出，渲染器塌了两边一起塌，正好互相赦免。
+   所以期望值从**源码行首的 '## '** 独立数出来（这条读法对行尾天然免疫：'^' 只看 '\n' 之后）。
+   ⚠️ 产物侧要摘掉脚注那枚标题：footnotes() 发的是 '<h2 class="fn-title">注</h2>'（markdown.js:85），
+   今天三篇都没写脚注所以朴素计数恰好相等——但有人加一枚 [^1] 的那天，不摘的尺子就会假红。 */
+const POSTS_DIR = join(ROOT, 'src', 'content', 'posts');
+const postFiles = existsSync(POSTS_DIR) ? readdirSync(POSTS_DIR).filter(f => /\.md$/i.test(f)).sort() : [];
+if (!postFiles.length) problems.push(`正文结构对账没跑：${POSTS_DIR} 里一篇 .md 都没有 ⇒ 这一格判据空转（读不到稿件不算过）`);
+for (const name of postFiles) {
+  const slug = name.replace(/\.md$/i, '');
+  const out = join(DIST, 'essays', slug, 'index.html');
+  if (!existsSync(out)) { problems.push(`${slug}：源码有稿而 dist/essays/${slug}/index.html 不在 ⇒ 这一页根本没构建出来，结构对账无从谈起`); continue; }
+  const want = (readFileSync(join(POSTS_DIR, name), 'utf8').match(/^## /gm) || []).length;
+  const got = (readFileSync(out, 'utf8').match(/<h2\b[^>]*>/g) || []).filter(t => !/fn-title/.test(t)).length;
+  if (got !== want) problems.push(`${slug}：源码有 ${want} 枚行首 "## "，产物里只有 ${got} 个 <h2> ⇒ 块级结构在渲染器里塌了（切块口径见 markdown.js:121；成段塌成一枚 <p> 是最常见的形状）`);
+  else notes.push(`结构对账 ${slug}：源 ${want} 枚 "## " ＝ 产物 ${got} 个 <h2> ✓（fn-title 那枚已摘除；全绿时也要看得见这两枚数，否则"没匹配到"与"全过"长得一样）`);
+}
+
 /* ---------- 2. 浏览器 ---------- */
 const EDGE_CANDIDATES = [
   opt('edge'),

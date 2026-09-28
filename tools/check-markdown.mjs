@@ -146,4 +146,10 @@ assert.equal(safe('  ##weird id##  '), 'weird-id');
 assert.equal(safe('注 一'), '注-一');
 assert.equal(safe('x'.repeat(50)).length, 32, 'ids are capped so they cannot blow up the anchor');
 
-console.log('\nmarkdown 3 OK  ghost-ref + unicode-id + code-literal + hyphen-quote');
+/* 行尾不许改产物：`core.autocrlf=true` 的机器上 `git clone` 会把稿件落成 CRLF，而切块认的是 /\n{2,}/
+   （'\r\n\r\n' 里两枚 '\n' 不相邻）⇒ 不归一就整篇塌成一枚 <p>、'## ' 字面上屏，而 build 一点不红。
+   2026-09-28 在 worktree 里实测到（规范 §16）。判据取"两份产物逐字节相同"而不是"章还在"：
+   前者连"塌成两段"这种半成品形状也拦得住，且它钉的是**行为**而不是某一枚标签。 */
+assert.equal(renderMd(md.replace(/\n/g, '\r\n')), html, 'CRLF input must render byte-identical to LF');
+
+console.log('\nmarkdown 3 OK  ghost-ref + unicode-id + code-literal + hyphen-quote + crlf-parity');

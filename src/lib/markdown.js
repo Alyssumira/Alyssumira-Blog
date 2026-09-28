@@ -118,7 +118,12 @@ function quoteMd(t){
        + (who ? `<footer>${inlineMd(who[1].trim())}</footer>` : '') + '</blockquote>';
 }
 
-function renderMd(md){             /* 块级：段落 / H2 / H3 / 列表 / 引用 / 分隔线 / 图片行（整段是图、图包在链接里也算） */
+function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引用 / 分隔线 / 图片行（整段是图、图包在链接里也算） */
+  /* 行尾不许是输入的一部分：下面整份解析器以 '\n' 为唯一行分隔（/\n{2,}/ 切块、split('\n') 拆引用），
+     而 `core.autocrlf=true` 的机器上 `git clone` 会把稿件落成 CRLF —— 那时 '\r\n\r\n' 里两个 '\n' 不相连，
+     一篇稿子塌成一整枚 <p>、'## ' 以字面量上屏，而 build 全绿。new-post.mjs 的 read() 早已为同一个坑
+     归一成 LF，渲染器漏了：检查归一、渲染不归一 ⇒ 门禁绿得恰恰因为它赦免了同一件事。 */
+  const md = String(md0).replace(/\r\n/g, '\n');
   fnDefs.clear(); fnOrder.length = 0; anchored.clear(); sn.n = 0; allowRefs = true;
   /* 两趟：脚注定义习惯写在文末，可引用在开头——先收完定义再渲染，否则第一处引用会当成缺号 */
   const blocks = [];
