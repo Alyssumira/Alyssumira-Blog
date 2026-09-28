@@ -815,6 +815,10 @@ if (ONLY !== 'node'){
 
       cell('⑦', '逐档几何：胶囊回到七项的账 + 入口那一行与面板在视口之内', () => {
         let n = 0, thin = null;
+        /* §11 实测出来的**出盒破口点**（304 档 −0.52 / 303 档 +0.48 两端夹出来的那个数）。
+           它住在判据里是为了让下一轮改窄屏那一档时**必须同时改这里**：上限从 `calc(100vw-20px)`
+           挪走，破口点就跟着挪，那一档以下的容差就不再是 3.48。 */
+        const NAV_BREAK = 303.48;
         /* ⚠️ 逐档**独立记账**，不是一枚 assert 就把整格炸掉：assert 一抛，后面几档的读数跟着丢，
            而这一格的用途恰恰是"从哪一档开始坏"（找 372 与 303.48 那两个破口点时被这个坑卡过两回）。
            判据照旧逐枚计数，只是收拢成一张表，末了统一红。 */
@@ -855,15 +859,29 @@ if (ONLY !== 'node'){
           eq(o.nav_overflow.scroll, o.nav_overflow.inner,
             `${tag} documentElement.scrollWidth=${o.nav_overflow.scroll} ≠ innerWidth=${o.nav_overflow.inner} ⇒ 整页横向溢出`);
           ok(o.nav.left >= -0.5 && o.nav.right <= o.width + 0.5, `${tag} 胶囊自己在 ${o.nav.left}..${o.nav.right}，视口只有 ${o.width} ⇒ 定位参照物就出界了`);
-          ok(o.nav_overflow.first >= o.nav.left - 0.5 && o.nav_overflow.last <= o.nav.right + 0.5,
-            `${tag} 那一排占 ${o.nav_overflow.first}..${o.nav_overflow.last}，玻璃是 ${o.nav.left}..${o.nav.right} ⇒ 东西从玻璃边上探出去了`);
-          /* §11 那一格签的是**两条**判据："内容完整落在胶囊内"**且**左右内边距差 ≤1px"。
-             ⚠️ 对称那一条只在 ≤720 判（那一档 `.nav-clock` 整个 display:none，那一排是胶囊里唯一的内容）；
-             桌面档改判"右内边距仍是签署的 22 + 1px 描边 = 23"。 */
-          if (w <= 720) ok(Math.abs(insetL - insetR) <= 1,
-            `${tag} 胶囊左右内边距 ${insetL.toFixed(2)} / ${insetR.toFixed(2)}（差 ${Math.abs(insetL - insetR).toFixed(2)}px > 1）⇒ 玻璃被吃到一边，§11 那条"对称"的判据坏了`);
-          else ok(Math.abs(insetR - 23) <= 1,
-            `${tag} 胶囊右内边距 ${insetR.toFixed(2)}，桌面签署的是 padding 22 + 1px 描边 = 23 ⇒ 那一排与玻璃边的关系变了`);
+          /* ⚠️ "内容完整落在玻璃内"与"左右内边距对称"这两条**不能对每一档都按 0 判**。
+             §11 在那一格签的是三句话：胶囊不折行、不减项（三条出路都预先否掉）、上限
+             `calc(100vw-20px)`。那三句在 **303.48 以下推不出 0**——那一格的实测账（这里照抄，不是新造的数）：
+             `.nav-links` 270.48、胶囊需要 296.48、破口点 303.48、**300px 档出盒 +3.48**。
+             ⇒ 300 那一档的"正确读数"就是 +3.48：判它 ≤0 等于逼下一轮去动 §11 已经否掉的三条出路之一，
+             而上一轮的写法确实就是这么红的——**红的是判据自己**（它比签署的规范更严，规范里那半档的账它没读进来）。
+             所以破口点以下改成**钉签署值**：出盒必须恰好 3.48、左内边距必须仍是 padding+描边（右边距被那条
+             恒等式 `insetL + insetR = 玻璃宽 − 内容宽` 唯一确定，不必再判一遍）。多一丝就是项数 / 字号 /
+             字距动了，这一格当场红——比原来那种"按 0 判"其实咬得更紧。 */
+          const over = +(o.nav_overflow.last - o.nav.right).toFixed(2);
+          if (w < NAV_BREAK){
+            ok(Math.abs(over - 3.48) <= 0.01, `${tag} 视口在破口点 ${NAV_BREAK} 以下，出盒却是 ${over}（§11 签署 +3.48）⇒ 那一排比 296.48 的需要量还宽：导航项数 / 字号 / 字距动了`);
+            ok(Math.abs(insetL - (o.nav_cs.padL + o.nav_cs.borL)) <= 0.01, `${tag} 出盒那一档的左内边距 ${insetL.toFixed(2)} ≠ padding ${o.nav_cs.padL} + 描边 ${o.nav_cs.borL} ⇒ 连没被挤的那半边也动了，这一档的两笔账都要重开`);
+          } else {
+            ok(over <= 0.5, `${tag} 视口已在破口点 ${NAV_BREAK} 之上，那一排占 ${o.nav_overflow.first}..${o.nav_overflow.last} 却仍探出玻璃（玻璃 ${o.nav.left}..${o.nav.right}、出盒 ${over}）`);
+            /* §11 那一格签的是**两条**判据："内容完整落在胶囊内"**且**左右内边距差 ≤1px"。
+               ⚠️ 对称那一条只在 ≤720 判（那一档 `.nav-clock` 整个 display:none，那一排是胶囊里唯一的内容）；
+               桌面档改判"右内边距仍是签署的 22 + 1px 描边 = 23"。 */
+            if (w <= 720) ok(Math.abs(insetL - insetR) <= 1,
+              `${tag} 胶囊左右内边距 ${insetL.toFixed(2)} / ${insetR.toFixed(2)}（差 ${Math.abs(insetL - insetR).toFixed(2)}px > 1）⇒ 玻璃被吃到一边，§11 那条"对称"的判据坏了`);
+            else ok(Math.abs(insetR - 23) <= 1,
+              `${tag} 胶囊右内边距 ${insetR.toFixed(2)}，桌面签署的是 padding 22 + 1px 描边 = 23 ⇒ 那一排与玻璃边的关系变了`);
+          }
           /* ---- 入口那一行：新宿主装不装得下 ---- */
           if (o.row.white_space === 'nowrap') ok(o.row.scroll_w <= o.row.client_w + 0.5,
             `${tag} 那一行是 nowrap 却溢出内容盒 ${o.row.nowrap_overflow}px ⇒ 溢出的那半截被 body{overflow-x:hidden} 裁掉，裁的正是入口本身（点不到的入口比出玻璃的入口更坏）`);
