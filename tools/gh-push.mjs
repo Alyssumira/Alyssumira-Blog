@@ -225,8 +225,12 @@ for (const local of commits) {
     author: { name: an, email: ae, date: aI },
     committer: { name: cn, email: ce, date: cI },
   });
-  /* commit sha 允许不同：GitHub 会把 author/committer 日期规范化（+08:00 → Z），
-     而日期是提交对象的一部分 ⇒ sha 会变、内容不变。记一笔，不算失败。 */
+  /* commit sha 允许不同，但**成因不是日期规范化**（这句错过：实测过远端 sha 与本地逐位相同的推送，
+     比如 33a6b40 那次——若 GitHub 真把 +08:00 改写成 Z，那一枚就不可能相等）。真正的成因只有一个：
+     **parent 不一样**。本脚本整链线性化（每枚只挂一个 parent），本地历史一旦有过并行分支或 merge
+     commit，摊平点之后每枚的 parent 都换了 ⇒ sha 全变；而从这里起，之后每一枚都挂着远端那一串
+     sha 作父，所以差异会一路继承下来，哪怕后来的历史完全是线性的。
+     ⇒ 判"推上去没有"永远看**树 sha**（上面那条硬判据），别看提交 sha。 */
   if (commit.sha !== local) drift.push(`${local.slice(0, 7)} → ${commit.sha.slice(0, 7)}`);
   console.log(`  tree ${tree.sha.slice(0, 7)} 与本地一致 · commit ${commit.sha.slice(0, 7)}`);
   parentSha = commit.sha;
@@ -260,5 +264,6 @@ const extra = remoteBlobs.filter(t => !want.some(w => w.path === t.path));
 console.log(`远端树复验：本地 ${want.length} · 远端 ${remoteBlobs.length} · 不符 ${bad.length} · 多出 ${extra.length}`);
 bad.forEach(b => console.log('  ✗ ' + b.path));
 extra.forEach(x => console.log('  ? 远端多出 ' + x.path));
-if (drift.length) console.log('⚠️ 提交 sha 与本地不同（日期被 GitHub 规范化，内容不受影响）：\n   ' + drift.join('\n   '));
+if (drift.length) console.log(`⚠️ ${drift.length} 枚提交 sha 与本地不同（parent 被线性化过、一路继承；` +
+  `内容不受影响——每枚都验过 tree 与本地逐位相同，判推送成没成只看树 sha）：\n   ` + drift.join('\n   '));
 process.exitCode = bad.length || extra.length ? 1 : 0;
