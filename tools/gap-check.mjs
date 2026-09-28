@@ -263,7 +263,6 @@ if (!disk.length){ console.log('✗ 五份样式表里一枚垂直间距都没�
   const files = new Set(disk.map(d => d.file));
   if (files.size < 2){ console.log(`✗ 只扫到 ${[...files].join(', ') || '零'} 一份样式表 —— 判据正在空转`); process.exit(1); }
   if (!REGISTRY.some(r => rkey(r) === NEEDLE_KEY)){ console.log(`✗ 注册表里没有 needle 那一条（${NEEDLE[0]} ${NEEDLE[2]} ${NEEDLE[3]}:${NEEDLE[4]}）—— 这一关的牙被拔了`); process.exit(1); }
-  if (!disk.some(d => key(d) === NEEDLE_KEY)){ console.log(`✗ 盘上扫不到 needle 那一条（${NEEDLE[0]} ${NEEDLE[2]} ${NEEDLE[3]}:${NEEDLE[4]}）—— 扫描器坏了或那一行没了`); process.exit(1); }
 }
 
 /* ---------- 对账 ---------- */
@@ -276,6 +275,8 @@ const unclaimed = [...diskMap.keys()].filter(k => !regMap.has(k));
 const phantom = [...regMap.keys()].filter(k => !diskMap.has(k));
 for (const k of unclaimed){ const d = diskMap.get(k); console.log(`  ✗ 盘上没人认领：${d.file}:${d.line}  ${d.ctx ? d.ctx + ' › ' : ''}${d.sel}  ${d.prop}: …${d.tok}… —— 新增间距要交代它属于哪一档（A 视口比例 / B 行距派生 / C 纯块间距·已上格 / X 在册偏差）`); bad++; }
 for (const k of phantom){ const r = regMap.get(k); console.log(`  ✗ 注册表里有一条盘上找不到：${r[0]}  ${r[1] ? r[1] + ' › ' : ''}${r[2]}  ${r[3]}: ${r[4]}（登记为 ${r[5]}）—— 值被改了或那一枚没了，注册表在过期`); bad++; }
+/* needle 的另一半（放在对账之后，免得它顶掉真正的原因）：盘上扫不到这一枚，要么扫描器坏了、要么那一行没了 */
+if (!disk.some(d => key(d) === NEEDLE_KEY)){ console.log(`  ✗ 盘上扫不到 needle 那一条（${NEEDLE[0]} ${NEEDLE[2]} ${NEEDLE[3]}:${NEEDLE[4]}）—— 扫描器坏了、那一行没了，或者它被人挪下了格子`); bad++; }
 
 /* 判据②：C 档在册值必须是 8 的倍数；X 档必须不是（是就说明它该转 C，两边都得由人签字） */
 const tierCount = { A: 0, B: 0, C: 0, X: 0 };
