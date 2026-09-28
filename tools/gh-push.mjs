@@ -144,12 +144,36 @@ try { remoteHead = (await api('GET', `/repos/${OWNER}/${REPO}/git/ref/heads/${BR
 catch { console.log('  远端还没有这个分支，按空仓处理'); }
 
 const localSet = new Set(commits);
-if (remoteHead && !localSet.has(remoteHead) && !REST.includes('--force')) {
-  throw new Error(`远端 ${BRANCH} 头 ${remoteHead.slice(0, 7)} 不在本地 ${commits.length} 个提交里——那是另一条历史线` +
-    `（先确认没推错仓库）。确实要用本地历史接管请加 --force`);
-}
 /* 远端头落在本地历史的第几个 ⇒ 它及其之前的都不用重推 */
-const resumeFrom = remoteHead && localSet.has(remoteHead) ? commits.indexOf(remoteHead) + 1 : 0;
+let resumeFrom = remoteHead && localSet.has(remoteHead) ? commits.indexOf(remoteHead) + 1 : 0;
+/* 远端头不在本地历史里 ≠ 一定推错了仓库。2026-09-28 实测到第二种成因：本地历史里有过并行分支
+   （两张卡各自从同一个基线出发，其中一条被我快进掉，中间还留过一枚 merge commit），而这个脚本是
+   `rev-list --reverse HEAD` 整链重建、每枚只挂**一个** parent ⇒ 它把那条并行历史摊平成一条，
+   摊平点之后所有提交的 sha 都变了（远端于是持有一串本地没有的 sha）。
+   解法不是 `--force`（那会改写已发布的历史），是**按树认亲**：树只由 blob sha + 路径 + mode 组成，
+   不含日期、不含 parent ⇒ 远端头的树等于本地某一提交的树，就说明那一枚正是"远端已收到的最新内容"，
+   从它的下一枚续推即可。认不出唯一孪生就照旧拒绝——别把"没对上"读成"该强推"。 */
+let seedParent = null;
+if (remoteHead && !localSet.has(remoteHead) && !REST.includes('--force')) {
+  /* ⚠️ 别把这两步写成一行 `(await api(...)?.tree)?.sha`：`await` 的优先级**低于** `?.`，
+     那串实际求的是 `api(...)?.tree`（一个 Promise 上没有 tree 字段）再 await ⇒ 恒为 undefined，
+     于是"孪生 0 个"、报出来的错指哪儿不是哪儿（本轮实测被自己的错信息带去查了一遍历史线）。
+     取字段和判空分两步写，取不到树就单独报一条。 */
+  const remoteCommit = await api('GET', `/repos/${OWNER}/${REPO}/git/commits/${remoteHead}`);
+  const remoteTree = remoteCommit && remoteCommit.tree ? remoteCommit.tree.sha : null;
+  if (!remoteTree) throw new Error(`拿不到远端 ${BRANCH} 头 ${remoteHead.slice(0, 7)} 的树 sha，认亲这一步没法做` +
+    `（不是历史线的问题，是这次 GET 没交出 tree 字段）`);
+  const twin = commits.filter(c => git('rev-parse', `${c}^{tree}`).trim() === remoteTree);
+  if (twin.length !== 1) {
+    throw new Error(`远端 ${BRANCH} 头 ${remoteHead.slice(0, 7)}（树 ${remoteTree.slice(0, 7)}）既不在本地 ${commits.length} 个提交里，` +
+      `也没有唯一的同树孪生（找到 ${twin.length} 个）——那是另一条历史线（先确认没推错仓库）。` +
+      `确实要用本地历史接管请加 --force`);
+  }
+  resumeFrom = commits.indexOf(twin[0]) + 1;
+  seedParent = remoteHead;
+  console.log(`  按树认亲：远端头 ${remoteHead.slice(0, 7)} 的树 == 本地 ${twin[0].slice(0, 7)} 的树（${remoteTree.slice(0, 7)}）` +
+    ` ⇒ 从其后续推 ${commits.length - resumeFrom} 枚，不改写已发布历史`);
+}
 
 try {
   const t = await api('GET', `/repos/${OWNER}/${REPO}/git/trees/${remoteHead || BRANCH}?recursive=1`);
@@ -173,7 +197,7 @@ if (DRY) {
 }
 
 const existing = new Set(commits.slice(0, resumeFrom));
-let parentSha = resumeFrom ? commits[resumeFrom - 1] : null;
+let parentSha = seedParent ?? (resumeFrom ? commits[resumeFrom - 1] : null);
 let headSha = parentSha;
 const drift = [];
 for (const local of commits) {
