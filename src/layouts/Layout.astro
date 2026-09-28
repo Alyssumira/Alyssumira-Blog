@@ -1,13 +1,19 @@
 ---
 import '../styles/base.css';
 import '../styles/mistwood.css';
+import Seo from '../components/Seo.astro';
 import { fonts, FONT_HOST, FONT_FILE_HOST } from '../data/site.js';
 
-const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website' } = Astro.props;
+/* revised / date 只有详情页（src/pages/essays/[slug].astro 那个 <Layout> 标签）会传：其余五页没有 ⇒
+   Seo 那一格整字段不写，不许拿别的日期顶上（§13a） */
+const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website', revised, date } = Astro.props;
 /* 绝对地址：社交卡与 og:url 拿的是访客之外第三双眼睛看到的 URL，相对路径在那边不成立。
    Astro.site 现在是占位域名（§16），改了 astro.config.mjs 这两行跟着变，不另抄一份 */
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL('/og.png', Astro.site);
+/* 站名从字面量提成变量：og:site_name 与 JSON-LD 的 WebSite.name 吃同一枚值（§13a）。
+   ⚠️ 只折了这两处消费——下面那条 rss 的 title、各页页题尾巴上的 ' · mistwood' 还各自写着，散在本卡不许碰的文件里 */
+const SITE_NAME = 'mistwood';
 const links = [
   ['/', '首页', 'home'],
   ['/essays/', '文章', 'essays'],
@@ -32,9 +38,13 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
 <link rel="icon" href="/favicon-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#F2F4EF">
 <meta property="og:type" content={type}>
-<meta property="og:site_name" content="mistwood">
+<meta property="og:site_name" content={SITE_NAME}>
 <meta property="og:locale" content="zh_CN">
 <meta property="og:url" content={canonical.href}>
+<!-- 规范链接：trailingSlash 是 'ignore'（astro.config.mjs:11），同一篇稿子的 /essays/foo 与 /essays/foo/ 各自回 200，
+     等于给搜索引擎留了两枚地址却没有一句话说明哪一枚是那一本——这一枚就是那句话。
+     值就是上面那个 URL 对象，不在这里再算第二个，也不许往别处抄第三份绝对地址（同一页只许一个真值，§16） -->
+<link rel="canonical" href={canonical.href}>
 <meta property="og:title" content={title}>
 <meta property="og:description" content={desc}>
 <meta property="og:image" content={ogImage.href}>
@@ -44,6 +54,9 @@ const FONTS = `${FONT_HOST}/css2?${fonts.map(f => 'family=' + f.q).join('&')}&di
 <meta name="twitter:title" content={title}>
 <meta name="twitter:description" content={desc}>
 <meta name="twitter:image" content={ogImage.href}>
+<!-- 结构化数据（§13a）：一份 JSON-LD，站点身份 + 详情页那一篇 + 面包屑。它是构建期落的静态 HTML，
+     没有内联脚本、不碰首帧那五枚显示属性的判定（下面那段是全站唯一的内联写者，理由钉在 §16 第四类门禁） -->
+<Seo siteName={SITE_NAME} canonical={canonical} ogImage={ogImage} title={title} desc={desc} type={type} here={here} links={links} revised={revised} date={date} />
 <link rel="preconnect" href={FONT_HOST}>
 <link rel="preconnect" href={FONT_FILE_HOST} crossorigin>
 <link href={FONTS} rel="stylesheet">
