@@ -24,6 +24,15 @@ if (fontFileHost === undefined) {
 }
 export const FONT_FILE_HOST = fontFileHost;
 
+/* 作者名（§13a 结构化数据里 Person 那一格要它）：站名与 GitHub 用户名是同一个字面量，大小写有据——
+   那笔账（账号接口回的 login）登记在 docs/设计规范.md §13 与 about.astro 那枚 const 的注释里。
+   ⚠️ 这一枚是**新增的第二处独立字面量**：首页 `.hero-name`（index.astro，本轮在禁碰清单里）还写着自己的份，
+   关于页那枚 const 只是把它藏在 URL 尾巴上。本轮不折它们，只保证 JSON-LD 这一格有出处——
+   下一轮收编时改这里，别在 Seo.astro 里再抄一串。
+   ⚠️ Person 不写 sameAs：那要第二次落 GitHub 那枚地址，而 §13 登记的是"全站只有一处 GitHub 地址"
+   （about.astro:10）。等哪一轮把那枚 const 折进这份文件，sameAs 再挂——别在这里先开第二处真值。 */
+export const AUTHOR = 'Alyssumira';
+
 export const fonts = [
   { name: 'Fraunces',      q: 'Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400' },
   { name: 'Noto Serif SC', q: 'Noto+Serif+SC:wght@400;600;700' },
