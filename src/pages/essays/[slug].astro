@@ -53,5 +53,10 @@ const when = whenOf(post.data.date, post.data.hour);
       {prev && <a href={`/essays/${prev.id}/`}><span>← prev</span>{prev.data.title}</a>}
       {next && <a class="next" href={`/essays/${next.id}/`}><span>next →</span>{next.data.title}</a>}
     </nav>
+
+    <!-- 纸上一页脚（§19.5）：屏幕上 `display:none`，一个像素都不占（`base.css` 的打印段里才亮起来）。
+         日期取这篇的 front matter `date`，与上面 `.post-meta` 同一个 `fmtDate`、同一个入参——
+         打印当日是一个与内容无关的数，纸不许替访客说话（§16 那条"一个页面只许有一个构建时刻"同族）。 -->
+    <footer class="print-foot">mistwood · essays · {fmtDate(post.data.date)}</footer>
   </main>
 </Layout>

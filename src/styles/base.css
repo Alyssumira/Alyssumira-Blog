@@ -148,3 +148,122 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   html{ scroll-behavior:auto; }
   .reveal{ opacity:1; transform:none; }
 }
+
+/* ============ 纸上一页脚（§19.5）：屏幕上它不存在 ============ */
+/* ⚠️ `display:none` 不是"藏起来备着"——它在屏幕上**一个像素都不占**，所以 §9 那条"页脚已撤（2026-09-27）"
+   没有被翻案：这一行只在纸上出现，说的是"这张纸出自哪儿、是哪一篇"，不是屏幕上那块纯色收尾。
+   日期由 `[slug].astro` 用 `fmtDate(post.data.date)` 落成文本节点（构建期真值，与 `.post-meta` 同一个函数同一个入参），
+   **不许改成 CSS 生成日期**：`content` 里能拿到的只有访客时钟，那正是 19.5 否掉的东西。 */
+.print-foot{ display:none; }
+
+/* ============ 打印版式（§19）：纸上只剩字 ============ */
+/* 落点选在 `base.css` 而不是各表末尾，三条理由（视觉口径在 §19，这里只记工程口径）：
+   ① §17 那条分层规则说的是"一枚规则只住在'谁用得到它'的那一层"——打印层同时管 `base` 的 `.grain`/`.reveal`、
+      `mistwood` 的 `.nav`/`.wrap::before`/`body`、`home` 的 `.scene` 一族、`essay` 的 `.post-body`，
+      它比任何一张表都"共同"，拆成四份就是四处可漏；
+   ② 实测（2026-09-28，`dist/essays/slow-frontend/index.html`）link 顺序是 **页面 CSS（`_slug_.css`）→ `Layout.css`**，
+      而 `base.css` 在 `Layout.css` 里排在 `mistwood.css` **之前**——所以"谁写在后面谁赢"这一条在这里
+      对 `body` 是反的、对 `.post-body` 是顺的，两种情况混在一张表里；
+   ③ 不靠顺序靠权重：这一段**每一条选择器都带一个 `html ` 前缀**（权重各加一枚类型），
+      于是它压得过 `mistwood.css` 的 `body{}`、`home.css` 的 `.nav{}`、`essay.css` 的 `.post-body{}`——
+      与打包顺序解耦。§8.8 那句"不加 important 就只能靠 Astro 恰好把 Layout.css 排在页面 CSS 之后才赢——那是运气"
+      管的就是这件事。**要动这一段别把前缀摘掉**：摘掉的那一条会退化成"看谁写在后面"。
+   ⚠️ 另一条硬约束：这一段**一条颜色字面量都不许出现**（§17 的"一处真值"）。所有的色都写成 `var()` 引用，
+      包括"纸上只剩一口墨"那两行派生（见 §19.4）——`palette-check` 看不见 `var()`，所以这一条没有机器牙，
+      是人复核的，这条账登记在 §19.7 未验到第 6 项。 */
+@media print{
+  /* 版心交给 @page：故意不写 size——纸的尺寸是访客的打印机与所在国家的事（§19.6） */
+  @page{ margin:20mm 22mm; }
+
+  /* ---- §19.4 纸上只剩一口墨：派生，零新值 ---- */
+  /* `--paper-ink` 亮色档就是正文墨；夜林那套板子里没有一枚"压在白纸上还读得出的深色"，
+     所以暗色档指回 `--bg-base`（`#0E130D`，这套板子里最深的一枚，而且它带青绿——§12 那条在纸上的对应物）。
+     下面那六枚折叠是"灰度在纸上不可信"（`--ink-3` 对纸白只有 2.55:1，差的激光机能让它彻底消失＝丢信息），
+     层级改由 §3 的字号与字重承担。⚠️ 选择器写 `html[data-theme]` 是为了压过 `html[data-theme="dark"]` 那(0,1,1)一份，
+     同权重比顺序，这一段在文件末尾。 */
+  html[data-theme]{
+    --paper-ink:var(--ink);
+    --ink-2:var(--paper-ink); --ink-3:var(--paper-ink);
+    --moss:var(--paper-ink); --moss-ink:var(--paper-ink);
+    --line:var(--paper-ink); --glass-border:var(--paper-ink);
+  }
+  html[data-theme="dark"]{ --paper-ink:var(--bg-base); }
+
+  /* ---- §19.3 那条致命陷阱：入场在纸上不存在 ---- */
+  /* `.reveal` 起手态是 opacity:0（`base.css:125`），进 `.in` 才亮，而进 `.in` 靠 IntersectionObserver。
+     无 JS / 深链 / 程序化打印时它是 0 ⇒ **印出一片空白**。这里不是"给一个兜底的 .in"，是"纸上没有入场这回事"。
+     ⚠️ 这一条被注释掉之后，`?nojs=1` 那一档的打印截图应当是一片纸白——§19.7 两侧格子的第一格。 */
+  html .reveal{ opacity:1; transform:none; transition:none; transition-delay:0s; animation:none; }
+
+  /* ---- §19.1 撤场清单：氛围层与控件 ---- */
+  /* 颗粒 / 玻璃导航 / 进度线与章节刻度 / 右侧目录 / 首页那两张照片底与纱罩与雾带与灯与萤火 /
+     方向光与那层气 / 盖章按钮 / 上下篇。每一行的理由在 §19.1 那张表里，这里不重抄。 */
+  html .grain,
+  html header.nav, html .settings, html .display,
+  html #progress, html #progress-marks, html #toc,
+  html .scene, html .bg-gradient, html .bg-photo, html .scrim, html .mist-band,
+  html .lantern-rim, html .lantern-glow, html .firefly,
+  html .post-tail, html .post-nav,
+  html .wrap::before, html .page-head::before{ display:none; }
+
+  /* 身后的雾（`essay.css:97-98`）：`--read-fog` 是 site.js 每个滚动帧写一次的，纸上没有那个驱动者，
+     起始值 -9999px 会把整段正文推进"淡到底"那一侧 ⇒ 印出来是一片看不见的字。与上面同族，同一个病。 */
+  html article.post-body{ -webkit-mask-image:none; mask-image:none; }
+
+  /* ---- 纸本身：不给它任何"面" ---- */
+  /* ⚠️ 不设 `print-color-adjust:exact`（§19.4）：纸上留下的每一样都不靠背景表达，所以这一档掉下来的信息量是 0。
+     留 `background-color:transparent` 是给 `background:none` 那一条（它只重置 background-image/position 那一族简写里的
+     某些旧解析差异）兜一道，两条都不引入任何色值。 */
+  html body{ background:none; background-color:transparent; color:var(--paper-ink); }
+
+  /* ---- 版心：屏幕那套宽度与 vh 留白归零（§19.6）---- */
+  /* `.wrap` 的 1120px 与 `8vw`、`.post-body` 的 680px 在纸上没有意义——**纸本身就是那个栏**，
+     唯一的版心是上面那条 `@page` margin。`.post-head` 那 24vh 在打印里是纸面高度的 24%（A4 上约 61mm 空白顶）。
+     ⚠️ 这里只撤几何量，不撤任何字号：19.6 那条"字号一个都不改"是刻意的，
+     改成 pt 就等于给 §3 那套档再造一张要同步维护的第二表。 */
+  html main.wrap{ max-width:none; padding:0; }
+  html article.post-body{ max-width:none; }
+  html header.post-head{ padding:0 0 32px; }
+
+  /* ---- 章记号与引用竖线：同一枚 1px，从"面"改由"边"画（§19.4）---- */
+  /* `box-sizing:border-box`（`base.css:72` 那条全局重置）下 `height:0 + border-top:1px` 与
+     `height:1px + background` 是**同一个 1px 线盒**，32px 宽与 16px 那两段距离一个字没动，
+     只是换了一条"驱动不印背景"也照样出来的通道。竖线同理（`width:0 + border-left:1px`）。 */
+  html .post-body h2::before{ background:none; height:0; border-top:1px solid var(--moss); }
+  html .post-body blockquote::before{ background:none; width:0; border-left:1px solid var(--moss); }
+
+  /* ---- 链接：只把外链的 URL 带到纸上（§19.2）---- */
+  /* 站内链接不附——纸上的 `/essays/xxx/` 既点不动、也不是读者能核对的东西，附一条同站地址是噪音。
+     ⚠️ 判据是 `href^="http"`，所以将来 `SITE` 换成真域名之后有人写站内全址会被一起附上，
+     那条边界登记在 §19.2。现在三篇正文里外链 0 条，这一条规则**没有现役载体**（§19.7 那格用内存改写去证明它出得来）。
+     下划线在纸上不许用 40% 的那档（`essay.css:181` 那个 color-mix）：淡一档就是"这条到底是不是链接"。 */
+  html .post-body a{ text-decoration-color:currentcolor; text-decoration-thickness:1px; }
+  html .post-body a[href^="http"]::after{
+    content:" 〈" attr(href) "〉";
+    font-family:"IBM Plex Mono",monospace; font-size:.72em; letter-spacing:.02em; overflow-wrap:anywhere;
+  }
+
+  /* ---- §19.6 边注回到句间：纸上没有"栏外" ---- */
+  /* 只 undo 到"能读"：撤掉浮进留白那三样（float / clear / width / 那个负 margin / text-align），
+     并把窄屏那对 `（）` 的 `content` 收回来。**不重抄 `essay.css:161-176` 的取值**——
+     重抄一份就是再造一处会漂移的真值（§17 那条同一句话）。 */
+  html .post-body .sidenote{ float:none; clear:none; width:auto; margin:0 2px; text-align:initial; }
+  html .post-body .sn-mark{ float:none; margin:0 2px 0 5px; }
+  html .post-body .sidenote::after{ content:"）"; }
+  html .post-body .sn-mark::before{ content:"（"; }
+
+  /* ---- §19.6 换页控制：这是"只剩字"这一版唯一允许的新增排版规则 ---- */
+  /* 它们管的正是"字怎么分配到页"：孤行/寡行、章名落在页尾、图与脚注被切成两半。 */
+  html .post-body p, html .footnotes li{ orphans:2; widows:2; }
+  html .post-body h2, html .post-body h3{ break-after:avoid; }
+  html .post-body figure.shot, html .post-body figcaption, html .footnotes li,
+  html .post-body blockquote{ break-inside:avoid; }
+
+  /* ---- 纸上一页脚：屏幕上它不存在，这里才亮起来 ---- */
+  /* `mistwood · essays · <文章日期>`——日期是构建期落进 DOM 的文本节点（§19.5），不是打印当日。
+     56px 沿用 `.post-tail` 那条已登记的收尾距离；12px 等宽 + .12em 沿用 `.post-meta` 那一档语言。 */
+  html footer.print-foot{
+    display:block; max-width:none; margin-top:56px; padding-top:16px; border-top:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
+  }
+}
