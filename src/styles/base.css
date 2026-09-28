@@ -213,8 +213,15 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   /* ---- 纸本身：不给它任何"面" ---- */
   /* ⚠️ 不设 `print-color-adjust:exact`（§19.4）：纸上留下的每一样都不靠背景表达，所以这一档掉下来的信息量是 0。
      留 `background-color:transparent` 是给 `background:none` 那一条（它只重置 background-image/position 那一族简写里的
-     某些旧解析差异）兜一道，两条都不引入任何色值。 */
-  html body{ background:none; background-color:transparent; color:var(--paper-ink); }
+     某些旧解析差异）兜一道，两条都不引入任何色值。
+     ⚠️ `transition:none; animation:none` 这一句是**实测抓出来的第二条同族陷阱**（§19.3 的推广）：
+     `mistwood.css` 的 `body` 带着 `transition:background-color .8s, color .8s`，而切到打印媒体这一格，
+     `color` 正是被这一节改值的属性 ⇒ 换墨是一次 0.8s 的过渡。仿真后 350ms 读到的 computed color 是
+     `rgb(30, 35, 28)`（夜林那口墨只走到 93%），不是 `#0E130D`；抢跑得更早就是一行近白的字印在纸上。
+     `.post-body a` 同一个病（`essay.css:182` 那条 0.3s 的 `text-decoration-color`），所以一并掐掉，
+     并且它的选择器多带一枚 `main`——不为别的，就为压过 `essay.css` 那条 (0,1,1) 而不是靠打包顺序。 */
+  html body{ background:none; background-color:transparent; color:var(--paper-ink); transition:none; animation:none; }
+  html main .post-body a{ text-decoration-color:currentcolor; text-decoration-thickness:1px; transition:none; }
 
   /* ---- 版心：屏幕那套宽度与 vh 留白归零（§19.6）---- */
   /* `.wrap` 的 1120px 与 `8vw`、`.post-body` 的 680px 在纸上没有意义——**纸本身就是那个栏**，
@@ -236,8 +243,8 @@ em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
   /* 站内链接不附——纸上的 `/essays/xxx/` 既点不动、也不是读者能核对的东西，附一条同站地址是噪音。
      ⚠️ 判据是 `href^="http"`，所以将来 `SITE` 换成真域名之后有人写站内全址会被一起附上，
      那条边界登记在 §19.2。现在三篇正文里外链 0 条，这一条规则**没有现役载体**（§19.7 那格用内存改写去证明它出得来）。
-     下划线在纸上不许用 40% 的那档（`essay.css:181` 那个 color-mix）：淡一档就是"这条到底是不是链接"。 */
-  html .post-body a{ text-decoration-color:currentcolor; text-decoration-thickness:1px; }
+     下划线在纸上不许用 40% 的那档（`essay.css:181` 那个 color-mix）：淡一档就是"这条到底是不是链接"——
+     改值那一条写在上面"纸本身"那一组里（`html main .post-body a`），连 `transition` 一起掐。 */
   html .post-body a[href^="http"]::after{
     content:" 〈" attr(href) "〉";
     font-family:"IBM Plex Mono",monospace; font-size:.72em; letter-spacing:.02em; overflow-wrap:anywhere;
