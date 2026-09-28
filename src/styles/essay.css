@@ -137,6 +137,28 @@ html[data-focus="1"] .wrap::before{ display:none; }
      量出来的 Δ0（1440×900 与 531×559 两档逐位相同）；不认这条声明的引擎整行丢弃、退回现状，
      没有新颜色、没有新布局分支、稿件也不依赖它 ⇒ 无回退债。Firefox/Safari 本机没验过。 */
   text-autospace:normal;
+  /* 正文数字等宽（§3.2，第九轮）：`0123456789` 在这一层今天落在 **Noto Serif SC 18px**，
+     实测十枚推进宽互异 **6 种**（`1`=8.672 对 `0`=10.219，窄 1.547px）⇒ 这是全站**唯一**一处
+     "数字不齐"真的存在的度量层，所以开关开在这里、不开在 `*`/`body`。
+     ⚠️ 但它今天是一枚**空转的保险**，不是生效的改动：同一枚继承链上 inline 翻 `tabular-nums`
+     vs 不写，`0123456789` 98.703 → 98.703、`2026.09.28` 93.969 → 93.969、`0.8s` 35.203 → 35.203
+     ——**Δ 0.000px**，因为这套 Noto Serif SC 里根本没有 `tnum` 这一档。整套字体栈逐枚量过：
+     Songti SC / STSong / Noto Sans SC / Microsoft YaHei / SimSun / Times New Roman / IBM Plex Mono /
+     monospace 的数字**本来就十枚全等**（无需这枚开关），`serif` 那一档与远程 Noto Serif SC 同值——
+     ⇒ 今天没有任何一条回退路径能让它长牙。它等的是"正文数字落在一枚既给比例数字、又带 `tnum`
+     的字体上"那一天（§3 那档镜像换脸或加脸），那时一个字不用改就自己接上。
+     ⚠️ 与 §3.1 那枚 `text-autospace` 的口径不同，别说混：那枚的牙在**稿子**侧（作者漏打一个空格就触发），
+     这枚的牙在**字体**侧。今天两枚都是 Δ0，但 Δ0 的理由不一样。
+     点名这几处为什么**不**加（都实测过，不是"想当然"）：`.post-meta` 日期（IBM Plex Mono 12px，十枚全等 8.641）、
+     `.post-when` 那行的"改于"（真产物今天**没载体**；注入载体后 computed 是 **Noto Sans SC 14px**、十枚全等 8.063
+     ——注意 `essay.css` 那条注释说它是宋体，computed 不是，这一笔不归这张卡改）、
+     `sup.fnref` 脚注号（IBM Plex Mono `.6em`＝10.8px，全等 6.672）、列表/脚注的 `::marker` 编号
+     （**UA 默认就是 `tabular-nums`**，pre-change 档 computed 读到 `tabular-nums`，外加它是 IBM Plex Mono 10.92px）、
+     `.folio` 门牌 / `.row-side` 日期 / `.row-min` 的 `N min` / `.note time` / `#clock` / `.sec-label`（全族 IBM Plex Mono）、
+     关于页站点档案 `.col-grid dd`（Noto Sans SC 14px，全等）。⇒ 它们要的"等宽数字"已经在手上了。
+     正文这一层之内（`.footnotes ol` 注文 14px、`figcaption` 12px mono、`.post-body code` mono、边注）
+     由这一条继承下去，逐层 computed 读回 `tabular-nums` 的见证物登记在 §3.2。 */
+  font-variant-numeric:tabular-nums;
 }
 .post-body p{ margin-bottom:28px; }
 .post-body h2{
