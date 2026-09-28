@@ -780,7 +780,7 @@ if (SELFTEST) {
     process.exit(1);
   }
   console.log(`\n✓ 跑了 ${contraRan} 枚反例（清单钉死 ${CONTRA_ENTRIES} 枚）覆盖 ${CONTRA_IDS.length} 格、每格至少一枚，全部让对应那格变了红；${narrowRan} 枚朝窄（钉死 ${NARROW_ENTRIES} 枚）都没误红 —— 判据有牙，也没咬错东西`);
-  console.log(`  （这一跑不接进 npm run check：它故意让判据吃坏数据。日常链仍是那四项 + 本工具一次）`);
+  console.log(`  （这一跑不接进 npm run check：它故意让判据吃坏数据。日常链仍是那五项 + 本工具一次）`);
   process.exit(0);
 }
 
