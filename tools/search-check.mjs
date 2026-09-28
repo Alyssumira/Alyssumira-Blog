@@ -432,6 +432,17 @@ out.mq = { narrow720: w.matchMedia('(max-width:720px)').matches, narrow340: w.ma
 const links = d.querySelector('.nav-links'), nav = d.querySelector('.nav');
 out.nav = nav ? { left: r2(nav.getBoundingClientRect().left), right: r2(nav.getBoundingClientRect().right), w: r2(nav.getBoundingClientRect().width) } : null;
 out.links = links ? { left: r2(links.getBoundingClientRect().left), right: r2(links.getBoundingClientRect().right), w: r2(links.getBoundingClientRect().width) } : null;
+/* 入口钮是往胶囊里**加**的一枚盒子（§11 那笔"七项"的账管的是 .nav-links 里面的 5 链接 + 滑杆 + 主题，
+   它现在多了一项）⇒ 这一档要同时回答两件事：整页不许横向溢出、这一排东西不许从玻璃两边探出去。
+   ⚠️ 数的是 .nav-links 的直接子节点，不是 .nav 的：.nav 只有两枚孩子（时钟 + 那一排），
+   而 ≤720 那档时钟整个 display:none，拿 .nav 量会只剩 1 枚有尺寸的节点、min/max 读的是空气。
+   ⚠️ 同样必须先滤掉 display:none 的子节点——那种节点的 rect 是一整排 0，Math.min 会把 0 当成左缘。 */
+const kids = links ? [...links.children].map(c => c.getBoundingClientRect()).filter(r => r.width > 0) : [];
+out.nav_overflow = { scroll: d.documentElement.scrollWidth, inner: w.innerWidth, n: kids.length,
+  first: kids.length ? r2(Math.min(...kids.map(r => r.left))) : null,
+  last: kids.length ? r2(Math.max(...kids.map(r => r.right))) : null,
+  /* 逐枚点名：换行那一档要看得见"哪几枚在第一排、哪几枚在第二排"，只有 min/max 读不出行数 */
+  each: kids.map(r => r2(r.left) + '..' + r2(r.right) + '@' + r2(r.top)) };
 /* 真点开那枚钮：面板由 shipped 的 setOpen 加上 .open / 撤掉 inert，与访客点的是同一条路 */
 d.getElementById('search-toggle').click();
 await new Promise(r => setTimeout(r, 120));
@@ -681,13 +692,28 @@ if (ONLY !== 'node'){
 
       cell('⑦', '面板几何：逐档视口下面板整块在视口内、且真的是"开着"的', () => {
         let n = 0, thin = null;
-        const ok = (a, m) => { n++; assert.ok(a, m); };
-        const eq = (a, b, m) => { n++; assert.equal(a, b, m); };
+        /* ⚠️ 逐档**独立记账**，不是一枚 assert 就把整格炸掉：assert 一抛，后面几档的读数跟着丢，
+           而这一格的用途恰恰是"从哪一档开始坏"（找 372 那个破口点时被这个坑卡了两回）。
+           判据照旧逐枚计数，只是收拢成一张表，末了统一红。 */
+        const bad = [];
+        const ok = (a, m) => { n++; if (!a) bad.push(m); };
+        const eq = (a, b, m) => { n++; if (a !== b) bad.push(m); };
         ok(res.rects.length >= 3, `只跑了 ${res.rects.length} 档视口 ⇒ §11 那一格要的是逐档读数，不是抽查`);
         for (const { w, r } of res.rects){
-          ok(!r.fail, `${w}px 档没交付读数：${r.fail}`);
+          n++;
+          if (r.fail){ problems.push(`⑦ ${w}px 档没交付读数：${r.fail}`); continue; }
           const o = r.json;
-          ok(o && o.panel, `${w}px 档读不到面板 rect`);
+          if (!o || !o.panel || !o.nav || !o.links || !o.nav_overflow){
+            problems.push(`⑦ ${w}px 档读数缺盒子（panel/nav/links/nav_overflow 之一没交回来）⇒ 这一档整行作废`); continue;
+          }
+          const insetL = o.nav_overflow.first - o.nav.left, insetR = o.nav.right - o.nav_overflow.last;
+          o.nav_overflow.insets = [+(insetL.toFixed(2)), +(insetR.toFixed(2))];
+          /* 读数**先登记再判定**（见上面那条）：断言红了也要看得见每一档的数。 */
+          notes.push(`    ${w}px → 面板 x=${o.panel.left}..${o.panel.right}（宽 ${o.panel.w}、y=${o.panel.y}、${o.pos}、open=${o.open} inert=${o.inert} vis=${o.vis}）`
+            + `｜胶囊 ${o.nav.left}..${o.nav.right}、那一排 ${o.nav_overflow.n} 枚占 ${o.nav_overflow.first}..${o.nav_overflow.last}`
+            + `（左右内边距 ${o.nav_overflow.insets.join(' / ')}，.nav-links ${o.links.left}..${o.links.right}）`
+            + '｜逐枚 ' + o.nav_overflow.each.join(' ')
+            + `｜scrollWidth=${o.nav_overflow.scroll}/${o.width}`);
           eq(o.width, w, `${w}px 档实际 innerWidth=${o.width} ⇒ 视口没设上，这一档不算`);
           /* 读了几枚就得判几枚：open/inert/visibility/position/mq 这五枚是驱动脚本真读回来的，
              一条都不判就等于"拍了照没洗"——§14 第 14 格那种"长得像全绿"的小一号版本。 */
@@ -704,6 +730,22 @@ if (ONLY !== 'node'){
              判据按这一句的形状写：胶囊本身必须在视口内，面板必须在视口内——两处任一处出界都红。 */
           ok(o.nav && o.links, `${w}px 档读不到 .nav / .nav-links 的 rect ⇒ 这一档的定位参照物没落地`);
           ok(o.nav.left >= -0.5 && o.nav.right <= o.width + 0.5, `${w}px 档胶囊自己在 ${o.nav.left}..${o.nav.right}，视口只有 ${o.width} ⇒ 定位参照物就出界了`);
+          /* 往胶囊里加一枚钮，§11 那笔"七项"的账就得重算：整页不许横向溢出、内容不许从玻璃两边探出去。 */
+          ok(o.nav_overflow.n >= 2, `${w}px 档只数到 ${o.nav_overflow.n} 枚有尺寸的胶囊子节点 ⇒ 这一档的量具在读空气（藏起来的节点也算进 min/max 是另一种读法，两种都会假红/假绿）`);
+          eq(o.nav_overflow.scroll, o.nav_overflow.inner,
+            `${w}px 档 documentElement.scrollWidth=${o.nav_overflow.scroll} ≠ innerWidth=${o.nav_overflow.inner} ⇒ 整页横向溢出（搜索入口把这档的胶囊挤出去了，§11 那笔账要重开）`);
+          ok(o.nav_overflow.first >= o.nav.left - 0.5 && o.nav_overflow.last <= o.nav.right + 0.5,
+            `${w}px 档胶囊内容占 ${o.nav_overflow.first}..${o.nav_overflow.last}，玻璃是 ${o.nav.left}..${o.nav.right} ⇒ 东西从玻璃边上探出去了`);
+          /* §11 那一格签的是**两条**判据，不是一条："内容完整落在胶囊内"**且**左右内边距差 ≤1px"。
+             只判前一条会漏掉"没出盒、但右侧内边距被吃干净"那种形状——上一格正是为它动的刀
+             （"那 8px 全塌在右内边距上"是他们点名要修掉的病，不是能接受的现状）。
+             ⚠️ 对称那一条只在 ≤720 判：那一档 `.nav-clock` 整个 display:none，那一排是胶囊里唯一的内容，
+             "左右对称"才有意义；桌面档时钟在左边占着，左内边距本来就是 243 那种数（1440 实测），
+             拿对称去判它就是拿量具判不存在的事——桌面档改判"右内边距仍是签署的 22 + 1px 描边"。 */
+          if (w <= 720) ok(Math.abs(insetL - insetR) <= 1,
+            `${w}px 档胶囊左右内边距 ${insetL.toFixed(2)} / ${insetR.toFixed(2)}（差 ${Math.abs(insetL - insetR).toFixed(2)}px > 1）⇒ 玻璃被吃到一边，§11 那条"对称"的判据坏了`);
+          else ok(Math.abs(insetR - 23) <= 1,
+            `${w}px 档胶囊右内边距 ${insetR.toFixed(2)}，桌面签署的是 padding 22 + 1px 描边 = 23 ⇒ 那一排与玻璃边的关系变了（§11 1440 那格的读数）`);
           ok(o.panel.left >= o.nav.left && o.panel.right <= o.nav.right + 0.5,
             `${w}px 档面板 ${o.panel.left}..${o.panel.right} 不在胶囊 ${o.nav.left}..${o.nav.right} 之内 ⇒ 这一档的包含块换了东西，读数与 §11 登记的那一串对不上`);
           /* 与显示设置那块面同开一次：两枚抽屉叠在一起就是画坏了（⑤ 在 1440 上判过同一件事，这里是逐档） */
@@ -712,11 +754,10 @@ if (ONLY !== 'node'){
           const slack = Math.min(o.panel.left, o.width - o.panel.right);
           if (thin === null || slack < thin.slack) thin = { w, slack, rect: o.panel };
         }
-        notes.push(`⑦ 面板逐档（真展开、transition:none 之后读 rect；pos=position、mq 求值逐档判过）：` + res.rects.map(x => {
-          const o = x.r.json || {};
-          return `${x.w}px → 面板 x=${o.panel && o.panel.left}..${o.panel && o.panel.right}（宽 ${o.panel && o.panel.w}、y=${o.panel && o.panel.y}、${o.pos}）｜胶囊 x=${o.nav && o.nav.left}..${o.nav && o.nav.right}｜innerWidth=${o.width}`;
-        }).join('\n    '));
-        notes.push(`⑦ 最薄的一档：${thin.w}px 上左右各留 ${thin.slack.toFixed(2)}px（那是相对视口的余量）`);
+        notes.push(`⑦ 面板逐档（真展开、transition:none 之后读 rect；position、媒体查询求值、出盒量、左右内边距对称都逐档判过）`);
+        if (thin) notes.push(`⑦ 最薄的一档：${thin.w}px 上面板左右各留 ${thin.slack.toFixed(2)}px（相对视口）`);
+        else problems.push('⑦ 一档都没量成交回来的数 ⇒ 这一格的判据正在空转');
+        assert.ok(!bad.length, `逐档读数在上面那几行；这一格红了 ${bad.length} 条：\n        ${bad.join('\n        ')}`);
         return n;
       });
     }
