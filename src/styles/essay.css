@@ -166,11 +166,60 @@ html[data-focus="1"] .wrap::before{ display:none; }
 }
 .post-body h2::before{ content:""; display:block; width:32px; height:1px; background:var(--moss); margin-bottom:16px; }
 .post-body em{ letter-spacing:-.015em; color:var(--moss-ink); }
+/* 加粗：这一层唯一的中文粗体字重是 600（§3 那档，`.post-title` / h2 / h3 / `.post-nav a` 全用它），
+   不是 UA 默认的 700——这套 Noto Serif SC 只载到 600，700 要么落进合成假粗（引擎把 600 描粗一圈），
+   要么换一张完全不同的脸。字重是**这一层已有的那一枚**，不新开一档，所以 §3 的层级一个字没动。
+   ⚠️ 不给 `--moss-ink`：`em` 染色是因为它在这一层根本不带斜体面目（§3 那句"全站只允许 Hero 一个英文斜体词"），
+   粗体自己就够显了；再上一色就成了同一页两套强调语言。 */
+.post-body strong{ font-weight:600; }
 .post-body code{
   font-family:"IBM Plex Mono",monospace; font-size:.85em;
   background:var(--glass); border:1px solid var(--glass-border);
   padding:2px 7px; border-radius:6px;
 }
+
+/* ===== 正文构件补进来的第二批（§15）：围栏代码块 / 表格 ===== */
+
+/* 围栏代码块 = 行内 `code` 的放大版，不是新材质：同一枚 `--glass` 面、同一枚 `--glass-border` 边、
+   同一族 IBM Plex Mono、同一个 `.85em`——唯一变的是圆角从梯子那一档往上走一格（6 → 8，
+   §4 那根 11 档圆角梯子里 8 就是正文裸图用的那一档），以及它自己占一块上下留白。
+   ⚠️ 零新 hex、零 `rgba(255,255,255,…)`（§12 那枚"第五色哪怕只有一处"）、零第四种模糊（§1.4）。
+   ⚠️ `data-lang` 由 `markdown.js` 只在语言标识过完白名单形状之后才写，而下面那条规则挂的是
+   `.codeblock[data-lang]::before`——属性不在就整枚伪元素不存在，空标签不许占一行位。
+   ⚠️ 横向滚动开在 `pre` 而不是外壳上，因为外壳要留给后面那张卡的复制钮做**不跟随滚动**的定位父级：
+   开在滚动容器上就是给一个绝对定位的元素找了一个会跑的包含块。
+   ⚠️ 一笔留给 §19 那一层的债（本轮碰不到 `base.css`，记在这里与 §15 那一格）：`pre` 默认不折行，
+   而 `overflow-x:auto` 在纸上就是一把裁刀 ⇒ 长行印不出来。封口是打印档里那一行 `white-space:pre-wrap`
+   （同一档还该给 `.codeblock` 与 `.tablewrap` 补 `break-inside:avoid`），不是在这一份表里偷偷加。 */
+.post-body .codeblock{ position:relative; margin:40px 0; }
+.post-body .codeblock[data-lang]::before{
+  content:attr(data-lang); display:block; margin-bottom:8px;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
+}
+.post-body pre{
+  overflow-x:auto;                                    /* 长行不许把 680 栏撑破，也不许折行——折了就看不清代码的形状 */
+  padding:16px; border-radius:8px;
+  background:var(--glass); border:1px solid var(--glass-border);
+  font-family:"IBM Plex Mono",monospace; font-size:.85em; line-height:1.75;
+}
+/* 里面的 `<code>` 只是语义壳（给复制钮与读屏软件一个明确的取值范围）：
+   上面 `.post-body code` 那条会一并命中它，面/边/内垫/字号在这里逐项撤掉——
+   撤不是覆盖，是"一枚 code 不许穿两层衣服"。 */
+.post-body pre code{ background:none; border:0; padding:0; font-size:1em; }
+
+/* 表格：一张表在 680 栏里是"一整块"，所以上下留白跟引用块同一枚 40px（§4 已登记的 C 档值），
+   不是新档位。分隔线全站只有一枚 `--line`，表格不给自己造第二种线。
+   ⚠️ 表头靠 `--ink-2` + 600 字重区分，不靠更粗的线、也不靠底色——加底色就是第四种材质（§12 引用块同一句理由）。
+   ⚠️ 数字不齐这件事这里**不归本卡新算**：`.post-body` 那条 `font-variant-numeric:tabular-nums`（§3.2）
+   沿继承管到表格，它今天在这层是空转的保险（那套字体不带 tnum 档），表格落进来就一起受它管。 */
+.post-body .tablewrap{ margin:40px 0; overflow-x:auto; }   /* 窄屏（§11）：容不下就横向走，不许挤断字 */
+.post-body table{ width:100%; border-collapse:collapse; font-size:14px; }   /* 14 = §3 的"说明"档，与 `.footnotes ol` 同一族 */
+.post-body th,.post-body td{ padding:8px 12px; text-align:left; border-bottom:1px solid var(--line); }
+.post-body th{ color:var(--ink-2); font-weight:600; }
+/* 对齐只有作者点了头才挪：`:---:` 居中、`---:` 右，`---` 与 `:---` 都留在默认左缘。
+   两枚 class 由 `markdown.js` 按分隔行落进格子，CSS 这一侧只说"往哪儿对齐"，没有任何新的线与色。 */
+.post-body .al-c{ text-align:center; }
+.post-body .al-r{ text-align:right; }
 
 /* ===== 这轮补进来的正文词汇（§15）：h3 / 列表 / 引用 / 分隔线 / 脚注 / 边注 ===== */
 
