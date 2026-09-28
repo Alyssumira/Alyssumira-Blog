@@ -25,7 +25,7 @@ html[data-phase="dusk"][data-theme="light"]{ --scrim-top:rgba(237,228,210,.34); 
 /* ⚠️ `body` 没有归并：首页是实色底 + 照片层，子页要那条 40vh 的渐变接住内容区（§5）。
    值不一样不是漂移，硬合并才是改画面。 */
 body{
-  font-family:"Noto Sans SC","Noto Sans SC-fallback",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   background:var(--bg-base);
   color:var(--ink);
   font-size:17px;
@@ -227,13 +227,13 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
   padding:0 8vw; max-width:1120px;
 }
 .hero-title{
-  font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif;
   font-size:clamp(38px,6vw,68px); font-weight:600; line-height:1.32;
   letter-spacing:.02em; color:var(--ink);
   text-shadow:0 1px 28px var(--halo);
 }
 .hero-name{
-  font-family:"Fraunces","Fraunces-fallback","Noto Serif SC","Songti SC",serif; font-style:normal;
+  font-family:"Fraunces","Noto Serif SC","Songti SC",serif; font-style:normal;
   font-size:15px; font-weight:600; letter-spacing:.5em; color:var(--ink-2);
   margin-top:17vh; margin-bottom:28px; text-shadow:0 1px 12px var(--halo),0 0 24px var(--halo);
   opacity:0; animation:rise .7s cubic-bezier(.22,1,.36,1) .2s forwards;
@@ -267,7 +267,7 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
 .hero-log{
   /* margin-top:auto 把它推到 flex 柱的底端，8vh 是它与视口底的呼吸 */
   margin-top:auto; margin-bottom:8vh;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; letter-spacing:.12em;
+  font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.12em;
   color:var(--ink-2); text-shadow:0 1px 12px var(--halo),0 0 22px var(--halo);
   opacity:0; animation:rise .7s cubic-bezier(.22,1,.36,1) .9s forwards;
 }
@@ -280,7 +280,7 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
 .hero-watch{
   /* 负 margin 把 8vh 的呼吸切掉一半：守夜那一行是日志的下半句，不是新的一段 */
   margin-top:-4.5vh; margin-bottom:8vh;
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.3em; color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.3em; color:var(--ink-3);
   text-shadow:0 1px 12px var(--halo),0 0 22px var(--halo);
   opacity:0; animation:fade-in 1s cubic-bezier(.22,1,.36,1) 2.1s forwards;
 }
@@ -307,7 +307,7 @@ html[data-revisit] .hero-watch{ animation-delay:.9s; }
 }
 .home-note:hover,.home-note:focus-visible{ transform:translateX(6px); }
 .home-note time{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
   padding-top:5px;
 }
 /* ⚠️ 收尾那一拍要有重量（§6.4，2026-09-28）：首页不该结束在列表上，该结束在**声音**上。
@@ -320,7 +320,7 @@ html[data-revisit] .hero-watch{ animation-delay:.9s; }
    而 `.home-note p`（0,1,1）的权重压得过 `.tone-breath`（0,1,0）——上一版写了 1.85，
    实测首页那行拿到的是 27.75px 而不是 `tone-breath` 的 29.25px，**三档在首页根本没生效**。
    关于页那两处是好的（`.now-list` 把 line-height 设在容器上、由 span 继承，自己的类赢）。 */
-.home-note p{ font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-size:19px; color:var(--ink); }
+.home-note p{ font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:19px; color:var(--ink); }
 
 /* ============ 区块通用（滚动入场：规范 §8.7）============ */
 /* `.reveal` / `.reveal.in` 本体在 `base.css`，首页与子页共用同一套 0.8s 吐纳。 */

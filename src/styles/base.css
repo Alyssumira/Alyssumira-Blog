@@ -92,120 +92,6 @@ html[data-phase="night"][data-theme="light"]{ --bg-base:#EDF0EA; --bg-top:#E4E7D
    满月对 `.nav-clock .dot` / `.dayring` 的加成是子页的事，留在 `mistwood.css`。 */
 html[data-theme="dark"][data-moon="full"]{ --shadow:0 16px 30px -10px rgba(14,19,13,.62); }
 
-/* ============ 字体源与度量回退（规范 §3「远程取不到时的位移有界」）============ */
-/* 自托管两族（Fraunces / IBM Plex Mono）＝ css2 响应的逐字段照抄，只是 src 落在站内 /fonts/**：
-   21 枚 woff2 与远程 css2 当时发的是**同一批文件**（SHA256 在册 tools/font-selfhost.manifest.json，
-   复验：node tools/font-selfhost.mjs ＋ --tables 用 fontTools 逐张读回 numGlyphs/unitsPerEm）。
-   为什么这两族解绑而 CJK 两族不解：全量 CJK 实测 5.75MB＋4.31MB（101 枚/族），子集化到"当前稿件用过的字"
-   等于给下一篇稿子挖坑（发了就缺字，§12 假语义同族）；拉丁两族全量共 476,088B，切得起也不留坑。
-   后果登记：FONT_HOST 换镜像只影响 CJK 两族的远程链，这两族走站内路径与镜像无关；
-   `q` 片段仍旧留在 src/data/site.js 的清单里——它现在是"这两族的表怎么生成"的出处，拼 URL 那一头不再吃它们。
-   ⚠️ 两族亮暗同栈：这里只有 face 表，没有任何按 data-theme 分支的字面量——暗色用的就是同一批。 */
-@font-face{font-family:'Fraunces';font-style:italic;font-weight:300;font-display:swap;src:url("/fonts/fraunces/6NU58FyLNQOQZAnv9ZwNjucMHVn85Ni7emAe9lKqZTnbB-gzTK0K1ChjdfeQ_5Y.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
-
-@font-face{font-family:'Fraunces';font-style:italic;font-weight:300;font-display:swap;src:url("/fonts/fraunces/6NU58FyLNQOQZAnv9ZwNjucMHVn85Ni7emAe9lKqZTnbB-gzTK0K1ChjdPeQ_5Y.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
-
-@font-face{font-family:'Fraunces';font-style:italic;font-weight:300;font-display:swap;src:url("/fonts/fraunces/6NU58FyLNQOQZAnv9ZwNjucMHVn85Ni7emAe9lKqZTnbB-gzTK0K1ChjeveQ.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-
-@font-face{font-family:'Fraunces';font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/fraunces/6NU58FyLNQOQZAnv9ZwNjucMHVn85Ni7emAe9lKqZTnbB-gzTK0K1ChjdfeQ_5Y.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
-
-@font-face{font-family:'Fraunces';font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/fraunces/6NU58FyLNQOQZAnv9ZwNjucMHVn85Ni7emAe9lKqZTnbB-gzTK0K1ChjdPeQ_5Y.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
-
-@font-face{font-family:'Fraunces';font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/fraunces/6NU58FyLNQOQZAnv9ZwNjucMHVn85Ni7emAe9lKqZTnbB-gzTK0K1ChjeveQ.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:300;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCBTeO-U.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:300;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCFTeO-U.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:300;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeA.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCBTeO-U.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCFTeO-U.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeA.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:600;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCBTeO-U.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:600;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxCFTeO-U.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
-
-@font-face{font-family:'Fraunces';font-style:normal;font-weight:600;font-display:swap;src:url("/fonts/fraunces/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeA.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6pfjptAgt5VM-kVkqdyU8n1ioa2Hdgv-s.woff2") format("woff2");unicode-range:U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6pfjptAgt5VM-kVkqdyU8n1ioa0Xdgv-s.woff2") format("woff2");unicode-range:U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6pfjptAgt5VM-kVkqdyU8n1ioa2ndgv-s.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6pfjptAgt5VM-kVkqdyU8n1ioa23dgv-s.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6pfjptAgt5VM-kVkqdyU8n1ioa1Xdg.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F63fjptAgt5VM-kVkqdyU8n1iIq129k.woff2") format("woff2");unicode-range:U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F63fjptAgt5VM-kVkqdyU8n1isq129k.woff2") format("woff2");unicode-range:U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F63fjptAgt5VM-kVkqdyU8n1iAq129k.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F63fjptAgt5VM-kVkqdyU8n1iEq129k.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/ibm-plex-mono/-F63fjptAgt5VM-kVkqdyU8n1i8q1w.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6qfjptAgt5VM-kVkqdyU8n3twJwl1FgtIU.woff2") format("woff2");unicode-range:U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6qfjptAgt5VM-kVkqdyU8n3twJwlRFgtIU.woff2") format("woff2");unicode-range:U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6qfjptAgt5VM-kVkqdyU8n3twJwl9FgtIU.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6qfjptAgt5VM-kVkqdyU8n3twJwl5FgtIU.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
-
-@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6qfjptAgt5VM-kVkqdyU8n3twJwlBFgg.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-
-/* ⚠️ 这四枚 <族名>-fallback 影子家族是**度量回退**，不是第二套字体：src 全走 local()，远程 css2 取不到的
-   访客会落在"本机 serif/monospace 本来就会落到的那枚字"上，只是行盒与字宽被 override 拉回远程族的度量。
-   每个值都是从 tools/font-fallback-check.mjs 的两档对照量出来的（甲档＝远程在场为参照 R；乙档＝服务端摘掉
-   css2 那枚 <link> 后的现状 G；回退落地后 F），不是抄的通用数：
-   · size-adjust ＝ 参照字串实测宽 ÷ 锚点实测宽（Blink 里 override 只管行盒、不碰推进宽；推进宽只由 size-adjust
-     缩放——沙箱实测：100px 档 (ascent+descent+line-gap 之和)×size-adjust 恒等行盒高、宽度只随 size-adjust 走）。
-   · ascent/descent-override ＝ 远程族自身 hhea 的 em 比 ÷ (size-adjust/100)。除数带上它，是因为 **Blink 的
-     normal 行盒 = fs × size-adjust ×（ascent+descent+line-gap）**——override 也会被 size-adjust 二次缩放（沙箱实测），
-     除掉之后逐字号回推：12/15/18/22/30 五档盒高与远程**逐位同值**（四族 hhea lineGap 实测均为 0，归零）。
-   · 锚点与读数（Edge 154、dpr=1、headless；比值按"face 里 local() 真加载到的那枚字"量，不按族名猜——
-     沙箱实测：src:local('Times New Roman Bold') 在 @font-face 里命中真 Times Bold（18px 推进宽 88.016），
-     把同一全名当普通 font-family 用则不落地；Consolas Bold 的推进宽与正体等宽同值，500 档因此与 400 同比）：
-       Fraunces→Times New Roman：正体宽比 107.06%（18px "Fog & light — 0123456789"＝214.750/201.016）；
-         600 档→Times New Roman Bold 112.98%（18px "Alyssumira"＝99.438/88.016；站名 15px 档同比读数 −0.30%，容差内）；
-         斜体→Times New Roman Italic 112.31%（18px "light and misty 2026"＝165.656/147.500）。
-         远程 Fraunces 是 opsz 可变轴，比值随字号在 1.068~1.084 间走（±0.8%，容差 ±2% 之内，如实登记）。
-       IBM Plex Mono→Consolas：109.13%（18px "2026.09.28 fog 482"＝194.406/178.141，等宽逐字号**恒等**）；
-         500 档→Consolas Bold 同 109.13%（等宽粗体推进宽不变；即便那枚 local 不中，回落 400 face 也是同一个数）。
-         ⚠️ 中文 Edge 的 monospace 今天落在宋体（0.5em＝窄 16.7%）——锚点取 Consolas 而非宋体，是把
-         "通用等宽落到哪"从各平台漂移收成一枚可指的字体；宋体那条路由站内自托管的 Plex 本体解绑（见下节），不再靠回退。
-       Noto Serif SC→SimSun：中日韩推进宽同 1em ⇒ 宽比 100%；行盒差全在 hhea（远程 1.151/0.286，宋体 0.859/0.141——
-         18px 档盒高 21→26 就是这枚回退的主账）。拉丁段另派一枚 face 锚 Times New Roman：111.22%（2026.09.28 那串
-         数字实测 185.188/166.500，逐字号恒等）。
-       Noto Sans SC→Microsoft YaHei：同 1em ⇒ 100%；远程 hhea 1.160/0.288（雅黑盒 24→26）。拉丁段锚雅黑自身：99.12%。
-   ⚠️ unicode-range 只圈**远程族自己承诺的字域**（照 css2 响应逐字符抄回；中日韩 face 圈方块区近似）：
-     圈外的字符一概不接——这保住了两件事：① 在场那一档逐字节回归里 '.post-meta' 那枚"字"（IBM Plex Mono 本就
-     不带中日韩，它今天走通用等宽，回退不许把它捞进 109.13%）；② 没圈到的怪字照旧走原路，回退不许发明第三种形状。
-   ⚠️ 栈追加位置：每枚 '-fallback' 钉在**自己的族名身后、下一枚本地偏好之前**（"Songti SC"/雅黑是刻意留的本机好字，
-     压不压得过由 src 名单决定）——追加到通用关键字之后永远轮不上，那是自骗。判据：--gate 下 F⇄R 的 Δ行盒/Δ宽
-     逐探针 ≤2% 且严格小于改前 Δ(R,G)；两侧格子（在场逐位不变 / 歪一枚 size-adjust 必红）都在这把尺里。 */
-/* Fraunces：正体（400 档锚 Times 正体；600 档站名锚 Times Bold） */
-@font-face{font-family:'Fraunces-fallback';font-weight:400;src:local('Times New Roman'),local('Liberation Serif'),local('Nimbus Roman');ascent-override:91.35%;descent-override:23.82%;line-gap-override:0%;size-adjust:107.06%;unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB, U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF, U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-@font-face{font-family:'Fraunces-fallback';font-weight:600;src:local('Times New Roman Bold'),local('Liberation Serif Bold'),local('Nimbus Roman Bold');ascent-override:86.57%;descent-override:22.57%;line-gap-override:0%;size-adjust:112.98%;unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB, U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF, U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-/* Fraunces：斜体（正文 <em> 那一个词） */
-@font-face{font-family:'Fraunces-fallback';font-style:italic;src:local('Times New Roman Italic'),local('Liberation Serif Italic');ascent-override:87.08%;descent-override:22.71%;line-gap-override:0%;size-adjust:112.31%;unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB, U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF, U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-/* IBM Plex Mono：400 与 500（时钟/日期/门牌那批数字） */
-@font-face{font-family:'IBM Plex Mono-fallback';font-weight:400;src:local('Consolas'),local('DejaVu Sans Mono');ascent-override:93.93%;descent-override:25.2%;line-gap-override:0%;size-adjust:109.13%;unicode-range:U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F, U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116, U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB, U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF, U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-@font-face{font-family:'IBM Plex Mono-fallback';font-weight:500;src:local('Consolas Bold'),local('DejaVu Sans Mono Bold');ascent-override:93.93%;descent-override:25.2%;line-gap-override:0%;size-adjust:109.13%;unicode-range:U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F, U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116, U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB, U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF, U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-/* Noto Serif SC：拉丁段锚 Times（正文里的 fog/2026 那批），中日韩段锚 SimSun */
-@font-face{font-family:'Noto Serif SC-fallback';src:local('Times New Roman'),local('Liberation Serif'),local('Nimbus Roman');ascent-override:103.49%;descent-override:25.71%;line-gap-override:0%;size-adjust:111.22%;unicode-range:U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116, U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB, U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF, U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-@font-face{font-family:'Noto Serif SC-fallback';src:local('SimSun'),local('Noto Serif CJK SC'),local('Source Han Serif SC');ascent-override:115.1%;descent-override:28.6%;line-gap-override:0%;size-adjust:100%;unicode-range:U+2E80-9FFF, U+F900-FAFF, U+FE10-FE1F, U+FE30-FE4F, U+FF00-FFEF, U+3000-303F, U+3400-4DBF, U+20000-2EBEF;}
-/* Noto Sans SC：拉丁段锚雅黑自身（它今天就是 Windows 无衬线的落点），中日韩段锚雅黑 */
-@font-face{font-family:'Noto Sans SC-fallback';src:local('Microsoft YaHei'),local('Noto Sans CJK SC'),local('Source Han Sans SC');ascent-override:117.03%;descent-override:29.06%;line-gap-override:0%;size-adjust:99.12%;unicode-range:U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116, U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB, U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF, U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-@font-face{font-family:'Noto Sans SC-fallback';src:local('Microsoft YaHei'),local('Noto Sans CJK SC'),local('Source Han Sans SC');ascent-override:116%;descent-override:28.8%;line-gap-override:0%;size-adjust:100%;unicode-range:U+2E80-9FFF, U+F900-FAFF, U+FE10-FE1F, U+FE30-FE4F, U+FF00-FFEF, U+3000-303F, U+3400-4DBF, U+20000-2EBEF;}
-
 /* ============ 基础 ============ */
 *,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
 html{ scroll-behavior:smooth; }
@@ -217,7 +103,7 @@ html[data-theme="dark"] ::selection{ background:rgba(169,196,160,.22); }
 ::-webkit-scrollbar-thumb:hover{ background:var(--ink-2); }
 :focus-visible{ outline:2px solid var(--moss); outline-offset:4px; border-radius:4px; }
 a{ color:inherit; text-decoration:none; }
-em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style:italic; }
+em{ font-family:"Fraunces","Noto Serif SC",serif; font-style:italic; }
 
 /* 颗粒：全站唯一的常驻氛围。
    ⚠️ steps(1) 不是笔误——animation-level 的 timing function 作用在**每个关键帧区间**上，
@@ -243,7 +129,7 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 /* ⚠️ `.nav` 没有归并：两份的 `animation-delay` 是**故意不同**的——首页 1.4s（§8.2 的入场时间轴，
    导航排在斜体词之后），子页 .3s（没有 hero 要等）。合并它等于给其中一页改时间。 */
 .nav-clock{
-  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.08em;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em;
   color:var(--ink-2); white-space:nowrap; display:flex; align-items:center; gap:8px;
 }
 /* §6 时钟零动效：状态点是实心的，不呼吸 */
@@ -258,6 +144,94 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 .theme-toggle:hover{ color:var(--ink); transform:rotate(180deg); }
 .theme-toggle:active{ transform:rotate(180deg) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 .theme-toggle svg{ width:15px; height:15px; }
+
+/* ============ 站内搜索（§9 第十一轮新立的在册组件）============ */
+/* ⚠️ 面板**不新造材质**，也不新抄一份数值：DOM 上它同时挂着抽屉那一枚 `settings` 类，
+   于是玻璃面、内垫、14px 圆角、`visibility:hidden` ⇄ `inert` 的收起对、`.settings > *` 那一族
+   错落、`.settings-cap` 那行标题、打印档里 `html .settings{display:none}` 那一行，
+   全部是 `mistwood.css` 里那**一份**规则在管（§9 说的"复用 .settings 抽屉那一整套"就是这个意思：
+   复用类，不复制声明——复制一份就是第二处真值，§17 那一格钉的正是这件事）。
+   这里只写抽屉里没有的四件：入口钮、输入行、说明行、结果表。
+   ⚠️ 为什么这一组住在 `base.css` 而不是跟着抽屉住进 `mistwood.css`：入口与面板六页全有，
+   而 `mistwood.css` 首页不加载（§17 的分工）——放那边的话首屏那枚钮就没有样式，
+   与首页 `.nav` 那份"两份都要改"的旧债是同一个形状，不再开第二处。 */
+.search{ position:relative; display:flex; }
+/* ⚠️ 这一行是 `hidden` 唯一能保住的地方：`.search` 自己写了 `display:flex`，
+   而作者样式压得过 UA 的 `[hidden]{display:none}` —— 少了这一行，无脚本的访客会看到一枚
+   点不动的放大镜（§12 那条"点了没反应的空壳"最直接的形状）。
+   详情页那枚 `post-focus` 不需要这条，因为 `.post-act` 从来没点过 `display`（essay.css:30）。 */
+.search[hidden]{ display:none; }
+/* 入口钮与旁边两枚同族：30px 圆、1px --glass-border 描边、透明底、15px 图标。
+   悬停的主反馈只有 `color` 一枚——同族那两枚把 `transform` 用掉了（主题 180°、滑杆 90°），
+   放大镜没有可转的语义，硬凑一个角度就是第四种动法（§1.2 一处动处处静）。
+   按下那一下 `.98` 走 §8.1 回弹档（它唯一的合法用途就是按下），与全站三枚钮同值。 */
+.search-toggle{
+  display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
+  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
+  color:var(--ink-2);
+  transition:color .3s cubic-bezier(.22,1,.36,1),background-color .3s cubic-bezier(.22,1,.36,1);
+}
+.search-toggle:hover{ color:var(--ink); }
+.search-toggle:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+/* 面板开着时停在提亮那一档：与 `.settings-toggle[aria-expanded=true]` 同一个语义（"你在这件事里面"） */
+.search-toggle[aria-expanded="true"]{ color:var(--ink); background:var(--surface); }
+.search-toggle svg{ width:15px; height:15px; }
+/* 宽度**一个字都不写**：抽屉那份 `width:236px` 是 §11 逐档实测过的数（320 上真展开占
+   21.24–257.24，左边最薄还留着 21.24px），这一格与它同一块面、同一档内容密度，
+   为它新开一枚宽度就是 §1.5 那句"数值必须故意"的反面。
+   ⚠️ 下面每一条面板自己的规则都写成 `.settings.search-panel`（0,2,0），不是裸 `.search-panel`：
+   抽屉那份在 `mistwood.css`，而 `mistwood.css` 在 `base.css` **之后**加载（`Layout.astro:2-3` 的顺序），
+   同权重就是后写的赢——实测过：裸 `.search-panel` 的 `position:fixed` 在 375px 上被抽屉那份
+   `position:absolute` 压住没生效（computed position 读到 absolute）。写成两类的复合选择器，
+   谁在前谁在后都不再参与判定。 */
+.search-box{ margin-top:14px; }
+.search-input{
+  display:block; width:100%; padding:8px 9px; border-radius:9px;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:14px; letter-spacing:.04em;
+  color:var(--ink); background:var(--surface); border:1px solid var(--glass-border);
+  -webkit-appearance:none; appearance:none;
+  transition:color .25s cubic-bezier(.22,1,.36,1),border-color .25s cubic-bezier(.22,1,.36,1);
+}
+.search-input::placeholder{ color:var(--ink-3); }
+/* 悬停只换描边一枚属性；聚焦不用写——`base.css` 全站那条 `:focus-visible` 苔绿描边已经在管。
+   40% 不是新配比：它是 `essay.css:34` 正文链接下划线那枚已签字的 `color-mix(... currentColor 40% ...)`
+   同一个数，同一个"加深一点点"的意思。 */
+.search-input:hover{ border-color:color-mix(in srgb,var(--moss) 40%,transparent); }
+/* 说明行是这一格里**唯一说话的地方**：没输东西、零条、索引没取到，四种场合各一句实话，
+   不拿空白当回执（§9 那条"复制没成功就什么都不落"的同族）。11px 等宽 --ink-2 照 `.settings-cap`。 */
+.search-hint{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.1em;
+  line-height:1.6; color:var(--ink-2);
+}
+.search-results{ list-style:none; max-height:46vh; overflow-y:auto; }
+.search-row{
+  display:block; padding:16px 10px; border-radius:9px;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif; font-size:14px;
+  letter-spacing:.04em; line-height:1.5; color:var(--ink-2);
+  transition:color .25s cubic-bezier(.22,1,.36,1),background-color .25s cubic-bezier(.22,1,.36,1);
+}
+/* 悬停 8% 苔绿填面：与 `.chip:hover` 同一枚配比（§9 标签胶囊那一格签的就是"悬停填 8% 苔绿"），
+   两个属性、不越 §8.3 的三枚上限。 */
+.search-row:hover{ color:var(--ink); background-color:color-mix(in srgb,var(--moss) 8%,transparent); }
+.search-row-t{ display:block; color:var(--ink); }
+.search-row-e{ display:block; margin-top:2px; font-size:12px; color:var(--ink-2); }
+/* 命中的那几枚字：底色取 §10.1 已签字的"选中色 = 苔绿 20–25% 透明"那一档，
+   取上限 25 与 `::selection` 同一枚数——搜索命中在语义上就是"这一处你正在看"，
+   不该比选中更花。字色 inherit：换底色不换字色，才不新开第五色。 */
+.search-row-t mark,.search-row-e mark{
+  background:color-mix(in srgb,var(--moss) 25%,transparent); color:inherit;
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
+@media (max-width:720px){
+  /* 窄屏不再挂在 30px 那枚钮下面：那一档整枚胶囊右缘离视口右边只剩 10–13px，
+     236px 的抽屉从那儿往左铺会顶出左边界（实测 320 那档面板左缘落在 -14）。
+     改法只有一条——挂到胶囊下面那一整幅：
+     `left/right:10px` 与 ≤340 那档 `max-width:calc(100vw - 20px)` 用的是同一枚 10（左右各 10），
+     `top:64px` = 胶囊顶 16（§9 签的那个数）+ 胶囊高 34 + 与桌面同一档 14 的缝 = 64，
+     上下内垫改回一枚 16px（C 档，格子上最小的那一档不小于这块面要承的 236px 满幅内容）。
+     实测读数由 `tools/search-check.mjs` 逐档跑，登记在 §11 那一格。 */
+  .settings.search-panel{ position:fixed; left:10px; right:10px; top:64px; width:auto; padding:16px; }
+}
 
 /* ============ 区块通用（滚动入场：规范 §8.7）============ */
 .reveal{ opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1); transition-delay:calc(var(--cascade,0) * 80ms); }
@@ -442,7 +416,7 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
      改值那一条写在上面"纸本身"那一组里（`html main .post-body a`），连 `transition` 一起掐。 */
   html .post-body a[href^="http"]::after{
     content:" 〈" attr(href) "〉";
-    font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:.72em; letter-spacing:.02em; overflow-wrap:anywhere;
+    font-family:"IBM Plex Mono",monospace; font-size:.72em; letter-spacing:.02em; overflow-wrap:anywhere;
   }
 
   /* ---- §19.6 边注回到句间：纸上没有"栏外" ---- */
@@ -466,6 +440,6 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
      56px 沿用 `.post-tail` 那条已登记的收尾距离；12px 等宽 + .12em 沿用 `.post-meta` 那一档语言。 */
   html footer.print-foot{
     display:block; max-width:none; margin-top:56px; padding-top:16px; border-top:1px solid var(--line);
-    font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
+    font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3);
   }
 }

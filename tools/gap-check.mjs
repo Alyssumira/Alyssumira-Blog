@@ -15,7 +15,7 @@
      X 纯块间距·在册偏差 ＝ 同一类里还没上 8 格的那些 → 不判 8 的倍数，判"枚数不许悄悄变"（要动就动那枚登记值，
                              那是 §16 说的三处同源：规范那一格 / 本文件字面量 / 盘上的声明）。
    在册枚数（顶部这一行、下面 `REGISTERED` 那枚字面量、§16 那一格、§4 那三行是同一句话的四处，动一处必红）：
-     **A 14 ／ B 10 ／ C 50 ／ X 64 ＝ 138 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
+     **A 14 ／ B 10 ／ C 53 ／ X 66 ＝ 143 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
    ⚠️ 防空转是硬要求（§16 记过一次"rgba 漂移检查静默空转、退出码 0、长得像全绿"）：
      注册表为空 ⇒ 红；扫描器一枚都没抓到 ⇒ 红并打印"判据正在空转"；
      注册表里一条盘上找不到（幻影）⇒ 红；盘上一枚没人认领 ⇒ 红；
@@ -33,8 +33,8 @@ const FILES = ['base.css', 'mistwood.css', 'home.css', 'essay.css', 'notes.css']
 const VPROPS = ['margin', 'margin-top', 'margin-bottom', 'padding', 'padding-top', 'padding-bottom', 'gap', 'row-gap'];
 const TIERS = { A: '视口比例', B: '行距派生', C: '纯块间距·已上格', X: '纯块间距·在册偏差' };
 /* ⚠️ 在册枚数（§16 那一格与 §4 那三行说的就是这几个数，三处同源，动一处必红）：
-   A 14 / B 10 / C 50 / X 64 ＝ 138 枚垂直间距槽位，覆盖 5 份样式表。 */
-const REGISTERED = { A: 14, B: 10, C: 50, X: 64 };
+   A 14 / B 10 / C 53 / X 66 ＝ 143 枚垂直间距槽位，覆盖 5 份样式表。 */
+const REGISTERED = { A: 14, B: 10, C: 53, X: 66 };
 /* needle：盘上扫不到这一条就是判据空转，不是"这一档刚好没东西" */
 const NEEDLE = ['essay.css', '', '.post-body h2', 'margin', '64px', 'C'];
 
@@ -43,6 +43,12 @@ const NEEDLE = ['essay.css', '', '.post-body h2', 'margin', '64px', 'C'];
 const REGISTRY = [
   /* ===== base.css：全站基础层（含打印层那一档）===== */
   ['base.css', '', '.nav-clock', 'gap', '8px', 'C', '导航里"现在"那点与时钟文字之间'],
+  /* ===== 站内搜索那一格（第十一轮 `card/search`）：五枚，全部落在 base.css 那一份新组件里 ===== */
+  ['base.css', '', '.search-box', 'margin-top', '14px', 'X', '输入行与其下"说明 + 结果"那一组之间：与抽屉/图注/副题那一族 14px 同值（面板本身的内垫与错落都复用 .settings 那一份，所以这一格只多出这一枚）'],
+  ['base.css', '', '.search-input', 'padding', '8px', 'C', '输入框上下内垫：与 .seg 的 gap、代码块语言标签那枚 8px 同档，行内 code 那 2px 的放大版'],
+  ['base.css', '', '.search-row', 'padding', '16px', 'C', '结果行上下内垫：与代码面、灯箱面板那两枚 16px 同一档（一块面的内衬，不新开留白档）'],
+  ['base.css', '', '.search-row-e', 'margin-top', '2px', 'X', '结果行里标题与摘要之间：与 .nav-links a 的 2px、行内 code 的 2px 同一族，撑的是命中与呼吸，不是留白档'],
+  ['base.css', '@media (max-width:720px)', '.settings.search-panel', 'padding', '16px', 'C', '窄屏面板摊成全幅之后上下内垫并成一枚 16（桌面那份 14/12 的不等是给四行旋钮的紧凑感，满幅那一档没有这个理由）'],
   ['base.css', '@media print', 'html header.post-head', 'padding', '32px', 'C', '纸上标题与其下正文：屏幕那 24vh 在纸上归零后留下的唯一一段（§19.6）'],
   ['base.css', '@media print', 'html footer.print-foot', 'margin-top', '56px', 'C', '纸上一页脚，沿用 .post-tail 那枚收尾 56（注释登记过）'],
   ['base.css', '@media print', 'html footer.print-foot', 'padding-top', '16px', 'C', '页脚与它那 1px 封口线之间'],
