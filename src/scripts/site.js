@@ -1,5 +1,10 @@
 /* 子页面与首页共用：主题 / 时钟 / 滚动入场 / 进度线 / 目录
    列表与正文已由 Astro 在构建期渲染成静态 HTML，这里只剩交互 */
+/* ⚠️ 这四个档位的判定（几点算 dawn、几点算 dusk）在 ../lib/phase.js，是纯函数：
+   浏览器跑它、`tools/phase-check.mjs` 也跑它，差值表里的数和访客看到的档子是同一份代码出的。
+   搬去别处写（尤其是搬进 CSS 之外的运行时自定义属性）会拆掉 palette-check 的方向光复算——见 §2.3 末。 */
+import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
+
 (function(){
   const root = document.documentElement;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -75,26 +80,15 @@
   const dayRing = document.getElementById('day-ring');
   let phase = 'day';
 
-  /* 换季（§2.3）：傍晚的窗口随季节走，别的日子不动。
-     只有 dusk 的两端在动，night 从 dusk 结束处接手 ⇒ 四个时段永不重叠、也不需要第二张表。
-     幅度按月算最多 3.5 小时，落在"今天和半年前不太一样"那一档，比日变化更弱——
-     §6 那句"应感觉今天早上来和下午来不太一样，而不是这网站会变色"同样管着年尺度。 */
-  const SEASON_DUSK = {
-    winter: [16, 17.5],   // 12·1·2 月
-    spring: [17.5, 19],   // 3·4·5 月
-    summer: [19.5, 20.5], // 6·7·8 月
-    autumn: [17, 19],     // 9·10·11 月
-  };
-  const seasonOf = m => (m === 11 || m <= 1) ? 'winter' : m <= 4 ? 'spring' : m <= 7 ? 'summer' : 'autumn';
+  /* 换季与边界（§2.3）：四个档位的**取值**从来没变过，变的只是"什么时刻进哪一档"。
+     判定本身搬去了 `src/lib/phase.js`（纯函数、不碰 DOM），因为 `tools/phase-check.mjs` 要在 node 里
+     跑**同一个** phaseAt 出那张经纬度×月份的差值表——两份长得像的实现迟早分叉，§17 那笔债就是教训。
 
-  function phaseOf(d){
-    const h = d.getHours() + d.getMinutes() / 60;
-    if (h >= 5 && h < 9) return 'dawn';
-    const [ds, de] = SEASON_DUSK[seasonOf(d.getMonth())];
-    if (h >= ds && h < de) return 'dusk';
-    if (h >= 9 && h < ds) return 'day';
-    return 'night';
-  }
+     sunB 是"太阳算出来的边界"，只在拿到定位且夹得住时非空；**每次判定实时读月份表**（tableBounds），
+     所以退路连"跨月自动换窗口"都和一个字没改之前一致。 */
+  let sunB = null;
+  const boundsOf = d => sunB || tableBounds(d);
+  function phaseOf(d){ return phaseAt(d, boundsOf(d)); }
   const weatherWord = { dawn:'fog', day:'light', dusk:'dusk', night:'night' };
 
   /* 月相（§6）：夜林里的影子与那盏灯归月亮管，所以这里要知道"今晚是月的哪一天"。
@@ -290,6 +284,26 @@
   if (weatherEl) weatherEl.textContent = weatherWord[phase];
   tick();
   setInterval(tick, 15000);   /* 15s 校准一次，显示粒度是分钟 */
+
+  /* ---------- 边界按真太阳算：首次载入问一次，算完就把手上的位置丢掉（§2.3）----------
+     · 时机：全站只有这一处 getCurrentPosition。不挂滚动、不挂定时器、不在显示设置抽屉里加档位——
+       那条抽屉的纪律是"只给往回收的旋钮"（雾/颗粒/萤火/入场全是关东西），一枚"开启定位"是能力扩权。
+     · 授权框由浏览器自己弹，本站不写任何"请允许定位"的文案、不做遮罩。
+     · 三档拿不到（拒绝 / 超时 / 无 navigator.geolocation）⇒ **什么都不做**，而"什么都不做"在这张卡里
+       有明确所指：接着按 SEASON_DUSK 月份表算，四档一枚不少，落回今天的表现（不是"没有 phase"）。
+     · 经纬度只活在这次调用栈里：sunOverride 往外交的是两个小时数折出来的边界。不写任何 storage、
+       不发任何请求（算法 30 行在 src/lib/sun.js，全部数学都在本地）。
+     ⚠️ 判定**没有**搬进 <head> 那段内联脚本，这是有意的：getCurrentPosition 是异步的，内联脚本等不到它；
+       而第四类门禁 runtime-check 断言的正是"内联脚本同步落地的五枚显示属性"，往里塞一段异步判定只会多出
+       一条永远断言不到的判据（§16 那个假门禁形状）。data-phase 的首帧仍旧由静态 HTML 那枚
+       data-phase="day" 顶着、模块脚本一跑就纠正——和改动前同一个写者、同一个时机。 */
+  if (navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      pos => { sunB = sunOverride('granted', pos.coords, new Date()); if (sunB) tick(); },
+      () => {},                        /* 拒绝 / 超时：停在月份表上，不解释、不提示、不重试 */
+      { timeout: 8000, maximumAge: 6 * 3600 * 1000, enableHighAccuracy: false }
+    );   /* 精度要"城市级"就够：一档窗口 1.5–4 小时，而边界本身有几分钟的近似误差 */
+  }
 
   /* ---------- 归巢：从详情页回到列表，之前点进来的那一行亮一下（§8.7） ----------
      ⚠️ 挂 pageshow 不挂 DOMContentLoaded：预取和 bfcache 会把文档原地复活，那时后者根本不再触发，

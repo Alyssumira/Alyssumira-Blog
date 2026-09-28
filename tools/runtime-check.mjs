@@ -106,6 +106,37 @@ const REQUIRED = [
 ];
 const KEYS = REQUIRED.map(([k]) => k);
 
+/* ---------- data-phase：第六枚，只判"取值合法 + 与 node 侧同一个函数对得上" ----------
+   2026-09-28 起 `data-phase` 的**边界**改成按经纬度算真太阳位置（规范 §2.3），判定住在
+   `src/lib/phase.js`（纯函数）。这一枚必须在这里露一面，理由和文件头那条事故同源：
+   "语法完全合法但整段不执行" 前三类原理上看不见，而新挂上去的 getCurrentPosition 回调正是
+   一段"没跑也什么都不报错"的代码。⚠️ 但它**不进 REQUIRED**：那五枚的证明是"内联脚本在跑"，
+   而 data-phase 的写者是打包脚本（首帧那枚 day 是静态 HTML 里的，见 Layout.astro:21），
+   混进同一张表会让内联隔离档的断言变成废话。
+   对账口径：拿本机器钟表的**月份表**预测比——访客没授权时浏览器里跑的也是这条退路，两边必须同档。
+   ⚠️ 唯一要让路的是"正好压在边界上"那几分钟：浏览器起进程要一两秒，跨过边界两边就会差一档，
+   那不是 bug 是判据自己在抖。所以距任一边界 <3 分钟时只报不判，并打印一句"跳过对账"。 */
+import { tableBounds, phaseAt } from '../src/lib/phase.js';
+const PHASE_VALUES = ['dawn', 'day', 'dusk', 'night'];
+
+function phaseWitness(label) {
+  const now = new Date();
+  const b = tableBounds(now);
+  const h = now.getHours() + now.getMinutes() / 60;
+  const dist = Math.min(...[b.dawnStart, b.dawnEnd, b.duskStart, b.duskEnd, 24 + b.dawnStart, b.duskEnd - 24]
+    .map(x => Math.abs(h - x)));
+  return { predicted: phaseAt(now, b), nearEdge: dist < 3 / 60, at: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}` };
+}
+
+function assertPhase(label, url, attrs, w) {
+  const got = attrs['data-phase'];
+  if (got === undefined) { problems.push(`${label} ${url}：<html> 上没有 data-phase —— 写它的是 site.js，§2.3 的时段色温与 §2.1 的方向光全挂在这枚属性上`); return; }
+  if (!PHASE_VALUES.includes(got)) { problems.push(`${label} ${url}：data-phase=${JSON.stringify(got)} 不在四档枚举 ${PHASE_VALUES.join('/')} 里 —— 边界算法交出了非法档位（"静默产出 undefined"就是这个形状）`); return; }
+  if (w.nearEdge) notes.push(`${label} ${url} data-phase=${JSON.stringify(got)}（${w.at} 距档位边界 <3 分钟，跳过与 node 的对账）`);
+  else if (got !== w.predicted) problems.push(`${label} ${url}：浏览器实测 data-phase=${JSON.stringify(got)}，node 侧跑同一份 phaseAt 在同一分钟算出 ${JSON.stringify(w.predicted)}（${w.at}，月份表退路）—— 两边不是同一个函数了`);
+  else notes.push(`${label} ${url} data-phase=${JSON.stringify(got)} ✓ 与 node 侧 phaseAt 同档（${w.at}）`);
+}
+
 /* ---------- 失败收集：所有页面都跑完再报，但任何一处"拿不到"都通向 exit 1 ---------- */
 const problems = [];
 const notes = [];
@@ -330,6 +361,8 @@ function clockOf(html) {
 async function runPhase(kind, profiles) {
   const isIso = kind === 'isolate';
   isolatePass = isIso;
+  const w = phaseWitness();                 /* 对账的参照：本机器钟表下的月份表预测，每档算一次 */
+  if (isIso) notes.push(`内联隔离档不判 data-phase：那枚是静态 HTML 里的 ${JSON.stringify('day')}，写它的是打包脚本不是内联脚本（只报实测值）`);
   const q = PAGES.map(page => ({ page }));
   await Promise.all(profiles.map(profile => (async () => {
     for (;;) {
@@ -342,6 +375,7 @@ async function runPhase(kind, profiles) {
         if (got) {
           const c = clockOf(got.stdout);
           witness.push(`隔离档 ${job.page.url} 时钟=${JSON.stringify(c)}`);
+          notes.push(`隔离档 ${job.page.url} data-phase=${JSON.stringify(got.attrs['data-phase'])}（这一档 .js 全被 404，只可能读到静态那一枚）`);
           if (c && /\d{1,2}:\d{2}/.test(c)) problems.push(`内联隔离档 ${job.page.url}：#clock 是 ${JSON.stringify(c)} ⇒ 模块脚本压根没被拦住，这一档其实跑在完整环境里（判据空转：五枚属性可能来自 site.js 而不是内联脚本）`);
         }
       } else {
@@ -351,6 +385,7 @@ async function runPhase(kind, profiles) {
           const c = clockOf(got.stdout);
           witness.push(`完整档 ${job.page.url} 时钟=${JSON.stringify(c)}`);
           if (!c || !/\d{1,2}:\d{2}/.test(c)) problems.push(`完整档 ${job.page.url}：#clock 还是 ${JSON.stringify(c)} ⇒ site.js 没跑（资源没喂到 / MIME 不对 / 模块脚本自己炸了），这一档和隔离档没区别（判据空转）`);
+          assertPhase('[完整档]', job.page.url, got.attrs, w);
           const rv = 'data-revisit' in got.attrs ? got.attrs['data-revisit'] : null;
           notes.push(`${job.page.url} data-revisit=${rv === null ? '未写' : JSON.stringify(rv)}（只报不判，理由见文件头"故意没做"①）`);
         }
