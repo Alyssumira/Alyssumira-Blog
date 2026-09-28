@@ -756,8 +756,10 @@ if (SELFTEST) {
       const nr = runCell(cell, nar.env(), true);
       narrowRan++;
       if (nr.failed.length) {
-        fail(`${cell.id} 的朝窄反例误红了（合法边界被当成坏输入）：${nar.name} —— ${nr.failed[0]}`);
-        console.log(`  ${cell.id} 朝窄  ✗ 误红${preRed ? '（前置已经红，这一条可能是连锁）' : ''}：${nr.failed[0]}`);
+        /* 前置已经红 ⇒ 这条红是连锁（少了一格会让每一格的比对都歪），别把它念成"那一格误判了合法边界" */
+        const lead = preRed ? '（连带：前置已经红，见上面那面）' : '';
+        fail(`${cell.id} 的朝窄反例${lead}：${nar.name} —— ${nr.failed[0]}`);
+        console.log(`  ${cell.id} 朝窄  ✗ ${preRed ? '连带报红（真凶见前置）' : '误红（合法边界被当成坏输入）'}：${nr.failed[0]}`);
       } else if (!nr.asserted) {
         fail(`${cell.id} 的朝窄反例一个断言都没跑（这一格只在坏数据上才工作 = 它其实是空转）：${nar.name}`);
         console.log(`  ${cell.id} 朝窄  ✗ 空转（asserted=0）`);
