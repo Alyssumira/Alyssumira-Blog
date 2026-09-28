@@ -1,7 +1,29 @@
 /* 字体清单只写这一份：Layout 从它拼出 Google Fonts 的请求 URL，关于页的"站点档案"列的是同一批条目。
    以前 URL 手写在工作流里、档案再抄一遍，加一个字体要改两处，迟早对不上。
    q 是 css2 的 family= 查询片段，逐字符照原 URL，别顺手"美化"——改了就是换字体。 */
-export const FONT_HOST = 'https://fonts.loli.net';
+export const FONT_HOST = process.env.FONT_HOST || 'https://fonts.loli.net';
+/* FONT_HOST 是构建期开关：给了环境变量就用它，没给就用上面这枚默认值（本机那条被证书拦住的路，§3 钉着）。
+   它只管 css2 那张表在哪儿——字体文件在哪儿由下面那张映射表从它算，两枚一起换。 */
+
+/* 字体文件的域名从 FONT_HOST 派生，不许是第二枚独立常量：css2 返回的那张 @font-face 表里，src 指的是
+   另一枚 host，preconnect 连错就等于白连。换镜像时两枚必须一起换，所以配对写死在这张显式表里，
+   派生值 = FONT_FILE_HOSTS[FONT_HOST]。表里没有的 host 当场 throw——猜一份对应关系，拼出来的就是
+   "镜像的 CSS ＋ 源站的字体文件"那种从未验证过的配对；静默退回默认更糟，它会绿着骗过构建。
+   新增一档镜像：把它的字体文件 host 一并登记进来，别改判据。 */
+export const FONT_FILE_HOSTS = {
+  'https://fonts.loli.net': 'https://gstatic.loli.net',
+  'https://fonts.googleapis.com': 'https://fonts.gstatic.com',
+};
+const fontFileHost = FONT_FILE_HOSTS[FONT_HOST];
+if (fontFileHost === undefined) {
+  throw new Error(
+    `FONT_HOST = ${FONT_HOST} 没有登记在 src/data/site.js 的字体文件域名映射表里，` +
+    `无法派生 <link rel="preconnect"> 的第二枚 host（已登记：${Object.keys(FONT_FILE_HOSTS).join(' / ')}）。` +
+    `要么把这枚镜像的字体文件 host 加进 FONT_FILE_HOSTS，要么把 FONT_HOST 换回已登记的那两枚之一——不猜，也不退回默认。`
+  );
+}
+export const FONT_FILE_HOST = fontFileHost;
+
 export const fonts = [
   { name: 'Fraunces',      q: 'Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400' },
   { name: 'Noto Serif SC', q: 'Noto+Serif+SC:wght@400;600;700' },
