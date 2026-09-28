@@ -29,6 +29,8 @@
    · 四份**互相独立**的清单：登记表 CELLS、`CELL_IDS`（日常必须跑齐的格）、`CONTRA_IDS`（反例清单）、
      以及 `docs/设计规范.md` 里那行机器可读清单。**后三枚都不许由 CELLS 派生**——否则删掉一格时"期望数"
      跟着掉，就是这个洞的第二次发作。删格 ⇒ ⑦ 与驱动层的"跑齐没跑齐"双双变红（是红，不是跳过）
+   · 另加两枚**独立计数** `CONTRA_ENTRIES` / `NARROW_ENTRIES`：id 齐不代表牙齐。M7b 实测到"某格两枚反例
+     偷偷删掉一枚"在四份 id 清单上完全无痕，只有枚数看得见（它同样是字面量，不由登记表 `.length` 出来）
    · 每格自带**两枚**反例：**朝宽**（一个喂给它就必须让那格变红的坏输入/坏参照）与**朝窄**（一个合法
      边界情形，不许误红）。`--selftest` 逐格跑这两枚：反例没力气 ⇒ 红；朝窄误红 ⇒ 红；反例一格都没跑 ⇒ 红
    ⚠️ `--selftest` **故意**让判据吃坏数据，所以它不接进日常 `check` 的默认链（混在一起会分不清红的是哪一件），
@@ -79,6 +81,12 @@ const CELL_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦'];
 /* 反例清单（selftest 的期望数）。⚠️ 它与 CELL_IDS 内容相同是**巧合**，不是派生关系：
    两枚分开写，删一格时要同时删两处才不被发现——这就是"期望数不许由 registry 派生"的落点。 */
 const CONTRA_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦'];
+/* 反例与朝窄的**枚数**同样是独立字面量，不从登记表数出来。为什么要多这一道：M7b 实测到"某格有两枚
+   反例、偷偷删掉一枚"在四份 id 清单上完全无痕（id 还在、格还在、集合照样同源 ⇒ selftest 少跑一枚仍然
+   exit 0）。枚数一钉，拔牙就要连这两枚数字一起改——改数字在 diff 里比删代码显眼。
+   ⚠️ 加反例/朝窄必须把这两枚一起抬；抬不动的那一次，往往就是"这一枚其实没力气"的那一次。 */
+const CONTRA_ENTRIES = 14;
+const NARROW_ENTRIES = 8;
 /* 第四份清单在**另一份文件**里：规范 §16 那枚 bullet。它是签字文档，动它会在 diff 里显形。
    ⚠️ 认的是"以 `- **phase-check 登记表**` 开头的那一行"（bullet 本体），不是"哪一行提到了这个词"——
    规范正文里引用这个短语的地方不止一处，用 includes 会挑到错的那一行（本卡实测挑到过 §14 的论述）。
@@ -609,6 +617,14 @@ const CELLS = [
           ` —— 清单掉了 / 格被删了，两边必有一边是错的那一枚；今天这一格红的正是"删格静默"那个洞（§14 第 14 项）`);
       }
       out.push(`  ⑦ 登记表  ✓ ${lists[0][1].length} 格四份清单同源（${lists[0][1].join(' ')}）；反例清单是独立字面量、不由登记表派生`);
+      /* 枚数：id 齐了不代表**牙**齐。M7b 实测到"某格两枚反例删掉一枚"在四份 id 清单上完全无痕，
+         所以这两枚计数也是独立字面量，登记表 contra/narrow 长度与它们不符就红。 */
+      const gotC = E.cells.reduce((s, c) => s + ((c.contra || []).length), 0);
+      const gotN = E.cells.reduce((s, c) => s + ((c.narrow || []).length), 0);
+      asserted += 2;
+      if (gotC !== E.contraEntries) failed.push(`反例枚数：登记表里 ${gotC} 枚、CONTRA_ENTRIES 期望 ${E.contraEntries} 枚 —— ${gotC < E.contraEntries ? '有格子的牙被偷偷拔掉了（M7b 那一族：id 还在、四份清单照样同源，只有枚数看得见）' : '抬了反例没抬清单（加了反例要把这两枚数字一起改）'}`);
+      if (gotN !== E.narrowEntries) failed.push(`朝窄枚数：登记表里 ${gotN} 枚、NARROW_ENTRIES 期望 ${E.narrowEntries} 枚 —— 合法边界那一侧被削弱了，下一轮没人知道这一格是严还是空`);
+      out.push(`      两侧枚数与清单相符：反例 ${gotC}/${E.contraEntries} 枚、朝窄 ${gotN}/${E.narrowEntries} 枚（这两枚计数同样是独立字面量）`);
       return { asserted, failed, out };
     },
     contra: [{
@@ -617,6 +633,10 @@ const CELLS = [
     }, {
       name: '规范里那份清单读不到了（签字文档被挪走 / 那一行被删）—— 必须 fail closed 而不是跳过',
       env: () => ({ ...REAL, specRegistry: () => ({ ids: [], why: '读不到那一行（反例里模拟）' }) }),
+    }, {
+      /* M7b 那一族的常驻版本：id 齐、四份清单同源，但**某一格的一枚牙被拔掉了** ⇒ 只有枚数看得见。 */
+      name: '偷偷拔掉 ⑤ 的一枚反例（清单里 id 还在，四份照样同源）',
+      env: () => ({ ...REAL, cells: REAL.cells.map(c => c.id === '⑤' ? { ...c, contra: [c.contra[0]] } : c) }),
     }],
     narrow: [{
       name: '规范那一行的排版换掉（id 顺序颠倒）而集合不变：不许误红',
@@ -649,6 +669,7 @@ const REAL = {
   legalBounds: [{ dawnStart: 5, dawnEnd: 9, duskStart: 16, duskEnd: 20 }],
   shift: 0,
   registryIds: () => CELLS.map(c => c.id),
+  cells: CELLS, contraEntries: CONTRA_ENTRIES, narrowEntries: NARROW_ENTRIES,
   cellIds: CELL_IDS, contraIds: CONTRA_IDS, specRegistry,
 };
 REAL.rows = buildRows(REAL);
@@ -747,12 +768,16 @@ if (SELFTEST) {
     console.log(`\n✗ selftest 一枚反例都没跑（contraRan=${contraRan} narrowRan=${narrowRan}）—— 这一层自己空转`);
     process.exit(1);
   }
+  /* 实际跑的枚数必须与**独立字面量**相等，不是与登记表的长度相等（那又是派生）。
+     少了 = 有格子的牙被拔掉；多了 = 清单没跟着抬。两种都意味着"这一跑跟我以为的不是同一件事"。 */
+  if (contraRan !== CONTRA_ENTRIES) fail(`反例实际跑了 ${contraRan} 枚、CONTRA_ENTRIES 期望 ${CONTRA_ENTRIES} 枚 —— selftest 跑的已经不是它自己声明的那一跑了`);
+  if (narrowRan !== NARROW_ENTRIES) fail(`朝窄实际跑了 ${narrowRan} 枚、NARROW_ENTRIES 期望 ${NARROW_ENTRIES} 枚 —— 同上`);
   if (bad.length) {
     console.log(`\n✗ --selftest 红了 ${bad.length} 条（实际跑了 ${contraRan} 枚反例 / ${narrowRan} 枚朝窄；登记表 ${CELLS.length} 格、清单要求 ${CONTRA_IDS.length} 格${missing.length ? `、缺 ${missing.join(' ')}` : ''}）：`);
     for (const m of bad) console.log(`  · ${m}`);
     process.exit(1);
   }
-  console.log(`\n✓ 跑了 ${contraRan} 枚反例（${CONTRA_IDS.length} 格，每格至少一枚）全部让对应那格变了红；${narrowRan} 枚朝窄都没误红 —— 判据有牙，也没咬错东西`);
+  console.log(`\n✓ 跑了 ${contraRan} 枚反例（清单钉死 ${CONTRA_ENTRIES} 枚）覆盖 ${CONTRA_IDS.length} 格、每格至少一枚，全部让对应那格变了红；${narrowRan} 枚朝窄（钉死 ${NARROW_ENTRIES} 枚）都没误红 —— 判据有牙，也没咬错东西`);
   console.log(`  （这一跑不接进 npm run check：它故意让判据吃坏数据。日常链仍是那四项 + 本工具一次）`);
   process.exit(0);
 }
