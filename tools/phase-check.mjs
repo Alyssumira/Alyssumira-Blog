@@ -675,8 +675,20 @@ const report = () => {
 
 /* ============================ --selftest ============================ */
 if (SELFTEST) {
-  console.log(`── phase-check --selftest：每格两枚反例（朝宽=坏输入必须红 / 朝窄=合法边界不许误红）`);
+  console.log(`── phase-check --selftest：每格两侧（朝宽=坏输入必须红 / 朝窄=合法边界不许误红）`);
   console.log(`   期望清单 CONTRA_IDS = ${CONTRA_IDS.join(' ')}（独立字面量，不许由登记表派生）`);
+  /* 前置：先在**真实登记表**上跑一遍"格跑齐没跑齐 + 四份清单同源"。少了格要在这里就点名，
+     否则后面每一格的朝窄侧会一起抖——连锁红会把真凶埋起来（M1 实测到就是这个形状）。 */
+  const absent = CELL_IDS.filter(id => !CELLS.some(c => c.id === id));
+  const cell7 = CELLS.find(c => c.id === '⑦');
+  const pre = cell7 ? runCell(cell7, REAL, true) : { asserted: 0, failed: ['登记表里没有 ⑦ 那一格（守登记表的那格自己没了）'] };
+  const preRed = pre.failed.length + absent.length;
+  for (const m of pre.failed) fail(`selftest 前置：${m}`);
+  if (absent.length) fail(`selftest 前置：CELL_IDS 要求 ${absent.join(' ')}，登记表里没有这一格`);
+  if (preRed) {
+    for (const m of pre.failed.slice(0, 3)) console.log(`  ✗ 前置：${m}`);
+    console.log(`  ⚠️ 登记表自己就不齐 —— 下面每一格朝窄侧若报红，那是连锁，不是那一格的错`);
+  }
   const missing = [];
   let contraRan = 0, narrowRan = 0;
   for (const id of CONTRA_IDS) {
@@ -708,7 +720,7 @@ if (SELFTEST) {
       narrowRan++;
       if (nr.failed.length) {
         fail(`${cell.id} 的朝窄反例误红了（合法边界被当成坏输入）：${nar.name} —— ${nr.failed[0]}`);
-        console.log(`  ${cell.id} 朝窄  ✗ 误红：${nr.failed[0]}`);
+        console.log(`  ${cell.id} 朝窄  ✗ 误红${preRed ? '（前置已经红，这一条可能是连锁）' : ''}：${nr.failed[0]}`);
       } else if (!nr.asserted) {
         fail(`${cell.id} 的朝窄反例一个断言都没跑（这一格只在坏数据上才工作 = 它其实是空转）：${nar.name}`);
         console.log(`  ${cell.id} 朝窄  ✗ 空转（asserted=0）`);
