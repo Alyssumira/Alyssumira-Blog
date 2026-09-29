@@ -4,6 +4,7 @@ import Layout from '../../layouts/Layout.astro';
 import { renderMd, fmtDate, strictHref } from '../../lib/markdown.js';
 import { visiblePosts } from '../../lib/posts.js';
 import { categoryOf, tagsOf, taxSlug } from '../../lib/taxonomy.js';
+import { seriesOf } from '../../lib/series.js';
 import { lastRevisionDate, whenLine } from '../../lib/revised.js';
 /* 字数向 stats.js 要，不在这一页重新数一遍（文件头那句"列表页与关于页的总计必须是同一把尺子"
    同样管详情页）：cjkCount / latinWords 是 readMinutes 与 siteFacts.words 已经在吃的同一对函数，
@@ -47,6 +48,21 @@ const whenText = whenLine(when, post.data.date, revised);
 const cat = categoryOf(post), catSlug = taxSlug(cat);
 const tags = tagsOf(post);
 const hasTax = !!catSlug || tags.length > 0;
+/* 系列（第十六轮 `card/series`，§15「系列页」那一格）：与上面分类/标签同一个口径——
+   **没填 ⇒ 这一整行不出现**，不是"出现一条空的"（也不是画一枚指向 `/series//` 的死锚点，§12）。
+   名字与 slug 都向 `src/lib/series.js` 与 `taxonomy.js` 的 `taxSlug()` 要，这里不写第二份归一化：
+   `series: "。"` 那种纯符号名归一化之后是空串 ⇒ 拿不到地址 ⇒ 也拿不到这一行；"作者写了却不出现"
+   那一面由 `tools/new-post.mjs --check` 当面说破（它与 category 用的是同一格判据，不在这里重做）。
+   ⚠️ 只印名字，**不印序数**（没有「第 N 篇」）：没有 `seriesOrder` 就没有 N，编一个是 §12 的假数字；
+   整组都有 order 时也不印。组内枚数（`共 M 篇`）是数得出的真值，它住在 `/series/` 那一页，不在这里。
+   ⚠️ 落点与形状见模板里那一行：`.post-tail` 末位、许可那一行之后，`<p class="post-when">` ＋ 锚点挂
+   `.post-act`——**`card/permit` 那一招的再一次使用（同一份声明、同一个宿主那一族）** ⇒ 零新 CSS、
+   零新垂直槽位，`tools/gap-check.mjs` 那 142 枚与圆角那 30 枚一个都不动（新一条带上下 px 的规则就得进注册表，
+   这一族不许碰那两把尺）。锚点为什么必须挂 `.post-act`：`base.css` 的 `a{ color:inherit; text-decoration:none }`
+   会让裸 `<a>` 在这一行里读不出是链接（§2.4），而 `.post-act` 已经在 `.post-tail` 里管着这一族的链接——
+   不新开第二种材质。站内地址，因此**不挂 `target`**：上面 `tabAttrs` 那枚 `^https?:` 的条件天然不成立，
+   这里也不重写第二份协议判据。 */
+const seriesName = seriesOf(post), seriesSlug = taxSlug(seriesName);
 /* 每篇字数：构建期从**渲染前的稿子**（post.body，那份 md 原文）数，数得出才写（§12 假数字那一格）。
    ⚠️ 入参与 siteFacts 数 `p.body` 同一份，不是渲染后的 HTML：标签里的字母会被数成字。
    ⚠️ 没有"约"、没有向上取整、没有估——它是一枚加法的结果，读者拿稿子自己数应当一模一样。 */
@@ -175,6 +191,9 @@ if (licName) licenseSegs.push({ pre: '许可 ', text: licName, url: licHref });
           {`${i > 0 ? ' · ' : ''}${s.pre}`}
           {s.url ? <a class="post-act" href={s.url} {...tabAttrs(s.url)}>{s.text}</a> : s.text}
         </>)}</p>
+      )}
+      {seriesSlug && (
+        <p class="post-when">series · <a class="post-act" href={`/series/${seriesSlug}/`}>{seriesName}</a></p>
       )}
     </div>
 
