@@ -20,6 +20,11 @@
    ⑤ **真实稿件的清单算得出**：用 shipped 的分组函数把 posts/ 过一遍，断言每组的 slug 非空且互不相同
       （空 slug ⇒ /categories// 那种死锚点；重复 ⇒ 两个名字并成一页）。零枚是合法状态（空态），
       但**一枚都没扫到**（读不到稿件文件）就是判据空转 ⇒ 红。
+   ⑥ **剥离器自校**（`card/stripped`）：`codeOnly` 是③ ①② 都依赖的尺子，旧版正则不认字符串，
+      `content.config.ts:29` 的 glob pattern 引号串里星与斜相邻、成了假块注释的开头，一路吃到 `:38` 注释的收口才停，把 `:31`–`:35` 五枚 schema 键
+      整段吃掉（实测改前 title:/date:/excerpt:/cover:/hour: 全"没了"）。§16 的硬规矩：判据两侧都要有格子——
+      这里用两枚内置 fixture 钉住"字符串里的假注释符不许吃代码 / 真注释里的坏写法必须照抹"，
+      任何一侧红了就说明剥离器又被改坏。不需要动 src/，也不读 dist/。
 */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
@@ -59,8 +64,57 @@ const rel = p => relative(ROOT, p).replace(/\\/g, '/');
 const readSrc = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
 /* 判据看的是**代码**：块注释、HTML 注释、整行 `//` 先抹掉（口径照 gap-check 的 strip，行尾 // 不剥——
    剥它会连 `https://` 那种值一起吃掉）。⚠️ 残余局限照实登记：把真调用藏进字符串里的绕过看不见，
-   这一格查的是"代码形状"，兜底的那一格在 runtime-check（它拿 dist/ 产物对账，字符串骗不过它）。 */
-const codeOnly = s => s.replace(/<!--[\s\S]*?-->/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+   这一格查的是"代码形状"，兜底的那一格在 runtime-check（它拿 dist/ 产物对账，字符串骗不过它）。
+   ⚠️ `card/stripped` 起这枚是**字符串感知**的逐字符扫描器。旧版三枚正则不认字符串：
+   `content.config.ts:29` 的 glob pattern 引号串里星斜相邻，被旧版当成块注释开始、一路抹到 `:38` 那个注释的收口才停，
+   把 `:31`–`:35` 五枚 schema 键整段吃掉——实测改前 `title:/date:/excerpt:/cover:/hour:` 过函数后全部"没了"，
+   今天没假绿只因为 ③ 只断言 `:39` 之后的四枚键。往后任何落在收口之前的新键（`author`/`sourceLink`/`series`…）
+   判"没出现"＝假绿、想红也红不起来。三种抹除的语义一律照旧：块注释要见到收口才算数（没有收口的不抹，
+   旧版正则同样不抹）、HTML 注释必须 `-->` 才收、行注释到行尾收且不吃换行（行号口径不变）；
+   新增的只有"字符串态（`'`、`"`、`` ` ``，认 `\` 转义）里的注释起始符不算注释"。
+   `'`/`"`/`` ` `` 遇裸换行即退出字符串态——.astro 正文里的撇号不该把后面整页拖成字符串。两侧格子在 ⑥。
+   ⚠️ 残余盲区照实登记（新旧皆盲，方向不同）：正则字面量里的反引号数不配对时（实测 markdown.js:131 的
+     FENCE_IN 一枚），那一行的行尾注释会漏抹——代价至多是"注释文本多活一行"，旧版的代价则是把真代码抹没
+     （Layout.astro 的 JSON 串 `"/*"` 实测吃掉后面四行）；跨行模板串同理不保。本仓 src 里两种代价今天都
+     没落在任何断言上，兜底仍在 runtime-check。 */
+const codeOnly = (input) => {
+  const n = input.length;
+  let out = '';
+  let i = 0;
+  let lineStart = 0;                       /* 当前行在 input 里的起点，供"整行 // "判定 */
+  while (i < n){
+    const c = input[i];
+    if (c === "'" || c === '"' || c === '`'){
+      out += c; i++;
+      while (i < n){
+        const d = input[i];
+        if (d === '\\'){ out += d + (i + 1 < n ? input[i + 1] : ''); i += 2; continue; }
+        if (d === '\n') break;             /* 裸换行即退出字符串态（' " ` 同口径）：正文里的撇号、正则字面量里的
+                                               反引号都不该把后面整页拖进字符串态；跨行模板串是已知盲区、照实登记 */
+        out += d; i++;
+        if (d === c) break;
+      }
+      continue;                            /* 字符串内容原样保留——判据要能看见它 */
+    }
+    if (c === '/' && input[i + 1] === '*'){
+      const close = input.indexOf('*/', i + 2);
+      if (close !== -1){ out += ' '; i = close + 2; continue; }
+    }
+    if (c === '<' && input.startsWith('<!--', i)){
+      const close = input.indexOf('-->', i + 4);
+      if (close !== -1){ out += ' '; i = close + 3; continue; }
+    }
+    if (c === '/' && input[i + 1] === '/' && !/\S/.test(input.slice(lineStart, i))){
+      const eol = input.indexOf('\n', i);  /* ^\s*//…$ 的既有语义：整行抹成一枚空格、保留行尾换行 */
+      out += ' ';
+      i = eol === -1 ? n : eol;
+      continue;
+    }
+    if (c === '\n'){ out += c; lineStart = i + 1; i++; continue; }
+    out += c; i++;
+  }
+  return out;
+};
 
 /* ---------- ① 唯一入口 ---------- */
 cell('①', '读 posts 的唯一入口（别的调用点一律红）', () => {
@@ -225,6 +279,35 @@ function mkPost(id, tax){
   return { id, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned } };
 }
 
+/* ---------- ⑥ 剥离器自校（两枚内置 fixture，不动 src/） ---------- */
+cell('⑥', 'codeOnly 自己也要有尺子：字符串感知 + 真注释照抹，两侧各一枚 fixture', () => {
+  /* fixture A（朝宽——剥离器必须咬住字符串里的假注释开头）：形状取自 content.config.ts:29 的真实触发点。
+     glob pattern 那枚引号串里同时躺着假开头与假收口（星斜相邻），真代码行排在真注释的收口之前；旧版三枚正则会把中间那行整段吃掉
+     （改前实测 title:/cover:/hour: 全"没了"），所以断言：过 codeOnly 之后那行真 schema 键必须还在。 */
+  const A = [
+    "  loader: glob({ pattern: '**/*.md', base: './src/content/posts' }),",
+    "    cover: z.string().default(''),",
+    "    /* 分类/标签（第十轮）。白名单不是装饰 */",
+  ].join('\n');
+  const outA = codeOnly(A);
+  assert.ok(outA.includes("cover: z.string().default('')"),
+    '⑥ fixture A：glob 字符串里的 /* 又把后面的真代码吃掉了 —— 剥离器退回了不认字符串的旧版，'
+    + '落在收口注释之前的 schema 键会被判"没出现"＝假绿');
+  assert.ok(!outA.includes('白名单不是装饰'), '⑥ fixture A：真块注释没被抹掉 —— 抹除语义被改宽了，注释里的字会冒充代码');
+  /* fixture B（朝窄——它不许误放）：真块注释里**故意**抄着坏写法 z.coerce.boolean()（讲它为什么禁），
+     这是 ③ 那格必须靠抹注释才不误伤自己的例子；若有人"顺手改成不抹块注释"，③ 会被自己的例子打红。
+     断言：坏写法过 codeOnly 之后必须已经不在，而注释外的真代码照常留着。 */
+  const B = [
+    "/* ⚠️ 一律不做 coerce：z.coerce.boolean() 把 \"false\" 也铸成 true，稿子会自己消失 */",
+    "const draft = blankSlot(z.boolean().default(false));",
+  ].join('\n');
+  const outB = codeOnly(B);
+  assert.ok(!outB.includes('z.coerce.boolean()'),
+    '⑥ fixture B：真块注释里的坏写法没被抹掉 —— 剥离器不吃注释了，③ 会把自己举的反例当成违规代码');
+  assert.ok(outB.includes('blankSlot(z.boolean().default(false))'), '⑥ fixture B：抹注释顺手把真代码也抹了 —— 太窄，判据会瞎');
+  return 4;
+});
+
 /* ---------- 打印 ---------- */
 if (notes.length) for (const n of notes) console.log(`  ${n}`);
 if (problems.length){
@@ -232,4 +315,4 @@ if (problems.length){
   for (const p of problems) console.log(`  · ${p}`);
   process.exit(1);
 }
-console.log(`\n✓ 分类/标签/草稿/置顶：五格共 ${asserted} 条断言全过，读 posts 的唯一入口没有被绕开`);
+console.log(`\n✓ 分类/标签/草稿/置顶：六格共 ${asserted} 条断言全过，读 posts 的唯一入口没有被绕开`);
