@@ -18,7 +18,7 @@
    单独跑这一格时它也报一句盘上没有，那是同一件事实的第二句实话，不是多出来的判决。
 
    ── 为什么走 renderMd 产物这一条路（从产物里的 <img src> 收），而不是复用那两枚模式 ──
-   解析形状在 `src/lib/markdown.js:26-27`（`IMG_ONE`＝整段是一枚图，`IMG_LINK`＝图包在链接里），两枚都
+   解析形状在 `src/lib/markdown.js:27-28`（`IMG_ONE`＝整段是一枚图，`IMG_LINK`＝图包在链接里），两枚都
    没有导出（导出表 `:266`：`renderMd, inlineMd, fmtDate, root, safe, splitBlocks`）。
    另一条路要先把它们导出来，然后在工具里**重做一遍块切分**才用得动，而那两枚锚死整块的模式盖不住
    第三种形状：句子中间夹一枚图走的是 `IMG_RE`（`:25`，全局匹配；`renderMd` 把段里的图提到段后落图版）。
@@ -90,7 +90,7 @@ function cell(id, label, fn){
 /* ---------- 收集器：从**渲染产物**里收 <img src>（本卡唯一的图片来源） ---------- */
 const IMG_TAG = /<img\b[^>]*?\bsrc="([^"]*)"/gi;
 const REMOTE = /^https?:/i;              /* 只放过 http(s)：远端查不了，也不该红 */
-/* 属性值进产物前经 attr() 把双引号换成 &quot;（src/lib/markdown.js:8-9），取回来要还一次原 */
+/* 属性值进产物前经 attr() 把双引号换成 &quot;（src/lib/markdown.js:9），取回来要还一次原 */
 const decodeAttr = s => String(s).replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const safeDecode = s => { try { return decodeURIComponent(s); } catch { return s; } };   /* 坏的百分号编码按字面查，不猜 */
 

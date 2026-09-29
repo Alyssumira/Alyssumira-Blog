@@ -207,7 +207,7 @@ if (!PAGES.length) die(`${DIST} 里一份 HTML 都没有`, '  dist/ 空＝build 
    '## ' 以字面量上屏（2026-09-28 在 worktree 里实测到，规范 §16）。
    ⚠️ 尺子不许走渲染器：拿 renderMd 的输出去对 renderMd 的输出，渲染器塌了两边一起塌，正好互相赦免。
    所以期望值从**源码行首的 '## '** 独立数出来（这条读法对行尾天然免疫：'^' 只看 '\n' 之后）。
-   ⚠️ 产物侧要摘掉脚注那枚标题：footnotes() 发的是 '<h2 class="fn-title">注</h2>'（markdown.js:85），
+   ⚠️ 产物侧要摘掉脚注那枚标题：footnotes() 发的是 '<h2 class="fn-title">注</h2>'（markdown.js:87），
    今天三篇都没写脚注所以朴素计数恰好相等——但有人加一枚 [^1] 的那天，不摘的尺子就会假红。
    ⚠️ 第十一轮（`card/detail`）这一格多两读，都是"产物侧才看得见"的形状：
    ① **H3 那一档**（源码 `^### ` ⇄ 产物 `<h3>`）——目录本轮起收 H3，期望值必须能独立数出来，
@@ -330,7 +330,7 @@ for (const p of visible) {
   HEADS.set(p.id, { h2: want, h3: wantH3, total: want + wantH3 });
   const html = readFileSync(out, 'utf8');
   const got = (html.match(/<h2\b[^>]*>/g) || []).filter(t => !/fn-title/.test(t)).length;
-  if (got !== want) problems.push(`${p.id}：源码有 ${want} 枚行首 "## "，产物里只有 ${got} 个 <h2> ⇒ 块级结构在渲染器里塌了（切块口径见 markdown.js:121；成段塌成一枚 <p> 是最常见的形状）`);
+  if (got !== want) problems.push(`${p.id}：源码有 ${want} 枚行首 "## "，产物里只有 ${got} 个 <h2> ⇒ 块级结构在渲染器里塌了（切块口径见 markdown.js:204 的 splitBlocks()；成段塌成一枚 <p> 是最常见的形状）`);
   else notes.push(`结构对账 ${p.id}：源 ${want} 枚 "## " ＝ 产物 ${got} 个 <h2> ✓（fn-title 那枚已摘除；全绿时也要看得见这两枚数，否则"没匹配到"与"全过"长得一样）`);
   /* H3 这一档今天三篇稿子都是 0 枚 —— 0 是合法读数，不是空转：它同时钉着"渲染器没把 ### 吃成 <p>"
      与"目录没有凭空多收"两侧；有载体的那一跑（本卡实测过）读的就是非零那档。 */
