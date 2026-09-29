@@ -1,7 +1,7 @@
 ---
 import '../../styles/essay.css';
 import Layout from '../../layouts/Layout.astro';
-import { renderMd, fmtDate, href } from '../../lib/markdown.js';
+import { renderMd, fmtDate, strictHref } from '../../lib/markdown.js';
 import { visiblePosts } from '../../lib/posts.js';
 import { categoryOf, tagsOf, taxSlug } from '../../lib/taxonomy.js';
 import { lastRevisionDate, whenLine } from '../../lib/revised.js';
@@ -68,12 +68,22 @@ const hasShot = /<figure class="shot"/.test(bodyHtml);
    替作者署名——一枚"作者签了名但其实没写"的假语境。所以 `sourceLink` 非空而 `author` 空着的那一格，
    出处那一段**整段不出现**；许可那一段按自己的主键 `licenseName` 判，两者都空、只填了 `licenseName`
    时许可照旧上屏。规则一句话：**每段有一枚"名字"当主键，URL 只是它的路**。少一项不是错，多一项才是。
-   ⚠️ 消毒只有 `markdown.js` 导出那一枚 `href()` 一处（协议白名单 `OK_LINK`／`HAS_SCHEME` 在那份文件里，
-   这里不重写第二份）：`javascript:`／`data:`／`vbscript:` 落进产物是 `#`——不是空串，也不许原样穿过。
+   ⚠️ 消毒只有 `markdown.js` 那一处真值，而这一行吃的是它导出的 **`strictHref()`**（"要么能用、要么没有"）：
+   协议判据仍然只有 `OK_LINK`／`HAS_SCHEME` 那两枚正则加 `href()` 一处，**这里不重写第二份**——为什么这里不重跑一遍
+   协议白名单：两处各算一遍，迟早有一处漏掉 `javascript:`（`content.config.ts` 头上钉着同一条，`markdown.js`
+   文件末导出表那一格记着它为什么存在）。
+   ⚠️ **这一族永不产出 `href="#"`，也永不把缺协议头的串当站内路径**（补丁轮 `card/permitfix` 的牙；两种坏形状各自的表现）：
+      ① `sourceLink` 坏（缺协议头 ⇒ `root()` 会把它钉成 `/example.com/x` 那种点开 404 的活锚；或协议不合格 ⇒ 消毒成 `#`）
+      ⇒ **整段"原文 …"不出现**，而 `"本文作者 "` 那一段照常上屏——它的主键是 `author`、与路无关。理由：这一段的"名字"
+      就是那条地址本身，地址不可走 ⇒ 这个名字对读者没有价值；而"少一项不是错，多一项才是"是同族先例（上面 `author`
+      空 ⇒ 整段不出现那条）。② `licenseUrl` 坏 ⇒ **锚点撤掉，`许可 <licenseName>` 仍作为散文出现**——`licName` 是主键，
+      路缺位只是没得点。两种落点都走下面 `licenseSegs.push` 那两行**已经建好的** `url ? <a> : text` 那条分叉（也就是
+      本块末尾"路缺位 ⇒ 字仍作散文"那条），**零新分支**，只是让它也接住"坏地址"。
    ⚠️ 判"填没填"用的是**原始字符串**非空，消毒后的结果只在真的进链接时才算：`href('')` 会被 `root()`
-   解成 `/`（相对路径钉站点根），那是一枚作者什么都没写却出现在页面上的活锚点，必须在进 `href()` 之前挡掉。
-   ⚠️ `target="_blank" rel="noopener noreferrer"` 无条件挂在这两枚外链上（写法口径照 `markdown.js:42` 那一条，
-   rel 组合不新开一套）；这里不再判第二次协议——判协议是 `href()` 那一处的事。
+   解成 `/`（相对路径钉站点根），那是一枚作者什么都没写却出现在页面上的活锚点，必须赶在进消毒函数之前挡掉
+   （`strictHref('')` 自己也是空串，这一道是留着的第二防线，不是拿来省事的）。
+   ⚠️ `target="_blank" rel="noopener noreferrer"` 无条件挂在这两枚外链上（写法口径照 `markdown.js` 的 `link()` 那一条，
+   rel 组合不新开一套）；这里不再判第二次协议——判协议是 `markdown.js` 那一处的事。
    ⚠️ 这段说明留在 `---` 里而不是写成模板里的 HTML 注释：Astro 把 HTML 注释**原样落进产物**，
       那样"三篇稿子四枚全空 ⇒ 产物一字不变"当场就破（§14 那条"注释里的地址访客走不到"同一个方向的反面——
       注释在产物里，它就是产物）。
@@ -89,9 +99,11 @@ const byline = seg(post.data.author);
 const sourceRaw = seg(post.data.sourceLink);
 const licName = seg(post.data.licenseName);
 const licUrlRaw = seg(post.data.licenseUrl);
-/* 各算一次、两处都用同一个值（链接的文字与 href 是同一枚消毒结果，不在那里再解一遍） */
-const sourceHref = sourceRaw ? href(sourceRaw) : '';
-const licHref = licUrlRaw ? href(licUrlRaw) : '';
+/* 各算一次、两处都用同一个值（链接的文字与 href 是同一枚消毒结果，不在那里再解一遍）。
+   strictHref() 交回空串 = 这一枚地址不能当路用：出处那一段因此整段不出现（下面 if (sourceHref)），
+   许可那一段退回没有锚点的散文（下面 url ? <a> : text）——两枚值都不许是 '#'，也不许是钉到站点根的相对路径 */
+const sourceHref = sourceRaw ? strictHref(sourceRaw) : '';
+const licHref = licUrlRaw ? strictHref(licUrlRaw) : '';
 const licenseSegs = [];
 if (byline){
   licenseSegs.push({ pre: '本文作者 ', text: byline, url: '' });
