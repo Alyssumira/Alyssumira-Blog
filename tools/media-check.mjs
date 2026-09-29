@@ -6,7 +6,7 @@
    ① 稿件正文里那枚**站内图片地址**必须指到 `public/` 下盘上真存在的文件；
    ② front matter 的 `cover` 非空就必须指到真文件。空着是已签字的状态（`src/content.config.ts:34` 是
       `cover: z.string().default('')`；空 ⇒ 列表页不画那个缩略位，见 `docs/设计规范.md:985`），
-      所以空格子放行不是"用 if 跳过装绿"：非空那一半有牙，牙在 ① 那格当众验。
+      所以放行空格子不是靠 if 跳过装绿：非空那一半有牙，牙在 ① 那格当众验。
    为什么这两件非得有机器守：`public/` 是原样拷进 `dist/` 的，`<img src>` 破了 `astro build` 照样 exit 0、
    `npm run check` 照样绿——这正是 `docs/设计规范.md:1002` 点过名的那一族（静态资源也没有门禁）。
 
@@ -17,7 +17,7 @@
    但盘上没有那枚文件。两把尺子的对象今天不相交：相对写法在 `&&` 链上第 ① 项就停了，走不到这一格；
    单独跑这一格时它也报一句盘上没有，那是同一件事实的第二句实话，不是多出来的判决。
 
-   ── 为什么走"调 renderMd、从产物的 <img src> 里收"这条路，而不是复用那两枚模式 ──
+   ── 为什么走 renderMd 产物这一条路（从产物里的 <img src> 收），而不是复用那两枚模式 ──
    解析形状在 `src/lib/markdown.js:26-27`（`IMG_ONE`＝整段是一枚图，`IMG_LINK`＝图包在链接里），两枚都
    没有导出（导出表 `:266`：`renderMd, inlineMd, fmtDate, root, safe, splitBlocks`）。
    另一条路要先把它们导出来，然后在工具里**重做一遍块切分**才用得动，而那两枚锚死整块的模式盖不住
@@ -39,7 +39,7 @@
    `public/assets/` 只有 `bg-dark.jpg`、`bg-light.jpg`、`portrait.png` 三枚。零对象下"扫了但没匹配到"与
    "扫了且全过"在两串输出里是同一种样子（§16 那条老判据），所以 ① 那一格带**控制样本**：同一枚收集器在
    合成样本上必须收得到三种形状各一枚（外加相对写法一枚，凑成 needle 的正面），必须收不到围栏里的、
-   远端的、`data:` 的那几枚；`public/assets/portrait.png` 当"真文件不许误伤"的见证物。
+   远端的、`data:` 的那几枚；`public/assets/portrait.png` 当见证物，钉住真文件不许误伤。
    ② ③ 两格再各印出扫了几篇、收到几枚、非空 cover 几枚——数要打得出来，不是沉默。
 
    ── 不碰的三处（碰了就把一条已签字的裁决改成 bug） ──────────────────────────
@@ -53,11 +53,11 @@
    ① 只查 `src/content/posts/*.md` 的正文与 `cover`。`src/data/site.js` 的 `shot`、关于页那枚
       `portrait.png`、以及任何写死在模板里的地址都不在这一格——它们是模板与数据，不是稿件。
    ② 表格格子里的 `![]()` 走 `inlineMd`，那里没有图片规则 ⇒ 页面上是一行字面文本而不是破图，本卡不判它
-      （那是 §15 白名单里"图没被渲染成图"另一族，与"地址指向不存在的文件"不是一件事）。
+      （那是 §15 白名单的另一族——图没被渲染成图，与本卡判的站内地址不在盘上不是一件事）。
    ③ `cover` 写成多行 YAML（`cover: |` 那种）时，工具侧那份读法（`tools/frontmatter.mjs` 的 `splitFm`，
       它文件头就明说自己不是 YAML 解析器）读回来是那枚 `|`，会被判成地址不在盘上 ⇒ 这是**假红**的一种，
       已知且留在这儿：骨架给的是 `cover: ""` 一行式，谁改成多行，这一格会红着提醒顺手改本卡。
-   ④ 本卡不判"素材该放哪个目录"（§13 那句是放置约定，不是存在性判据），也不查 `http(s)://` 那种远端地址
+   ④ 本卡不判素材该放哪个目录（§13 那句是放置约定，不是存在性判据），也不查 `http(s)://` 那种远端地址
       够不够得着——查不了，也不该红。
 */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -205,7 +205,7 @@ cell('①', '控制样本（同一枚收集器：该收到的必须收到，不�
   assert.equal(unq("'x'"), 'x', '① 单引号那一层没剥：YAML 的单引号写法会被连引号一起去查盘（假红）');
   n += 5;
 
-  assert.ok(existsSync(join(PUBLIC_DIR, 'assets', 'portrait.png')), '① public/assets/portrait.png 不在盘上：控制样本失去"真文件不许误伤"的见证物');
+  assert.ok(existsSync(join(PUBLIC_DIR, 'assets', 'portrait.png')), '① public/assets/portrait.png 不在盘上：控制样本失去真文件不许误伤的那枚见证物');
   assert.ok(!existsSync(join(PUBLIC_DIR, CTL)), `① public/${CTL} 居然存在：控制样本用的目录名与真素材撞车了，换掉那枚字面量`);
   n += 2;
   notes.push(`① 控制样本：站内地址正向收到 ${positives} 枚（整段图／句中介图／图包链接／相对写法各一枚）`
