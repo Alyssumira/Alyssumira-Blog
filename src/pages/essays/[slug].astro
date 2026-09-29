@@ -80,7 +80,10 @@ const hasShot = /<figure class="shot"/.test(bodyHtml);
    ⚠️ 落位：`.post-tail` 的末位，排在盖章／专注／回执之后。那枚回执平时带 `hidden`（`display:none`），
       所以填了许可时这一行紧接在按钮那一行下面，吃的是 `.post-when` 自己那枚在册 14px——不是新的一段节奏。
    ⚠️ 纸上不出现：`.post-tail` 整块由 `base.css` 打印段那条 `html .post-tail{display:none}` 接住
-      （§19.1 那张撤场清单里已有这一行，与专注模式那一枚同一格理由），这里不为打印再写一条。 */
+      （§19.1 那张撤场清单里已有这一行，与专注模式那一枚同一格理由），这里不为打印再写一条。
+   ⚠️ 段里 `text`（这段的字）与 `url`（这段的路）是两枚分开的判据：**路缺位 ⇒ 字仍要作为散文出现**
+      （`许可 CC BY-NC 4.0` 没有锚点），**字缺位 ⇒ 整段不出现**（上面那条主键规则）。
+      合成一枚条件写会漏掉前者——实测过：只填 `licenseName` 那一格当时落下的是光秃秃一枚「许可 」。 */
 const seg = (v) => String(v ?? '').trim();          /* schema 给的是 ''（没填），但 YAML 里可能落 null：挡一道 */
 const byline = seg(post.data.author);
 const sourceRaw = seg(post.data.sourceLink);
@@ -91,10 +94,10 @@ const sourceHref = sourceRaw ? href(sourceRaw) : '';
 const licHref = licUrlRaw ? href(licUrlRaw) : '';
 const licenseSegs = [];
 if (byline){
-  licenseSegs.push({ pre: `本文作者 ${byline}`, url: '', text: '' });
-  if (sourceHref) licenseSegs.push({ pre: '原文 ', url: sourceHref, text: sourceHref });
+  licenseSegs.push({ pre: '本文作者 ', text: byline, url: '' });
+  if (sourceHref) licenseSegs.push({ pre: '原文 ', text: sourceHref, url: sourceHref });
 }
-if (licName) licenseSegs.push({ pre: '许可 ', url: licHref, text: licName });
+if (licName) licenseSegs.push({ pre: '许可 ', text: licName, url: licHref });
 ---
 <Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays" type="article" date={post.data.date} revised={revised}>
   <!-- JSON-LD 要的这两枚就取自上面已经算好的 prop，不另问一次 git、也不从 slug 反推路径（:10-12 那条禁令同样管这里）：
@@ -153,7 +156,7 @@ if (licName) licenseSegs.push({ pre: '许可 ', url: licHref, text: licName });
       {licenseSegs.length > 0 && (
         <p class="post-when">{licenseSegs.map((s, i) => <>
           {`${i > 0 ? ' · ' : ''}${s.pre}`}
-          {s.url && <a class="post-act" href={s.url} target="_blank" rel="noopener noreferrer">{s.text}</a>}
+          {s.url ? <a class="post-act" href={s.url} target="_blank" rel="noopener noreferrer">{s.text}</a> : s.text}
         </>)}</p>
       )}
     </div>
