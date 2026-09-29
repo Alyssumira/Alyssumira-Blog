@@ -21,7 +21,7 @@ if (process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'production') {
     throw new Error(
       `astro.config.mjs 的构建期守卫：这是 Vercel 生产构建（VERCEL=1、VERCEL_ENV=production），` +
       `可 PUBLIC_SITE ${given === undefined || given === '' ? '没给' : `给的就是那枚占位值 ${PLACEHOLDER_SITE}`}。` +
-      `og:url / og:image 与 twitter:image / rss.xml / sitemap 的绝对地址全由它拼一份（产物里 169 处），` +
+      `og:url / og:image 与 twitter:image / rss.xml / sitemap 的绝对地址全由它拼一份（枚数不写在这里——它随内容涨，唯一读数记在 docs/设计规范.md §16 的 PUBLIC_SITE 那一格），` +
       `带着占位域名上线等于把订阅者的链接送到别人手里。` +
       `两条路：① 在 Vercel 的项目环境变量里填 PUBLIC_SITE=https://你的域名；` +
       `② 承认这枚就是占位域名、这次构建并不上线——那它就不该以 VERCEL_ENV=production 的身份跑，` +
