@@ -1,0 +1,35 @@
+---
+/* 一个系列页 /series/<slug>/：这一串里有哪些稿子，一次性全列出来（零请求、零 JS）。
+   形状照 `src/pages/categories/[name].astro` 抄，行是同一个 `<a class="row">`
+   （`src/components/PostRow.astro` 一份实现多处用），**零新 CSS、零新列表形状**。
+   slug 由 `lib/taxonomy.js` 的 `taxSlug()` 给——它复用 `markdown.js` 的 `safe()`，所以中文系列名能过，
+   而清成空串的那种名字根本不会出现在这里（`lib/series.js` 的分组把它丢了：没有地址的名字不配有页面，§12 死锚点）。
+   ⚠️ 地址与清单页同源：这一页只可能从 `/series/` 或详情页那一行抵达，两处用的都是同一个 slug 函数。
+   ⚠️ **顺序只从 `seriesGroups()` 拿**（整组都有 `seriesOrder` ⇒ 按它升序；缺任何一枚 ⇒ 整组按 `date` 升序），
+      这里不在模板里再排第二遍，也不印序数「第 N 篇」——页头那一行的 `NN 篇` 是数得出的枚数，
+      而 N 不是（§12 假数字；`src/lib/series.js` 文件头那条）。 */
+import Layout from '../../layouts/Layout.astro';
+import PostRow from '../../components/PostRow.astro';
+import { visiblePosts } from '../../lib/posts.js';
+import { seriesGroups } from '../../lib/series.js';
+import { bySize } from '../../lib/taxonomy.js';
+
+export async function getStaticPaths(){
+  const posts = await visiblePosts();                 /* 草稿的稿子不进 props，也就不进这一页 */
+  return bySize(seriesGroups(posts)).map(g => ({ params: { name: g.slug }, props: { group: g } }));
+}
+const { group } = Astro.props;
+const pad = n => String(n).padStart(2, '0');
+---
+<Layout title={`${group.name} · 系列 · mistwood`} desc={`系列「${group.name}」里的 ${group.posts.length} 篇。`}>
+  <main class="wrap">
+    <header class="page-head reveal">
+      <h1 class="page-title">{group.name}</h1>
+      <span class="sec-label">series — <b>{pad(group.posts.length)}</b> 篇 · <a class="tax-back" href="/series/">全部系列</a></span>
+    </header>
+
+    <ol class="essay-index">
+      {group.posts.map((p, i) => <PostRow post={p} n={i + 1} />)}
+    </ol>
+  </main>
+</Layout>

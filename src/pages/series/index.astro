@@ -1,0 +1,54 @@
+---
+/* 系列索引（第十六轮 `card/series`）：列出真实存在的系列与各自的篇数。
+   形状照 `src/pages/categories/index.astro` 抄（那一格在 §15 已签字），这一页不重新发明列表：
+   行还是 `.essay-index` 那一门语言——左名字、右端 `NN 篇`（`--ink-2` 次要档），**零新 CSS**。
+   ⚠️ 数只从 `visiblePosts()` 数起：草稿不进清单、也不进篇数（`tools/taxonomy-check.mjs` 第①格钉着唯一入口）。
+   ⚠️ 这一页不许替作者起系列名（§12 假内容族）。今天三篇稿子的 front matter 里 `series` 全空着，
+      所以 `groups` 是 **0 枚**——走下面那段空态：页头照旧、`sec-label` 报 `series — 00 →`（真数）、
+      清单那一整块**不出现**、一句作者口吻的话 + 三条真地址。**不白屏、不 500、不挂死锚点、不编系列名。**
+   ⚠️ `here` 不传（导航里没有这一族，点亮别项就是撒谎，§9 那枚实心点的语义），`tier` 也不点名（走默认 `read`）。
+   ⚠️ 组内枚数是数得出的真值；**序数（第 N 篇）今天不印**（`src/lib/series.js` 文件头那条）。 */
+import Layout from '../../layouts/Layout.astro';
+import SearchEntry from '../../components/SearchEntry.astro';
+import { visiblePosts } from '../../lib/posts.js';
+import { seriesGroups } from '../../lib/series.js';
+import { bySize } from '../../lib/taxonomy.js';
+
+const pad = n => String(n).padStart(2, '0');
+const posts = await visiblePosts();
+const groups = bySize(seriesGroups(posts));
+---
+<Layout title="系列 · mistwood" desc="写完第二篇才看得见的那根线——系列名是作者自己起的。">
+  <main class="wrap">
+    <header class="page-head reveal">
+      <h1 class="page-title">系列</h1>
+      <div class="sec-label">series — <b>{pad(groups.length)}</b> →<SearchEntry /></div>
+    </header>
+
+    {groups.length ? (
+      /* 有序列才画这张表：行仍旧是 §15 那套目录行（左名字、右端篇数），不新开一种列表形状 */
+      <ol class="essay-index">
+        {groups.map(g => (
+          <li>
+            <a class="row" href={`/series/${g.slug}/`}>
+              <span class="row-main">
+                <h3>{g.name}</h3>
+              </span>
+              <span class="row-side">
+                <span class="row-min">{pad(g.posts.length)} 篇</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    ) : (
+      <p class="tax-empty">
+        还没有系列——这 {posts.length} 篇文章里，「series」那一行都空着。
+        系列是同一件事写到第二篇之后才看得见的那根线，先建好抽屉再往里塞不算，
+        所以这一页今天只有一句话：全部文章按时间在 <a href="/essays/">文章</a>，
+        按主题在 <a href="/categories/">分类</a>，短观察在 <a href="/notes/">notes</a>；
+        连成串的那天，这里自己长出条目。
+      </p>
+    )}
+  </main>
+</Layout>
