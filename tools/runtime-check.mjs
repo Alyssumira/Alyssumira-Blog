@@ -40,10 +40,10 @@
    每页**打印实际读到的五枚属性清单**（缺的显示 ∅），不只打印 ✓。
 
    ── 故意没做的三条（报告里登记为"未验到"，不假装它们在里面）───────────────────
-   ① `data-revisit`：只在 `sessionStorage.getItem('mistwood-seen')` 已存在时才写（Layout.astro:65），
+   ① `data-revisit`：只在 `sessionStorage.getItem('mistwood-seen')` 已存在时才写（Layout.astro:103），
       而 sessionStorage 是标签页级的 ⇒ 要同一浏览器**进程内两次导航**。`--dump-dom` 只有一次导航，
       给不出真判据；写一条永远断言不到的判据就是造假门禁。所以只**打印**、不判定。
-   ② 暗色下 `meta[name="theme-color"]` 改成 #0E130D（Layout.astro:57）：这版 Edge 不认
+   ② 暗色下 `meta[name="theme-color"]` 改成 #0E130D（Layout.astro:95）：这版 Edge 不认
       `--force-prefers-color-scheme`（§16 ②），暗色只能靠 profile 预置 `localStorage.mistwood-theme=dark`，
       上一轮的做法是往 `dist/` 写一枚一次性种子页——门禁不该往构建产物里写文件（那会让 dist 的内容
       取决于门禁跑没跑过）。要做得先验证"预置 profile 可复跑"，本轮没验 ⇒ 不进自动化。
@@ -119,7 +119,7 @@ const KEYS = REQUIRED.map(([k]) => k);
    `src/lib/phase.js`（纯函数）。这一枚必须在这里露一面，理由和文件头那条事故同源：
    "语法完全合法但整段不执行" 前三类原理上看不见，而新挂上去的 getCurrentPosition 回调正是
    一段"没跑也什么都不报错"的代码。⚠️ 但它**不进 REQUIRED**：那五枚的证明是"内联脚本在跑"，
-   而 data-phase 的写者是打包脚本（首帧那枚 day 是静态 HTML 里的，见 Layout.astro:21），
+   而 data-phase 的写者是打包脚本（首帧那枚 day 是静态 HTML 里的，见 Layout.astro:52），
    混进同一张表会让内联隔离档的断言变成废话。
    对账口径：拿本机器钟表的**月份表**预测比——访客没授权时浏览器里跑的也是这条退路，两边必须同档。
    ⚠️ 唯一要让路的是"正好压在边界上"那几分钟：浏览器起进程要一两秒，跨过边界两边就会差一档，
@@ -225,7 +225,7 @@ if (!PAGES.length) die(`${DIST} 里一份 HTML 都没有`, '  dist/ 空＝build 
    ⚠️ 顺序也在这里对：`/essays/` 里各行出现的先后必须等于 `sortPosts()` 给的那个顺序（置顶在最前）。
       文本判据管不住"比较函数写反"，这一条读的是产物。 */
 /* ⚠️ 扫产物 HTML 之前先把 <!-- --> 摘掉（本卡实测到的假红逼出来的，不是预防性写法）：
-   `src/layouts/Layout.astro:44` 那段规范链接的注释里原话写着"同一篇稿子的 /essays/foo 与 /essays/foo/
+   `src/layouts/Layout.astro:69` 那段规范链接的注释里原话写着"同一篇稿子的 /essays/foo 与 /essays/foo/
    各自回 200"——那是**给人读的一句说明**，今天真的烘进了每一页产物，于是"列表先后"那一格实测读出
    `foo forest-blog fog-debugging slow-frontend` 四行（多出来的 `foo` 就是那半句注释）⇒ exit 1。
    判据要抓的是**访客走得到的地址**，注释里的地址访客走不到 ⇒ 不算泄漏、也不算一行。
@@ -477,7 +477,7 @@ function assertPage(label, url, r) {
   const illegal = REQUIRED.filter(([k, set]) => k in attrs && attrs[k] !== '' && !set.includes(attrs[k])).map(([k, set]) => `${k}=${JSON.stringify(attrs[k])}（合法集合 ${set.join('/')}）`);
   const line = listAttrs(attrs);
   if (missing.length) {
-    problems.push(`${label} ${url}：少 ${missing.join('、')} —— 写这些属性的是 Layout.astro:56-68 的 <script is:inline>；属性不在＝那段没执行（语法合法也可能整段被丢弃，见规范 §16）`);
+    problems.push(`${label} ${url}：少 ${missing.join('、')} —— 写这些属性的是 Layout.astro:94-107 那唯一一段 <script is:inline>（全文件另一处 is:inline 在 :91-93，是 speculationrules，不写属性）；属性不在＝那段没执行（语法合法也可能整段被丢弃，见规范 §16）`);
     console.log(`  ${label} ${url}\n      ${line}`);
   } else if (illegal.length) {
     problems.push(`${label} ${url}：取值非法 ${illegal.join('、')}`);
