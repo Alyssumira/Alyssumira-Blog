@@ -443,6 +443,25 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 }
 .colophon::before,.footnotes::before,.post-nav::before,.essay-index li::before{ top:-1px; }
 .essay-index li:last-child::after{ bottom:-1px; }
+/* 目录行那根分隔线换更深的一档（本卡第二件事，作者改过配比的那一条）。三条口径写死在这里：
+   ① **改的是这一枚伪元素的颜色，不是 border**——`mistwood.css:315/316` 那两条 `border:…transparent`
+      是**占位**（把线直接拿走会在每行少掉 1px 高度、目录逐行往上漂），上面那格（§9）记过；
+      `top:-1px` 与两端那对 mask 一个字不动，撤 mask 就是让线变回机器画的。
+   ② **25% 的出处是 `base.css:398`**（`.search-row-t mark` 那枚"选中／标记的底"，与 `::selection`
+      同档）——**语义不同、只是不新造数**：那一枚说"这一处你正在看"，这一枚说"两行之间的那道界"。
+      不许把它读成"同一条已签字口径的沿用"；作者原话给的是"`--moss` α .18 是新配比……改成 25%，
+      与选中色同档，不新造"，本行按那句落地，没有另签一枚配比。零新 hex、零新 `rgba()`、零新令牌。
+   ③ 名单只圈 `.essay-index` 这两枚（逐行那根 `::before` 与整列封口那根 `:last-child::after`——
+      §9 第 4 条早就判过它俩是同一枚宿主上同一根线，只改半根就成了"每行两端都轻、只有最后那道
+      封口是机器画的"）。`.colophon`／`.footnotes`／`.post-nav` 三枚宿主**照旧走 `--line`**，不在这一格。
+   ⚠️ 这一条**门禁看不见**：`palette-check` 第三关认的是源码里的色值令牌（`--令牌: #hex` 与值里含
+   `rgb()/rgba()`），`color-mix(in srgb,…)` 既不是那两种写法也不是令牌（§16 明登记过这个盲区）
+   ⇒ 守它的只有这段注释和人的眼睛，别当成"过了闸"。
+   ⚠️ 打印档（下面 §19 那一组）一个字没动：纸上这两枚伪元素 `content:none`、线退回
+   `border-top-color:var(--line)` ⇒ **屏幕与纸的目录行线色从今天起不同**（屏幕 25% 苔绿、纸 `--line`），
+   要一并加深得作者点头并拆开那条三宿主共用的恢复声明——本卡不越这一格。 */
+.essay-index li::before,
+.essay-index li:last-child::after{ background:color-mix(in srgb,var(--moss) 25%,transparent); }
 
 /* ============ 移动端：导航壳在窄屏收起时钟（§11）============ */
 /* ⚠️ 只有 `.nav-clock` 归并了。同一条媒体查询里的 `.nav{gap;padding}` 两份表**字面取值不同**
