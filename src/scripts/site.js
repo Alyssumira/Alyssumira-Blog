@@ -607,7 +607,7 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
        · 围栏没带语言标识（或标识过不了 `[A-Za-z0-9._+-]{1,24}` 那层白名单）⇒ 渲染器不写 data-lang ⇒
          那一行标签本来就不存在，钮也没有可以并进去的那一行；宁可不给复制，不新造一行版面占位；
        · 无 JS / 这段没跑 ⇒ 页面上没有这一枚钮，与改动前逐字节相同（同 post-focus 那枚的显形口径）。
-     ⚠️ 故意**不**把这段搬进 `Layout.astro:56-68` 那两段 `<script is:inline>`：那是第四类门禁
+     ⚠️ 故意**不**把这段搬进 `Layout.astro:103-105` 与 `:106-119` 那两段 `<script is:inline>`：那是第四类门禁
        （runtime-check"内联脚本同步落地五枚属性"）的断言对象，往里塞东西要另开一卡。
      取值走 `<code>` 的 textContent：那里面是渲染器整块 esc() 出来的字面代码，没有一枚子元素，
      所以不必再剥标签；钮在 `<code>` 之外（`.codeblock` 的直接子元素），不会把自己复制进去。 */

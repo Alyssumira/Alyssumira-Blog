@@ -3,7 +3,7 @@
    （`astro.config.mjs` 里那枚 SITE，占位与真域名由 PUBLIC_SITE 这一枚开关决定）。`public/` 下的静态文件
    在构建期**根本不经过 Astro**，把域名写进 `public/robots.txt` 等于给同一件事立第二处真值：换域名那天
    rss.xml / sitemap-index.xml / og:url 全跟着 SITE 变了，只有这一行没变——而它恰好是爬虫唯一会读的那一行。
-   同一族账见 §16"一个页面只许有一个构建时刻"与 src/lib/stats.js:10-12 那句"两处各算一遍，迟早有一处先改"。
+   同一族账见 §16"一个页面只许有一个构建时刻"与 src/lib/stats.js:14 那句"两棵树里各算一遍，迟早有一处先改"。
    ⚠️ 代价登记在这儿：这枚产物不在 `public/` 里，`ls public/` 看不到它，要看就读 `dist/robots.txt`；
    而它跟着 SITE 走，就意味着 §16 那笔"产物里占位域名 N 处"的账从此多一处消费者（本轮已复算，见 §13a 末格）。
    取址口径照 src/pages/rss.xml.js:9 那一行：从 context 里的 site 拿，不 import astro.config.mjs、不读 process.env。 */
