@@ -650,8 +650,9 @@ for (const t of textArtifacts) countHosts(t.txt);
 /* ⚠️ 名单的角色换了：它不再决定窗口（窗口照上面走盘），只断言"这些产物必须在盘上"。
    原来那句 `if (existsSync(path)) countHosts(...)` 是"缺文件就静默跳过"——本仓在 `dist/dist/...`
    那一次栽的就是同一形状（规范 §16 登记的空转判据）：文件不在 ⇒ 少读几枚 ⇒ 数字变小而一声不吭。
-   现在少一枚是一条具名的红。名单本身按"谁在写绝对地址"取：两枚 feed、两枚 sitemap、robots.txt、search.json。 */
-const EXPECTED_TEXT = ['rss.xml', 'atom.xml', 'sitemap-index.xml', 'sitemap-0.xml', 'robots.txt', 'search.json'];
+   现在少一枚是一条具名的红。名单本身按"谁在写绝对地址"取：两枚 feed、两枚 sitemap、robots.txt、search.json、
+   llms.txt（`card/llms` 起这份写给抓取器读的站内地图整页都是绝对地址，它不在名单里就等于"少了它也照样打印全量"）。 */
+const EXPECTED_TEXT = ['rss.xml', 'atom.xml', 'sitemap-index.xml', 'sitemap-0.xml', 'robots.txt', 'search.json', 'llms.txt'];
 const seenText = new Set(textArtifacts.map(t => t.file.slice(DIST.length + 1).split('\\').join('/').toLowerCase()));
 for (const f of EXPECTED_TEXT) {
   if (!seenText.has(f.toLowerCase())) problems.push(`SITE 普查窗口里少了名单点名的 ${f}（dist/${f} 不在盘上，或不再是文本产物）⇒ 打印的处数不是全量，这一格在空转`);
