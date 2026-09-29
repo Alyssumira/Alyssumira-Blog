@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import SearchEntry from '../components/SearchEntry.astro';
 import { things } from '../data/site.js';
-import { root } from '../lib/markdown.js';
+import { root, strictHref } from '../lib/markdown.js';
 const pad = n => String(n).padStart(2, '0');
 ---
 <Layout title="小东西 · mistwood" desc="做一些小东西，像捡拾林间的石头。" here="things" tier="look">
@@ -14,12 +14,20 @@ const pad = n => String(n).padStart(2, '0');
 
     <div class="things-grid">
       {things.map(t => {
-        /* `link: "#"` 是 §12 那条死锚点：点了只回页顶。没填真地址就干脆不给 href——
+        /* `link` 的三种坏写法与"没填"一样退成不可点：`'#'` 是 §12 那条死锚点（点了只回页顶）；
+           缺协议头的 `example.com/x` 进了 href 就是相对路径，浏览器解成 /things/example.com/x，点开 404；
+           `javascript:`／`data:`／`vbscript:` 是一枚长在产物里的可点载体。判据只有一处——
+           `src/lib/markdown.js:21 strictHref()`（详情页页脚那两枚 URL 用的同一枚函数）：它交回空串就不给 href，
            这张卡此时是一块图鉴（名字 + tag + 一片占位雾），不是一个看起来坏了的按钮。
-           填上链接它就重新可点，反馈跟着 `.thing[href]` 一起回来（§8.3 每个可点元素 1 个主反馈） */
-        const href = t.link && t.link !== '#' ? t.link : null;
+           填上合格链接它就重新可点，反馈跟着 `.thing[href]` 一起回来（§8.3 每个可点元素 1 个主反馈） */
+        const url = t.link ? strictHref(t.link) : '';
+        /* 新标签页只挂在 http(s) 上，mailto: 不挂——写法与 rel 的组合都照 `src/lib/markdown.js:43 link()` 那一句。
+           "哪些协议能用"仍然只有 markdown.js:10 OK_LINK／markdown.js:11 HAS_SCHEME 加 href() 那一处，
+           这一页不新开第二份白名单——能走到这一行的地址已经过那道闸了 */
+        const blank = /^https?:/i.test(url) ? { target: '_blank', rel: 'noopener noreferrer' } : {};
+        const props = url ? { href: url, ...blank } : {};
         return (
-          <a class="thing reveal" {...href ? { href } : {}}>
+          <a class="thing reveal" {...props}>
             {t.shot && <img class="shot" src={root(t.shot)} alt="" loading="lazy">}
             <div class="thing-bar"><h3>{t.name}</h3><span>{t.tag}</span></div>
           </a>
