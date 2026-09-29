@@ -2,8 +2,8 @@
 import '../../styles/essay.css';
 import Layout from '../../layouts/Layout.astro';
 import { renderMd, fmtDate, strictHref } from '../../lib/markdown.js';
-import { visiblePosts } from '../../lib/posts.js';
-import { categoryOf, tagsOf, taxSlug } from '../../lib/taxonomy.js';
+import { visiblePosts, publishedPosts } from '../../lib/posts.js';
+import { categoryOf, tagsOf, taxSlug, isUnlisted } from '../../lib/taxonomy.js';
 import { seriesOf } from '../../lib/series.js';
 import { lastRevisionDate, whenLine } from '../../lib/revised.js';
 /* 字数向 stats.js 要，不在这一页重新数一遍（文件头那句"列表页与关于页的总计必须是同一把尺子"
@@ -12,17 +12,37 @@ import { lastRevisionDate, whenLine } from '../../lib/revised.js';
 import { cjkCount, latinWords } from '../../lib/stats.js';
 
 export async function getStaticPaths(){
-  /* ⚠️ 这一格最容易漏：草稿过滤漏在 getStaticPaths 里，就是"列表搜不到、详情页照样能访问"那种最坏的假完成
-     ——地址、og:url、上一层 prev/next 全都会带着它。所以这里也只准调 visiblePosts()，不再各写一遍 filter。
-     顺序（置顶在最前）一并由它给，下面的 prev/next 邻居因此跟着新顺序走。 */
-  const posts = await visiblePosts();
+  /* 这一格里**两枚读函数各管一件事**（第十六轮 `card/unlisted`，口径写在 `src/lib/posts.js` 头上那段），
+     混了就两头都坏，所以两行分开、各带一句理由：
+     ⚠️ **路**从 `publishedPosts()` 建——它只滤草稿。漏掉这一道就是"列表搜不到、详情页照样能访问"那种最坏的假完成
+        （地址、og:url、上一层 prev/next 全都会带着草稿）；反过来把不列入的也一并挡在这里，那一枚地址就当
+        不存在了——而这一族要的恰恰是**地址是真的、页面在**，只是没人指过去。
+     ⚠️ **邻居**（下面的上一篇／下一篇）从 `visiblePosts()` 算——它多滤一道不列入。顺序（置顶在最前）与
+        列表页、两枚 feed 同一份数组，不在这里再排一遍（两处各排迟早分叉）。
+        ⇒ 不列入的那一篇拿到的 prev/next 是 `undefined`：**它不在目录里，也就没有邻居**。
+        这一行是本卡最容易做歪的一格（把邻居退回整份集合，那一枚稿子立刻在别人的上一篇／下一篇里露头），
+        它由 `tools/runtime-check.mjs` 的「不列入对账」那一格在**产物**上逐枚扫 href 钉着——源码级判据原理上
+        看不见这件事：列表是干净的、地址是活的，泄漏只露在别人的 `.post-nav` 里。
+     ⚠️ 顺带一条：这一页**没有**因为"不列入"就少构建什么——同一个模板、同一份壳，只多一枚 `noindex`（见下面 `<Layout>`）。 */
+  const routable = await publishedPosts();
+  const listed = await visiblePosts();
+  const nb = new Map(listed.map((p, i) => [p.id, { prev: listed[i - 1], next: listed[i + 1] }]));
   /* 「改于」向 git 要，不向 front matter 要（§15 详情页那一格）：一次并发问完，问不到的那篇退 undefined。
      ⚠️ 判据的来源是 post.filePath（glob loader 交的是"相对 config.root"的路径），不是从 slug 拼一串——
      拼出来的那串碰上子目录稿件就指到不相干的文件，宁可不显示也不许指错。 */
-  const revised = await Promise.all(posts.map(p => lastRevisionDate(p.filePath)));
-  return posts.map((p, i) => ({ params: { slug: p.id }, props: { post: p, prev: posts[i - 1], next: posts[i + 1], revised: revised[i].date } }));
+  const revised = await Promise.all(routable.map(p => lastRevisionDate(p.filePath)));
+  return routable.map((p, i) => {
+    const at = nb.get(p.id);
+    return { params: { slug: p.id }, props: { post: p, prev: at?.prev, next: at?.next, revised: revised[i].date } };
+  });
 }
 const { post, prev, next, revised } = Astro.props;
+/* 不列入（第十六轮 `card/unlisted`）：这一页对那一枚键只做两件事，**页面本身照常是它**——
+   ① 给壳传 `noindex={isUnlisted(post)}`（条件那一行在 `src/layouts/Layout.astro`，§13a 记过的同一招），
+   ② 拿不到邻居 ⇒ 下面那一整块 `.post-nav` 不出现（口径在上面 `getStaticPaths` 那一段）。
+   标题、正文、og、许可行、系列行一个字都不减：这一族少的只是"别人指向它"与"机器把它收进索引"两件事，
+   不是这一页的内容。判据不在这里重写——`isUnlisted()` 住在 `src/lib/taxonomy.js`，`tools/` 那几格吃同一份。 */
+const unlisted = isUnlisted(post);
 const sub = post.data.excerpt;
 /* 写作时辰（§7）：月份从 date 推是事实，小时只能来自 front matter 的 hour。
    没填就整行不出现——"写于一个傍晚"这种话猜不得。
@@ -132,7 +152,7 @@ if (byline){
 }
 if (licName) licenseSegs.push({ pre: '许可 ', text: licName, url: licHref });
 ---
-<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays" type="article" date={post.data.date} revised={revised}>
+<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays" type="article" date={post.data.date} revised={revised} noindex={unlisted}>
   <!-- JSON-LD 要的这两枚就取自上面已经算好的 prop，不另问一次 git、也不从 slug 反推路径（:10-12 那条禁令同样管这里）：
        revised 是 git 里最后一次改动型提交的日历日（问不到＝undefined ⇒ Seo 那一键整块不写），date 是 front matter 那天。
        ⚠️ 这里只是把「已经在这儿的值」交给 Layout，页面上那行「改于」的判据与灰度一个字没动（§7 / §15）。 -->
@@ -197,10 +217,12 @@ if (licName) licenseSegs.push({ pre: '许可 ', text: licName, url: licHref });
       )}
     </div>
 
-    <nav class="post-nav reveal">
-      {prev && <a href={`/essays/${prev.id}/`}><span>← prev</span>{prev.data.title}</a>}
-      {next && <a class="next" href={`/essays/${next.id}/`}><span>next →</span>{next.data.title}</a>}
-    </nav>
+    {(prev || next) && (
+      <nav class="post-nav reveal">
+        {prev && <a href={`/essays/${prev.id}/`}><span>← prev</span>{prev.data.title}</a>}
+        {next && <a class="next" href={`/essays/${next.id}/`}><span>next →</span>{next.data.title}</a>}
+      </nav>
+    )}
 
     <!-- 纸上一页脚（§19.5）：屏幕上 `display:none`，一个像素都不占（`base.css` 的打印段里才亮起来）。
          日期取这篇的 front matter `date`，与上面 `.post-meta` 同一个 `fmtDate`、同一个入参——

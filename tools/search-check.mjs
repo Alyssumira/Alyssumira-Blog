@@ -87,7 +87,7 @@ import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
-import { isDraft, sortPosts } from '../src/lib/taxonomy.js';
+import { isDraft, isUnlisted, sortPosts } from '../src/lib/taxonomy.js';
 import { docTokens, queryTerms, searchDoc, INDEX_VERSION } from '../src/lib/search.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -121,7 +121,9 @@ function cell(id, label, fn){
 function hard(msg){ problems.push(msg); }
 
 /* ==================== 源码侧那批稿子 ====================
-   读 .md 原文只为准挑探针词与对账篇数；"哪些篇该进索引"由 shipped 的 isDraft + sortPosts 判。
+   读 .md 原文只为准挑探针词与对账篇数；"哪些篇该进索引"由 shipped 的 isDraft + isUnlisted + sortPosts 判
+   （第十六轮 `card/unlisted` 起那一枚 filter 与页面那侧的 `visiblePosts()` 同一条：不列入的一篇不进索引，
+   正如它不进列表、不进 feed——这里少滤一道，② 那格的枚数对账就会在探针态上报一条假红）。
    ⚠️ 这一族"没有对象就没法判"的关口一律不 throw 到进程外（见上面 hard() 那段）：
       语料空 / 挑不出探针 ⇒ 记一条有名有姓的红，然后**照常走到打印那一步**。
       `readdirSync(...).filter(...)` 之后拿数组做判据的地方，紧跟着就是一枚"零枚必红"的牙。 */
@@ -139,7 +141,7 @@ const CORPUS = (() => {
     const slug = f.replace(/\.md$/i, '');
     out.push({
       id: slug, slug,
-      data: { draft: tax.draft, pinned: tax.pinned, date: new Date(parsed.fm.date) },
+      data: { draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, date: new Date(parsed.fm.date) },
       title: String(parsed.fm.title == null ? '' : parsed.fm.title),
       head: [parsed.fm.title, parsed.fm.excerpt].map(v => String(v == null ? '' : v)).join(' '),
       body: parsed.body || '',
@@ -148,8 +150,12 @@ const CORPUS = (() => {
   if (!out.length) hard('语料清单非空却一篇都没解出来 ⇒ 判据正在空转');
   return out;
 })();
-const VISIBLE = sortPosts(CORPUS.filter(p => !isDraft(p)));
+const VISIBLE = sortPosts(CORPUS.filter(p => !isDraft(p) && !isUnlisted(p)));
 const DRAFTS = CORPUS.filter(p => isDraft(p));
+/* 不列入的那几枚（第十六轮）：地址是活的、页面在盘上，但它不许进索引——它进了索引就等于
+   搜索框替站内所有页面长出了一枚指向它的结果行，"只有拿到地址的人读得到"当场破。
+   名单现算、不写死（今天 0 枚也要有这一枚数可报，见 ② 那句打印）。 */
+const UNLISTED = CORPUS.filter(p => !isDraft(p) && isUnlisted(p));
 
 /* 二字滑窗：与 `src/lib/search.js` 同一个切法（这里只用来挑词，不参与判定） */
 const CJK2 = /^[\u3400-\u4dbf\u4e00-\u9fff]{2}$/;
@@ -236,7 +242,7 @@ cell('①', 'dist/search.json 在、形状对、一个绝对地址都没有', ()
 });
 
 /* ==================== ② 篇数与草稿 ⇄ 源码 ==================== */
-if (product) cell('②', '索引里那批 ⇄ 源码里"可见"那批，一枚不多一枚不少', () => {
+if (product) cell('②', '索引里那批 ⇄ 源码里"可见"那批（滤草稿、滤不列入），一枚不多一枚不少', () => {
   const want = VISIBLE.map(p => `/essays/${p.slug}/`);
   assert.ok(want.length, '源码里一篇可见稿件都没有 ⇒ 篇数对账与"每一篇都进得来索引"两半都没对象，判据正在空转');
   assert.equal(product.docs.length, want.length,
@@ -245,6 +251,15 @@ if (product) cell('②', '索引里那批 ⇄ 源码里"可见"那批，一枚�
     `${u} 在可见清单里却不在索引里 ⇒ 这一篇永远搜不到，而它在 /essays/ 上明明有一行`);
   for (const d of DRAFTS) assert.ok(!product.docs.some(x => x.u === `/essays/${d.slug}/`),
     `${d.slug} 标着 draft:true 却进了索引 ⇒ 列表里没有它、地址照样活着：草稿泄漏最新的一种形状`);
+  /* 不列入那一族（第十六轮 `card/unlisted`）：与草稿那一半同一个形状，但**页面上那一页是在的**——
+     所以这里不能拿"dist 里没有那一页"当判据（那是草稿的形状），只能拿"索引里没有它"当判据。
+     它要是进了索引，运行时那一侧就长出真结果行、真地址，"站内任何一处都不指向它"破在搜索框里
+     （上面那条 `docs.length === want.length` 的枚数对账咬得住"多了一篇"，这一条点名的是"哪一枚多了"）。
+     ⚠️ 0 枚也照样打印这一枚数（口径照 runtime-check 那两格"零对象自检"的规矩）：一句"索引 3 篇"背后
+        究竟是"没有不列入的稿子"还是"读不出那一枚键"，得让读数自己说清。 */
+  for (const u of UNLISTED) assert.ok(!product.docs.some(x => x.u === `/essays/${u.slug}/`),
+    `${u.slug} 标着 unlisted:true 却进了索引 ⇒ 搜索框里会画出它那一行、点开就是那一页：`
+    + `"站内任何一处都不指向它"破在最后这一处入口上（这一格是 search.json 那一侧唯一的牙）`);
   /* ⚠️ 草稿那一半的牙不在 `DRAFTS.length` 上，在上面那条 `docs.length === want.length`：
      泄漏的形状是"产物里多出一篇源码不可见的文档"，枚数对账当场就红——源码今天没有草稿，
      这条判据照样咬得住（有草稿载体的那一跑是实测档，登记在 §9 那一格与回执里）。 */
@@ -260,8 +275,11 @@ if (product) cell('②', '索引里那批 ⇄ 源码里"可见"那批，一枚�
     `索引 ${product.docs.length} 篇、只对上了 ${on_disk} 页 ⇒ "每一篇都跳得到"这一半没跑成，判据正在空转`);
   notes.push(`② 索引 ⇄ 源码：可见 ${want.length} 篇逐枚点名（${want.map(w => w.split('/')[2]).join('、')}）且逐枚确认 dist 里有那一页；`
     + (DRAFTS.length ? `源码里草稿 ${DRAFTS.length} 篇（${DRAFTS.map(d => d.slug).join('、')}）逐个确认不在索引里`
-      : '源码里今天一篇 draft 都没有 ⇒ 草稿那一半今天没有源码载体；承重的判据是上面那枚枚数对账（泄漏＝产物多一篇），它今天照样在咬'));
-  return want.length + DRAFTS.length + on_disk + 3;
+      : '源码里今天一篇 draft 都没有 ⇒ 草稿那一半今天没有源码载体；承重的判据是上面那枚枚数对账（泄漏＝产物多一篇），它今天照样在咬')
+    + `；不列入 ${UNLISTED.length} 枚`
+    + (UNLISTED.length ? `（${UNLISTED.map(u => u.slug).join('、')}）逐个确认不在索引里——它们那一页在 dist 里是真的（地址能读），只是不进索引`
+      : ' 枚：源码里没有一篇写着 unlisted: true ⇒ 这一半今天没有对象，而承重的判据仍是上面那枚枚数对账（多一篇就红），它照样在咬'));
+  return want.length + DRAFTS.length + UNLISTED.length + on_disk + 3;
 });
 
 /* ==================== ③ shipped 那一刀命中探针词 ==================== */

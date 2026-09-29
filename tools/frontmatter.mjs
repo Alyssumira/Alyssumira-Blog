@@ -51,6 +51,11 @@ function flowItems(inner){
 /* 六枚可空键（category / tags / draft / pinned ＋ 第十五轮 `card/series` 的 series / seriesOrder）的读法
    ＋ 坏写法的报错句子。两枚系列键的读法**只是翻译**：真值在 `src/content.config.ts` 与 `src/lib/series.js`，
    这里不写第二份归一化、也不写第二份排序。
+   ⚠️ 第十六轮 `card/unlisted` 起这一份**还多读一枚布尔键 `unlisted`**（走 `parseFlag` 那同一枚读法，
+      与 draft/pinned 同一条口径：只认 YAML 1.2 核心 schema 那六个字面量、引号不剥、空着＝没填＝默认），
+      所以这一族今天交出来的是**七枚键**。为什么工具侧必须读得到它：`runtime-check` 的"不列入对账"那一格
+      要按**盘上真值**现算名单（"哪些稿子该从产物里消失"这件事不许在工具里另猜一遍，也不许硬编码名单），
+      而它吃的就是这里这一份 `readTaxonomy` ＋ `src/lib/taxonomy.js` 的 `isUnlisted()`。
    返回的 errors 是**可以直接 print 的句子主体**（调用方拼 `✗ ${f}：${e}`），
    语气照本仓库既有那条：把后果说清，不只说"格式不对"。 */
 export function readTaxonomy(fmText){
@@ -132,15 +137,24 @@ export function readTaxonomy(fmText){
       + `详情页那一行与 /series/ 的清单都不会因为它多出现一个字。要么把系列名填上，要么把这一行删掉（"作者写了却看不见"就是 §12 那一族，本工具专门点名它）`);
   }
 
-  /* 草稿与置顶：只认 YAML 1.2 核心 schema 的那六个字面量，空着＝没填＝默认 */
+  /* 草稿与置顶（第十六轮起再多一枚同族的 `unlisted`，见下面那句注释）：只认 YAML 1.2 核心 schema 的
+     那六个字面量，空着＝没填＝默认 */
   const flags = {};
-  const effect = { draft: '草稿（这一篇从站上任何一处都读不到）', pinned: '置顶（它排在 / 与 /essays/ 的最前面）' };
-  for (const key of ['draft', 'pinned']){
+  const effect = {
+    draft: '草稿（这一篇从站上任何一处都读不到）',
+    pinned: '置顶（它排在 / 与 /essays/ 的最前面）',
+    /* 不列入那一枚说后果说得最长，因为它的后果最多、也最容易被读错成"跟草稿一样"（同一条键的注释在
+       `src/content.config.ts` 的 `unlisted` 那一行头上，这里只是把它翻译给人听） */
+    unlisted: '不列入（页面照常构建、那个地址照常读得到，只是站内任何一处都不指向它：列表、首页那三篇、'
+      + '分类/标签/系列三族、两枚订阅源、搜索索引、llms.txt 与 sitemap 全没有它——发了，但只有拿到地址的人读得到）',
+  };
+  const unset = { draft: '已发布', pinned: '不置顶', unlisted: '照常被列出' };
+  for (const key of ['draft', 'pinned', 'unlisted']){
     const m = lineOf(key);
     const r = parseFlag(m ? m[1] : '');
     flags[key] = r.ok ? r.value : false;
     if (!r.ok) errors.push(`${key} 写成 "${r.value}" 不是布尔——YAML 1.2 不把 yes/no/on/off/1 当真假，zod 会当场报错、整站烘不出来；`
-      + `要它算${effect[key]}就写 true，不算就写 false，或者把这一行整条删掉（删掉＝没填＝${key === 'draft' ? '已发布' : '不置顶'}）`);
+      + `要它算${effect[key]}就写 true，不算就写 false，或者把这一行整条删掉（删掉＝没填＝${unset[key]}）`);
   }
 
   /* 归一化之后没有地址的名字：页面那侧（groupBy / tagsOf）会把它丢掉，于是"作者写了却不出现"——
@@ -160,5 +174,5 @@ export function readTaxonomy(fmText){
     errors.push(`series "${series}" 归一化之后是空串（纯标点／符号的名字清完什么也不剩）——它没有地址可指，详情页那一行不会出现、/series/ 的清单里也不会有它（` + '`/series//`' + ` 是 §12 的死锚点）；起个含字母或数字的名字，或者把这一行删掉`);
   }
 
-  return { category, tags, draft: flags.draft, pinned: flags.pinned, series, seriesOrder, errors };
+  return { category, tags, draft: flags.draft, pinned: flags.pinned, unlisted: flags.unlisted, series, seriesOrder, errors };
 }

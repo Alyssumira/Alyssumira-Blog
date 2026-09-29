@@ -87,6 +87,15 @@ export function bySize(groups){
    `!!` 是刻意的：front matter 没经过 schema 直接进来的场合（工具喂的对象）也不至于把 undefined 读成真。 */
 export const isDraft = post => !!post.data.draft;
 
+/* 不列入的判据（第十六轮 `card/unlisted`）：与上面 `isDraft` 同一条形状、同一族口径，
+   所以它也住在这份**不 import 'astro:content'** 的纯文件里——`tools/` 里的门禁（`taxonomy-check` 的行为格、
+   `runtime-check` 的产物格、`search-check` 的篇数格）吃的是**这一个实现**，不会出现"门禁一套读法、页面一套读法"
+   然后两边各自赦免同一个错（§16 记过的那一族）。为什么这里只回答"是不是不列入"、不回答"那就意味着什么"：
+   意味着什么（建路／列出／邻居／feed）住在 `src/lib/posts.js` 那两枚读函数，两处各判迟早分叉。
+   ⚠️ `isDraft` 与 `isUnlisted` 是**两件事**（schema 那枚键的注释里钉着同一句话）：
+   草稿那一枚地址根本不烘出来；不列入的那一枚页面在、能读，只是站内任何一处都不指向它。 */
+export const isUnlisted = post => !!post.data.unlisted;
+
 /* 列表顺序：置顶在最前，其余仍旧按日期倒序（§15 列表页那一格的旧口径一个字没动）。
    比 pinned 再比 date 是全序，V8 的 sort 稳定 ⇒ 同日期同置顶的那几篇按 getCollection 的文件名走，
    构建可复现。⚠️ 顺序变了三件事跟着变：首页那三篇（slice(0,3)）、/essays/ 的按年分节与 folio、上下篇邻居。 */
