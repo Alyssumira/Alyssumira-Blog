@@ -1,6 +1,7 @@
-/* taxonomy-check.mjs —— 分类/标签/草稿/置顶这一族的**结构 + 行为**门禁（第十轮 `card/taxonomy`）
+/* taxonomy-check.mjs —— 分类/标签/草稿/置顶（第十轮 `card/taxonomy`）＋ 系列/序数（第十六轮 `card/series`）
+   这一族的**结构 + 行为**门禁
    用法  node tools/taxonomy-check.mjs            （接进 npm run check，跑在 build 之前，不需要 dist/）
-         node tools/taxonomy-check.mjs --list     （外加打印当前稿件算出来的分类/标签清单）
+         node tools/taxonomy-check.mjs --list     （外加打印当前稿件算出来的分类/标签/系列清单——0 枚也打）
 
    ── 它管哪几件事，为什么每件都得有 ──────────────────────────────────────────
    ① **唯一入口**：全站读 posts 只准走 `src/lib/posts.js` 的 `visiblePosts()`。
@@ -8,11 +9,14 @@
       订阅源里还带着它、关于页还在数它"。漏的那一处不会自己报告，所以这里朝两个方向查：
       别处出现 `getCollection(` ⇒ 红；posts.js 里那一枚也没了 ⇒ 也红（判据不许被"删掉就绿"过关，
       同 §17 那条 palette-check 的反向牙）。
-   ② **六个调用点确实在用那份**：点名 index / essays 列表 / essays 详情（getStaticPaths 那一格最容易漏）/
-      rss / atom / about，每处都要出现 `visiblePosts(`。只查①的话，把某处整段删掉也算"没绕过"。
-   ③ **schema 那一侧同源**：`content.config.ts` 必须声明四枚新键，且 draft/pinned **不许 coerce**、
-      必须经过那层"空值退回 undefined"。判的是代码形状，不是注释——coerce 那一条是 §12"假语境"的牙
-      （`z.coerce.boolean()` 把 `"false"` 也铸成 true，一篇作者要发的稿子会自己消失而构建全绿）。
+   ② **八个调用点确实在用那份**：点名 index / essays 列表 / essays 详情（getStaticPaths 那一格最容易漏）/
+      rss / atom / about / 系列索引 / 单枚系列页（最后两枚是第十六轮 `card/series` 添的），
+      每处都要出现 `visiblePosts(`。只查①的话，把某处整段删掉也算"没绕过"。
+   ③ **schema 那一侧同源**：`content.config.ts` 必须声明四枚 taxonomy 键 ＋ 两枚系列键（`series`／`seriesOrder`），
+      且 draft/pinned/series **不许 coerce**、必须经过那层"空值退回 undefined"。判的是代码形状，不是注释——
+      coerce 那一条是 §12"假语境"的牙（`z.coerce.boolean()` 把 `"false"` 也铸成 true，一篇作者要发的稿子会
+      自己消失而构建全绿）。⚠️ `seriesOrder` 那一枚**用 coerce.number() 是合法的**（与 `hour` 同一枚形状、
+      空值先退回 undefined 所以铸不出 0），这一格钉的是它的下界必须是 `positive()`、不许被换成 `min(0)`。
    ④ **判据本身还有牙**（行为，不是文本）：拿假 post 对象喂 shipped 的那几个纯函数，
       逐条要求"该红的红"：草稿为真 ⇒ isDraft 真；置顶 ⇒ 排在最前；逗号字符串/空标签 ⇒ 不进清单；
       两个不同名字撞同一枚 slug ⇒ groupBy 抛。⚠️ 这一格存在的原因写在 §14 第 14 项：
@@ -32,6 +36,7 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
 import { isDraft, sortPosts, cleanName, taxSlug, categoryOf, tagsOf, feedTerms, groupBy, tagGroups, bySize, parseFlag } from '../src/lib/taxonomy.js';
+import { seriesOf, orderOf, seriesGroups } from '../src/lib/series.js';
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -139,7 +144,7 @@ cell('①', '读 posts 的唯一入口（别的调用点一律红）', () => {
 });
 
 /* ---------- ② 六个调用点点名 ---------- */
-cell('②', '六个读 posts 的页面都在吃 visiblePosts()', () => {
+cell('②', '读 posts 的页面都在吃 visiblePosts()', () => {
   const CALLERS = [
     'src/pages/index.astro',
     'src/pages/essays/index.astro',
@@ -147,6 +152,10 @@ cell('②', '六个读 posts 的页面都在吃 visiblePosts()', () => {
     'src/pages/rss.xml.js',
     'src/pages/atom.xml.js',
     'src/pages/about.astro',
+    /* 第十六轮 `card/series` 那两份模板：索引页与每一枚系列页都必须吃同一份草稿过滤——
+       漏一处就是"列表里没有、/series/<slug>/ 的地址照样烘出来"那一族假完成。 */
+    'src/pages/series/index.astro',
+    'src/pages/series/[name].astro',
   ];
   let n = 0;
   for (const f of CALLERS){
@@ -166,7 +175,7 @@ cell('②', '六个读 posts 的页面都在吃 visiblePosts()', () => {
 });
 
 /* ---------- ③ schema 那一侧同源 ---------- */
-cell('③', 'content.config.ts 的四枚键（不做 coerce、空值退回 undefined）', () => {
+cell('③', 'content.config.ts 的六枚键（taxonomy 四枚 + 系列两枚：不许 coerce 的照旧、空值退回 undefined）', () => {
   const src = codeOnly(readSrc(join(ROOT, 'src', 'content.config.ts')));
   /* 注释先抹掉：content.config.ts 里那段警告文字**故意**抄着 `z.coerce.boolean()` 这个坏写法（讲它为什么禁），
      不抹的话判据会被自己的例子命中——同 §9 那条"注释里别抄坏值"的教训。 */
@@ -191,7 +200,24 @@ cell('③', 'content.config.ts 的四枚键（不做 coerce、空值退回 undef
   /* 空值那一层必须在：`default()` 只放行 undefined，YAML 里空着的键交来的是 null（同 hour 那枚先例的口径） */
   assert.ok(/const blankSlot = t => z\.preprocess\(\s*v => \(v === null \|\| v === ''\) \? undefined : v\s*,\s*t\)/.test(src),
     '③ blankSlot 那层 preprocess 没了或换了口径 —— `tags:`／`category:` 空着（null）会撞进 zod 的英文堆栈');
-  return n + 3;
+
+  /* ---- 第十六轮 `card/series` 那两枚键（同一格管，因为它们是"同一族口径"的第三次使用）----
+     判的都是**代码形状**：`series` 必须吃同一枚 blankSlot（不许必填、不许 coerce），
+     `seriesOrder` 必须是"空值退回 undefined ＋ coerce.number().int().positive()"那一枚形状。 */
+  assert.ok(/series:\s*blankSlot\(z\.string\(\)\.default\(''\)\)/.test(src),
+    '③ schema 的 series 不是"blankSlot + 空串默认"那一枚写法 —— 空着的 `series:`（YAML 落 null）会撞进 zod 的英文堆栈，'
+    + '或者必填把"没填 ⇒ 不出现"这条断了（作者留个空键就该正常构建）');
+  const badSeriesCoerce = /^\s*series:[^\n]*z\.coerce\./m.exec(src);
+  assert.ok(!badSeriesCoerce, `③ series 用了 z.coerce.（"${badSeriesCoerce && badSeriesCoerce[0]}"）—— coerce.string() 把空着的键铸成 "null"，`
+    + '`.default(\'\')` 就再也不认得：schema 全绿，而页面替作者署下一个他没写过的系列名');
+  assert.ok(/seriesOrder:\s*z\.preprocess\(\s*v => \(v === null \|\| v === '' \|\| v === undefined\) \? undefined : v\s*,\s*z\.coerce\.number\(\)\.int\(\)\.positive\(\)\.optional\(\)/.test(src),
+    '③ seriesOrder 不是"照 hourSlot 那枚形状（preprocess 退回 undefined ＋ coerce.number().int().positive().optional()）"—— '
+    + '少了 preprocess，空着的 `seriesOrder:` 会被 coerce 铸成 0，而 0 是"第 0 篇"（编出来的序）');
+  /* 这一枚是**合法**的 coerce（与 draft/pinned/category/tags 那一句相反）：正整数 + 空值先退回 undefined，
+     铸不出 0。所以这里查的是"不许改成 min(0)、也不许改成必填"，不是"不许出现 coerce"。 */
+  assert.ok(/z\.coerce\.number\(\)\.int\(\)\.positive\(\)/.test(src) && !/seriesOrder:[\s\S]{0,400}?\.min\(/.test(src),
+    '③ seriesOrder 的下界不是 positive()（被换成 min(0) 那一类写法）—— `seriesOrder: 0` 会当成合法输入，第一篇就从"第 0 篇"数起来了');
+  return n + 7;
 });
 
 /* ---------- ④ 判据自己有牙（行为） ---------- */
@@ -239,11 +265,61 @@ cell('④', 'shipped 的那几个纯函数吃反例（逻辑写反这族文本�
   assert.equal(parseFlag('"false"').ok, false, '④ parseFlag 把带引号的 "false" 当布尔收下了');
   assert.deepEqual([parseFlag('').filled, parseFlag('').value], [false, false], '④ 空着的 draft 该是"没填 ⇒ 默认 false"');
   assert.equal(parseFlag('constructor').ok, false, '④ parseFlag 认到了原型链上的键（`draft: constructor` 被当成布尔）—— 查表得用 hasOwn，不是 in');
-  return 21;
+
+  /* ---- 系列那一族的排序规则（第十六轮 `card/series` 那条裁决的牙）----
+     文本判据管不住"逻辑写反"：把 `every` 写成 `some`、或把混排当成"更聪明"，① ② ③ 全都照样绿。
+     所以这里直接拿 shipped 的 `seriesGroups()` 喂三组假 post，要求**两种落点各读各的顺序**。 */
+  const mkS = (id, series, seriesOrder, date) => ({
+    id, data: { category: '', tags: [], series, seriesOrder, date: new Date(date) },
+  });
+  /* 甲：整组都有 order，而 order 与 date **方向相反** ⇒ 必须按 order（作者说了的顺序就是顺序） */
+  const full = seriesGroups([
+    mkS('third', '雾中练习', 3, '2026-01-01'),
+    mkS('first', '雾中练习', 1, '2026-09-09'),
+    mkS('second', '雾中练习', 2, '2026-05-05'),
+  ]);
+  assert.equal(full.length, 1, '④ 同一枚名字的三篇被并成了多枚系列（或反之：分组坏了）');
+  assert.equal(full[0].by, 'order', '④ 整组都有 seriesOrder 却没按 order 排 —— 作者写过的顺序被机器换掉了');
+  assert.deepEqual(full[0].posts.map(p => p.id), ['first', 'second', 'third'], '④ order 升序读不出来（应该 1→2→3，与日期方向无关）');
+  assert.equal(full[0].posts.length, 3, '④ 组内枚数（`共 M 篇` 那个 M）数错了 —— 那是这一族唯一能上屏的数');
+  /* 乙：**缺一枚** order ⇒ 整组退回按 date，不许"有 order 的在前、缺的在后"那种混排
+     （混排＝机器替作者编了一个他没说过的顺序，§12 假语境的近亲）。这一条是本卡最值钱的断言。 */
+  const gap = seriesGroups([
+    mkS('third', '雾中练习', 3, '2026-01-01'),
+    mkS('novalue', '雾中练习', undefined, '2026-03-03'),
+    mkS('first', '雾中练习', 1, '2026-09-09'),
+  ]);
+  assert.equal(gap[0].by, 'date', '④ 有一枚缺 seriesOrder 却让这一组仍按 order 排（或混排）—— 规则是"缺一枚就整组退回日期"');
+  assert.deepEqual(gap[0].posts.map(p => p.id), ['third', 'novalue', 'first'],
+    '④ 退回按 date 那一档没按日期升序（先写的在前）—— 读到的顺序不是这条规则说的那个');
+  /* 序数读法的边界：`0`／负数／非整数统统＝没填（`positive()` 那一侧的同一条口径） */
+  assert.equal(orderOf(mkS('a', 'x', 0, '2026-01-01')), undefined, '④ orderOf 把 seriesOrder: 0 当成了合法输入 —— "第 0 篇"是编出来的序');
+  assert.equal(orderOf(mkS('a', 'x', -2, '2026-01-01')), undefined, '④ orderOf 把负数当成了合法输入');
+  assert.equal(orderOf(mkS('a', 'x', null, '2026-01-01')), undefined, '④ orderOf 把空着的键读成了东西 —— 整组会错按 order 排');
+  const zero = seriesGroups([mkS('a', '雾中练习', 0, '2026-01-01'), mkS('b', '雾中练习', 2, '2026-02-02')]);
+  assert.equal(zero[0].by, 'date', '④ 一枚 `seriesOrder: 0` 被当成了"有 order"，于是这一组按编出来的序排起来了');
+  /* 没有地址的名字不进清单（`/series//` 是 §12 的死锚点）；没填的稿子也不进任何一格 */
+  assert.deepEqual(seriesGroups([mkS('a', '。', 1, '2026-01-01'), mkS('b', '', 1, '2026-02-01'), mkS('c', null, undefined, '2026-03-01')]), [],
+    '④ 纯标点／空着的系列名被算进了清单 —— /series/ 那会长出一枚没有地址的条目、详情页那一行会指到 /series//');
+  assert.equal(seriesOf(mkS('a', ' 雾中 练习 ', 1, '2026-01-01')), '雾中 练习', '④ seriesOf 没走 cleanName（折叠内部空白那一半丢了）');
+  assert.equal(taxSlug(seriesOf(mkS('a', ' 雾中 练习 ', 1, '2026-01-01'))), '雾中-练习',
+    '④ 名字进 URL 的那一步不是 taxSlug（这里不许有第二份归一化，清单与地址迟早分叉）');
+  /* 两枚不同名字撞同一枚 slug ⇒ 抛（与分类同一份 groupMany，同一条牙） */
+  let sThrew = false;
+  try { seriesGroups([mkS('a', '雾中 练习', 1, '2026-01-01'), mkS('b', '雾中-练习', 2, '2026-02-01')]); }
+  catch { sThrew = true; }
+  assert.ok(sThrew, '④ 两枚不同的系列名并成同一个 /series/<slug>/ 却没抛 —— 合并等于替作者把两件事说成一件');
+  /* 多枚系列并存时的清单排序仍走 bySize（篇数多的在前），与 /categories/、/tags/ 同一把尺子 */
+  const multi = bySize(seriesGroups([
+    mkS('a', '乙串', 1, '2026-01-01'), mkS('b', '乙串', 2, '2026-02-01'),
+    mkS('c', '甲串', 1, '2026-03-01'),
+  ]));
+  assert.deepEqual(multi.map(g => `${g.slug}:${g.posts.length}`), ['乙串:2', '甲串:1'], '④ 系列清单的排序不是"篇数多的在前"（bySize 那一把尺子换了）');
+  return 21 + 15;
 });
 
 /* ---------- ⑤ 真实稿件：清单算得出、slug 唯一 ---------- */
-cell('⑤', 'posts/ 真实稿件过一遍 shipped 的分组函数', () => {
+cell('⑤', 'posts/ 真实稿件过一遍 shipped 的分组函数（分类 / 标签 / 系列三族）', () => {
   const DIR = join(ROOT, 'src', 'content', 'posts');
   const files = existsSync(DIR) ? readdirSync(DIR).filter(f => f.endsWith('.md')) : [];
   assert.ok(files.length > 0, '⑤ 读不到任何稿件文件（src/content/posts 空/不存在）—— 这一格在空转');
@@ -256,27 +332,44 @@ cell('⑤', 'posts/ 真实稿件过一遍 shipped 的分组函数', () => {
     const tax = readTaxonomy(parsed.fmText);
     assert.equal(tax.errors.length, 0, `⑤ ${f}：${tax.errors[0]}`);
     if (tax.draft) draft++;
-    posts.push(mkPost(f.slice(0, -3), tax));
+    posts.push(mkPost(f.slice(0, -3), tax, parsed.fm.date));
   }
   const visible = sortPosts(posts.filter(p => !isDraft(p)));
   const cats = bySize(groupBy(visible, categoryOf));
   const tags = bySize(tagGroups(visible));
-  for (const g of cats.concat(tags)){
-    assert.ok(g.slug !== '', `⑤ 分组里冒出一枚空 slug —— /categories// 或 /tags// 是 §12 的死锚点`);
+  const series = bySize(seriesGroups(visible));
+  for (const g of cats.concat(tags, series)){
+    assert.ok(g.slug !== '', `⑤ 分组里冒出一枚空 slug —— /categories//、/tags// 或 /series// 是 §12 的死锚点`);
     assert.ok(g.posts.length > 0, `⑤ 分组 "${g.name}" 一篇稿子都不带，它不该出现在清单里`);
   }
   const slugs = cats.concat(tags).map(g => g.slug);
   assert.equal(new Set(slugs).size, slugs.length, '⑤ 分类与标签里有两枚同名 slug —— 两个页面会抢同一个地址');
-  notes.push(`⑤ ${files.length} 篇（草稿 ${draft} 篇已排除）· 分类 ${cats.length} 枚 · 标签 ${tags.length} 枚`
-    + `${cats.length + tags.length === 0 ? ' ⇒ /categories/ 与 /tags/ 走空态（这是今天签字的状态，不是坏了）' : ''}`);
+  const sSlugs = series.map(g => g.slug);
+  assert.equal(new Set(sSlugs).size, sSlugs.length, '⑤ 两枚系列名归一化成同一枚 slug —— 两串稿子会并成同一个 /series/<slug>/');
+  /* ⚠️ 防空转（这一格下面那句"系列 0 枚"的全部可信度在这儿）：0 必须是因为**稿子里真没填**，
+     而不是因为工具侧读不到那一枚键。拿一枚内置 fixture 走同一份 `readTaxonomy` ＋ 同一份 shipped 的
+     `seriesGroups()`，验一次"填了就读得到、也进得了清单"——两侧各有格子（口径照 ⑥ 那两枚 fixture）。 */
+  const seen = readTaxonomy('title: 探针\nseries: 雾中练习\nseriesOrder: 2\n');
+  assert.equal(seen.errors.length, 0, `⑤ fixture 读系列键时报了错（${seen.errors[0]}）—— 收集器本身坏了，下面那个 0 不可信`);
+  assert.equal(seen.series, '雾中练习', '⑤ 工具侧读不到 series 那一行 —— 于是"系列 0 枚"是**读不出东西**，不是零对象（这一格在空转）');
+  assert.equal(seen.seriesOrder, 2, '⑤ 工具侧读不到 seriesOrder —— 每一组都会永远退回按 date 排，而打印里看不出来');
+  assert.equal(seriesGroups([mkPost('fixture', seen, '2026-01-01')]).length, 1,
+    '⑤ 名字读到了却进不了清单（shipped 的分组函数与工具侧读法脱钩了）');
+  notes.push(`⑤ ${files.length} 篇（草稿 ${draft} 篇已排除）· 分类 ${cats.length} 枚 · 标签 ${tags.length} 枚 · 系列 ${series.length} 枚`
+    + `${cats.length + tags.length + series.length === 0 ? ' ⇒ /categories/、/tags/ 与 /series/ 三页都走空态（这是今天签字的状态，不是坏了）' : ''}`);
   if (args.includes('--list')){
     console.log('  分类清单：' + (cats.map(g => `${g.name}(${g.slug})×${g.posts.length}`).join(' ') || '（一枚都没有：空态）'));
     console.log('  标签清单：' + (tags.map(g => `${g.name}(${g.slug})×${g.posts.length}`).join(' ') || '（一枚都没有：空态）'));
+    console.log('  系列清单：' + (series.map(g => `${g.name}(${g.slug})×${g.posts.length} 按 ${g.by}`).join(' ') || '0 枚（空态：三篇稿子的 series 那一行都空着）'));
   }
-  return files.length * 2 + slugs.length + 1;
+  return files.length * 2 + slugs.length + sSlugs.length + 5;
 });
-function mkPost(id, tax){
-  return { id, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned } };
+function mkPost(id, tax, date){
+  return { id, data: {
+    category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned,
+    series: tax.series, seriesOrder: tax.seriesOrder,
+    date: new Date(date || '2026-01-01'),        /* seriesGroups 的第二档排序要吃 date，缺了会比较出 NaN */
+  } };
 }
 
 /* ---------- ⑥ 剥离器自校（两枚内置 fixture，不动 src/） ---------- */
@@ -319,4 +412,4 @@ if (problems.length){
   for (const p of problems) console.log(`  · ${p}`);
   process.exit(1);
 }
-console.log(`\n✓ 分类/标签/草稿/置顶：六格共 ${asserted} 条断言全过，读 posts 的唯一入口没有被绕开`);
+console.log(`\n✓ 分类/标签/草稿/置顶/系列：六格共 ${asserted} 条断言全过，读 posts 的唯一入口没有被绕开`);
