@@ -48,7 +48,9 @@ function flowItems(inner){
   return out;
 }
 
-/* 四枚新键（category / tags / draft / pinned）的读法 + 坏写法的报错句子。
+/* 六枚可空键（category / tags / draft / pinned ＋ 第十六轮 `card/series` 的 series / seriesOrder）的读法
+   ＋ 坏写法的报错句子。两枚系列键的读法**只是翻译**：真值在 `src/content.config.ts` 与 `src/lib/series.js`，
+   这里不写第二份归一化、也不写第二份排序。
    返回的 errors 是**可以直接 print 的句子主体**（调用方拼 `✗ ${f}：${e}`），
    语气照本仓库既有那条：把后果说清，不只说"格式不对"。 */
 export function readTaxonomy(fmText){
@@ -96,6 +98,40 @@ export function readTaxonomy(fmText){
     else errors.push(`tags 写成 "${v}" 是个字符串——schema 要的是 YAML 数组（` + '`tags: [甲, 乙]`' + `），这一篇会让 astro build 当场报错，列表与 /tags/ 一个胶囊都长不出来`);
   }
 
+  /* 系列那一族（第十六轮 `card/series`）：`series` 是一枚标量（与 category 同一条读法），
+     `seriesOrder` 是一枚**正整数**（形状照 schema 里 `hourSlot` 那一枚：空值＝没填，值走数字）。
+     ⚠️ 这一格的读法**不重写判据、只翻译**：真值仍然在 `src/content.config.ts` 那两枚键与
+     `src/lib/series.js` 那一份分组函数里（页面吃的那一份）。工具里再抄一份归一化或排序，
+     就会出现"预检全绿、astro build 红"或反过来（§16 记过的那一族）。
+     下界为什么是 `> 0` 而不是 `>= 0`：`seriesOrder: 0` 说的是"第 0 篇"，那是编出来的序——第一篇从 1 数起。
+     与 schema 的 `positive()` 同一枚口径，两侧各测一次由 `tools/taxonomy-check.mjs` 第④格钉。 */
+  let series = '';
+  const sm = lineOf('series');
+  if (sm){
+    const v = sm[1].trim();
+    if (v === '') series = '';
+    else if (v.startsWith('[') || /^["']?\s*-\s/.test(v)){
+      errors.push('series 写成数组了——一篇稿子只属于一枚系列（详情页那一行与 /series/ 的清单都只画一个名字），要多个记号请用 tags');
+    } else series = cleanName(unquote(v));
+  }
+  let seriesOrder;                            // undefined ＝ 没填 ＝ 这一组没有"作者说过的顺序"，整组退回按 date 排
+  const om = lineOf('seriesOrder');
+  if (om){
+    const raw = om[1].trim();
+    const v = unquote(raw);
+    if (v === '') seriesOrder = undefined;    // 空着的 `seriesOrder:` 与 schema 的 preprocess 同解：没填
+    else {
+      const n = Number(v);
+      if (Number.isInteger(n) && n > 0) seriesOrder = n;
+      else errors.push(`seriesOrder 写成 "${raw}" 不是一枚正整数——zod 的 int().positive() 会当场报错、astro build 红，整站烘不出来；`
+        + `第一篇写 1（**不是 0**：0 说的是"第 0 篇"，那是编出来的序），后面的接着写；或者把这一行整条删掉——删掉＝没填＝这一组改按日期排，页面上不会少任何东西`);
+    }
+  }
+  if (seriesOrder !== undefined && !series){
+    errors.push(`seriesOrder: ${seriesOrder} 填了而 series 空着——这一枚序数没有主人：没有名字就没有那一组，`
+      + `详情页那一行与 /series/ 的清单都不会因为它多出现一个字。要么把系列名填上，要么把这一行删掉（"作者写了却看不见"就是 §12 那一族，本工具专门点名它）`);
+  }
+
   /* 草稿与置顶：只认 YAML 1.2 核心 schema 的那六个字面量，空着＝没填＝默认 */
   const flags = {};
   const effect = { draft: '草稿（这一篇从站上任何一处都读不到）', pinned: '置顶（它排在 / 与 /essays/ 的最前面）' };
@@ -118,6 +154,11 @@ export function readTaxonomy(fmText){
     errors.push(`tags 里这些名字归一化之后是空串：${dead.map(x => `"${x}"`).join(' / ')}——清完就没有地址，胶囊会指向 /tags//（§12 的死锚点），页面上一个都不出现`);
   }
   tags = tags.filter(t => taxSlug(t));
+  /* 系列名同一条判据（页面那侧 `lib/series.js` 走的也是 `taxSlug`，那一格把它挡在清单外）：
+     详情页那一行不出现、/series/ 的清单里也没有这一枚——"作者写了却不出现"必须在这里说破。 */
+  if (series && !taxSlug(series)){
+    errors.push(`series "${series}" 归一化之后是空串（纯标点／符号的名字清完什么也不剩）——它没有地址可指，详情页那一行不会出现、/series/ 的清单里也不会有它（` + '`/series//`' + ` 是 §12 的死锚点）；起个含字母或数字的名字，或者把这一行删掉`);
+  }
 
-  return { category, tags, draft: flags.draft, pinned: flags.pinned, errors };
+  return { category, tags, draft: flags.draft, pinned: flags.pinned, series, seriesOrder, errors };
 }

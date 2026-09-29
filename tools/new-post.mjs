@@ -85,13 +85,14 @@ async function check() {
       if (keyed.has(k)) { console.log(`✗ ${f}：[^${keyed.get(k)}] 与 [^${d}] 归一化后都成 "${k}"，锚点会撞车`); bad++; }
       keyed.set(k, d);
     }
-    /* 分类 / 标签 / 草稿 / 置顶（第十轮 `card/taxonomy`）。这四枚键的坏写法**都让构建炸**（zod 抛），
-       但炸出来的是一段英文堆栈，不是人话——所以在这里提前拦，并把后果说清（同上面脚注那两条的口径）。
-       读法不在这里重写：`tools/frontmatter.mjs` + `src/lib/taxonomy.js` 是页面用的那一份。 */
+    /* 分类 / 标签 / 草稿 / 置顶（第十轮 `card/taxonomy`）＋ 系列 / 序数（第十六轮 `card/series`）。
+       这六枚键的坏写法**都让构建炸**（zod 抛），但炸出来的是一段英文堆栈，不是人话——所以在这里提前拦，
+       并把后果说清（同上面脚注那两条的口径）。
+       读法不在这里重写：`tools/frontmatter.mjs` + `src/lib/taxonomy.js` ＋ `src/lib/series.js` 是页面用的那一份。 */
     const tax = readTaxonomy(parsed.fmText);
     for (const e of tax.errors) { console.log(`✗ ${f}：${e}`); bad++; }
     /* 撞名是跨篇的事，先收着，循环结束后拿 shipped 的 groupMany() 复算（见下面那格） */
-    if (!tax.errors.length) taxPosts.push({ id: slug, data: { category: tax.category, tags: tax.tags } });
+    if (!tax.errors.length) taxPosts.push({ id: slug, data: { category: tax.category, tags: tax.tags, series: tax.series } });
     if (tax.draft) { console.log(`· ${f}：draft: true —— 这一篇不进列表、不进首页那三篇、没有详情页地址、不进两枚订阅源，关于页那几个数也不数它`); }
     if (tax.pinned) { console.log(`· ${f}：pinned: true —— 它排在 / 与 /essays/ 的最前面（目录行的门牌 folio 跟着新顺序继续连号）`); }
     /* 稿件级转载许可族的两枚 URL 键（键是第十二轮 `card/permit` 的，这一格是补丁轮 `card/permitfix` 加的）：
@@ -124,7 +125,7 @@ async function check() {
   /* ⚠️ 用 shipped 的那个分组函数，不在工具里再猜一遍归一化：两份实现会各自赦免同一个错，
      于是"预检全绿、astro build 当场抛"（或反过来）都会发生。构建期那一侧是**抛**——
      静默合并等于替作者把两件事说成一件（§12 假语境的近亲），起名是他的活，不是机器的。 */
-  for (const [what, pick] of [['分类', p => [p.data.category]], ['标签', p => p.data.tags]]) {
+  for (const [what, pick] of [['分类', p => [p.data.category]], ['标签', p => p.data.tags], ['系列', p => [p.data.series]]]) {
     try { groupMany(taxPosts, pick, what); }
     catch (e) { console.log(`✗ 撞名（跨篇）：${e.message}`); bad++; }
   }
