@@ -48,7 +48,7 @@ function flowItems(inner){
   return out;
 }
 
-/* 六枚可空键（category / tags / draft / pinned ＋ 第十六轮 `card/series` 的 series / seriesOrder）的读法
+/* 六枚可空键（category / tags / draft / pinned ＋ 第十五轮 `card/series` 的 series / seriesOrder）的读法
    ＋ 坏写法的报错句子。两枚系列键的读法**只是翻译**：真值在 `src/content.config.ts` 与 `src/lib/series.js`，
    这里不写第二份归一化、也不写第二份排序。
    返回的 errors 是**可以直接 print 的句子主体**（调用方拼 `✗ ${f}：${e}`），
@@ -98,7 +98,7 @@ export function readTaxonomy(fmText){
     else errors.push(`tags 写成 "${v}" 是个字符串——schema 要的是 YAML 数组（` + '`tags: [甲, 乙]`' + `），这一篇会让 astro build 当场报错，列表与 /tags/ 一个胶囊都长不出来`);
   }
 
-  /* 系列那一族（第十六轮 `card/series`）：`series` 是一枚标量（与 category 同一条读法），
+  /* 系列那一族（第十五轮 `card/series`）：`series` 是一枚标量（与 category 同一条读法），
      `seriesOrder` 是一枚**正整数**（形状照 schema 里 `hourSlot` 那一枚：空值＝没填，值走数字）。
      ⚠️ 这一格的读法**不重写判据、只翻译**：真值仍然在 `src/content.config.ts` 那两枚键与
      `src/lib/series.js` 那一份分组函数里（页面吃的那一份）。工具里再抄一份归一化或排序，

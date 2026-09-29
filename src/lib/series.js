@@ -1,4 +1,4 @@
-/* 系列那一族的**纯派生**那一半（第十六轮 `card/series`，机制学自参照站 Firefly 的 `series`／`seriesOrder`）：
+/* 系列那一族的**纯派生**那一半（第十五轮 `card/series`，机制学自参照站 Firefly 的 `series`／`seriesOrder`）：
    不 import 'astro:content'，所以页面与 `tools/` 里的门禁吃的是**同一份实现**——这一条口径逐字照
    `src/lib/taxonomy.js` 文件头那段（"工具里另抄一份归一化，就会出现门禁绿、页面红那种两边各自赦免同一个错"）。
    带 `getCollection` 的那一半在 `posts.js`，这一份只接数组。

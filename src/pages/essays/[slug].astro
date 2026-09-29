@@ -48,7 +48,7 @@ const whenText = whenLine(when, post.data.date, revised);
 const cat = categoryOf(post), catSlug = taxSlug(cat);
 const tags = tagsOf(post);
 const hasTax = !!catSlug || tags.length > 0;
-/* 系列（第十六轮 `card/series`，§15「系列页」那一格）：与上面分类/标签同一个口径——
+/* 系列（第十五轮 `card/series`，§15「系列页」那一格）：与上面分类/标签同一个口径——
    **没填 ⇒ 这一整行不出现**，不是"出现一条空的"（也不是画一枚指向 `/series//` 的死锚点，§12）。
    名字与 slug 都向 `src/lib/series.js` 与 `taxonomy.js` 的 `taxSlug()` 要，这里不写第二份归一化：
    `series: "。"` 那种纯符号名归一化之后是空串 ⇒ 拿不到地址 ⇒ 也拿不到这一行；"作者写了却不出现"

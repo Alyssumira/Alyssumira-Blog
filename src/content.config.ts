@@ -56,7 +56,7 @@ const posts = defineCollection({
     sourceLink: blankSlot(z.string().default('')),
     licenseName: blankSlot(z.string().default('')),
     licenseUrl: blankSlot(z.string().default('')),
-    /* 系列族（第十六轮 `card/series`，学自参照站 Firefly 的 `src/content.config.ts:82-83` 那两枚键）：
+    /* 系列族（第十五轮 `card/series`，学自参照站 Firefly 的 `src/content.config.ts:82-83` 那两枚键）：
        ① `series` **与 `category` 同一枚 `blankSlot`**——理由全在上面 `const blankSlot` 头上那两段，这里不重写，
           只指过去：YAML 里空着的 `series:` 是 **null**，而 `.default()` 与 `optional()` 一样只放行
           `undefined`；少了那层预处理，作者留个空键就撞进 zod 的英文堆栈。不许 coerce、也不许必填。

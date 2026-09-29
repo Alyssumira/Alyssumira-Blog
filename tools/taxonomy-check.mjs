@@ -1,4 +1,4 @@
-/* taxonomy-check.mjs —— 分类/标签/草稿/置顶（第十轮 `card/taxonomy`）＋ 系列/序数（第十六轮 `card/series`）
+/* taxonomy-check.mjs —— 分类/标签/草稿/置顶（第十轮 `card/taxonomy`）＋ 系列/序数（第十五轮 `card/series`）
    这一族的**结构 + 行为**门禁
    用法  node tools/taxonomy-check.mjs            （接进 npm run check，跑在 build 之前，不需要 dist/）
          node tools/taxonomy-check.mjs --list     （外加打印当前稿件算出来的分类/标签/系列清单——0 枚也打）
@@ -10,7 +10,7 @@
       别处出现 `getCollection(` ⇒ 红；posts.js 里那一枚也没了 ⇒ 也红（判据不许被"删掉就绿"过关，
       同 §17 那条 palette-check 的反向牙）。
    ② **八个调用点确实在用那份**：点名 index / essays 列表 / essays 详情（getStaticPaths 那一格最容易漏）/
-      rss / atom / about / 系列索引 / 单枚系列页（最后两枚是第十六轮 `card/series` 添的），
+      rss / atom / about / 系列索引 / 单枚系列页（最后两枚是第十五轮 `card/series` 添的），
       每处都要出现 `visiblePosts(`。只查①的话，把某处整段删掉也算"没绕过"。
    ③ **schema 那一侧同源**：`content.config.ts` 必须声明四枚 taxonomy 键 ＋ 两枚系列键（`series`／`seriesOrder`），
       且 draft/pinned/series **不许 coerce**、必须经过那层"空值退回 undefined"。判的是代码形状，不是注释——
@@ -152,7 +152,7 @@ cell('②', '读 posts 的页面都在吃 visiblePosts()', () => {
     'src/pages/rss.xml.js',
     'src/pages/atom.xml.js',
     'src/pages/about.astro',
-    /* 第十六轮 `card/series` 那两份模板：索引页与每一枚系列页都必须吃同一份草稿过滤——
+    /* 第十五轮 `card/series` 那两份模板：索引页与每一枚系列页都必须吃同一份草稿过滤——
        漏一处就是"列表里没有、/series/<slug>/ 的地址照样烘出来"那一族假完成。 */
     'src/pages/series/index.astro',
     'src/pages/series/[name].astro',
@@ -201,7 +201,7 @@ cell('③', 'content.config.ts 的六枚键（taxonomy 四枚 + 系列两枚：�
   assert.ok(/const blankSlot = t => z\.preprocess\(\s*v => \(v === null \|\| v === ''\) \? undefined : v\s*,\s*t\)/.test(src),
     '③ blankSlot 那层 preprocess 没了或换了口径 —— `tags:`／`category:` 空着（null）会撞进 zod 的英文堆栈');
 
-  /* ---- 第十六轮 `card/series` 那两枚键（同一格管，因为它们是"同一族口径"的第三次使用）----
+  /* ---- 第十五轮 `card/series` 那两枚键（同一格管，因为它们是"同一族口径"的第三次使用）----
      判的都是**代码形状**：`series` 必须吃同一枚 blankSlot（不许必填、不许 coerce），
      `seriesOrder` 必须是"空值退回 undefined ＋ coerce.number().int().positive()"那一枚形状。 */
   assert.ok(/series:\s*blankSlot\(z\.string\(\)\.default\(''\)\)/.test(src),
@@ -266,7 +266,7 @@ cell('④', 'shipped 的那几个纯函数吃反例（逻辑写反这族文本�
   assert.deepEqual([parseFlag('').filled, parseFlag('').value], [false, false], '④ 空着的 draft 该是"没填 ⇒ 默认 false"');
   assert.equal(parseFlag('constructor').ok, false, '④ parseFlag 认到了原型链上的键（`draft: constructor` 被当成布尔）—— 查表得用 hasOwn，不是 in');
 
-  /* ---- 系列那一族的排序规则（第十六轮 `card/series` 那条裁决的牙）----
+  /* ---- 系列那一族的排序规则（第十五轮 `card/series` 那条裁决的牙）----
      文本判据管不住"逻辑写反"：把 `every` 写成 `some`、或把混排当成"更聪明"，① ② ③ 全都照样绿。
      所以这里直接拿 shipped 的 `seriesGroups()` 喂三组假 post，要求**两种落点各读各的顺序**。 */
   const mkS = (id, series, seriesOrder, date) => ({
