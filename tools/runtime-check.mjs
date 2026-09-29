@@ -87,7 +87,7 @@ import { tmpdir } from 'node:os';
    `posts.js` 反而拿不了——那一层只做"取集合 + 滤草稿 + 排序"，规则本身在这份里）。
    front matter 的读法同 `new-post.mjs --check` 那一份：两处各写一个 split 迟早对"什么算草稿"读成两种。 */
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
-import { isDraft, sortPosts, categoryOf, tagGroups, bySize, groupBy } from '../src/lib/taxonomy.js';
+import { isDraft, isUnlisted, sortPosts, categoryOf, tagGroups, bySize, groupBy } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -247,9 +247,18 @@ for (const name of postFiles) {
   if (!parsed) { problems.push(`${slug}：front matter 不成形，这一格的可见性判据读不出它是草稿还是已发布（宁缺不假绿）`); continue; }
   const tax = readTaxonomy(parsed.fmText);
   if (tax.errors.length) { problems.push(`${slug}：front matter 的四枚新键读不过预检（${tax.errors[0]}）——--check 那一格本该先拦下`); continue; }
-  corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, date: new Date(parsed.fm.date) } });
+  corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, date: new Date(parsed.fm.date) } });
 }
-const visible = sortPosts(corpus.filter(p => !isDraft(p)));
+/* 三份名单，各对一个"页面那侧的谁"，一枚都不许多出来（第十六轮 `card/unlisted` 起了中间那枚）：
+   · `routable` ⇄ `publishedPosts()`（只滤草稿）——**这些页必须在 dist/ 里存在**，包括不列入的那几枚；
+   · `visible`  ⇄ `visiblePosts()`（滤草稿＋滤不列入）——列表顺序、关于页那几个数、三族目录、feed 与索引
+     吃的都是这一份，所以"产物里被指到的那批"最多只能有这一份那么大；
+   · `unlisted` ⇄ `routable ∩ isUnlisted`——这一格的当事人：页面在、带 noindex、任何一处不指它。
+   ⚠️ 草稿与不列入**在两枚名单上方向相反**（这是这一族最容易做歪的地方）：草稿要求 `dist/essays/<id>/`
+      **不存在**，不列入要求它**存在**。把两条判据抄成同一条，红的那一侧就会把另一侧悄悄放过。 */
+const routable = sortPosts(corpus.filter(p => !isDraft(p)));
+const visible = sortPosts(routable.filter(p => !isUnlisted(p)));
+const unlisted = routable.filter(p => isUnlisted(p));
 const drafts = corpus.filter(p => isDraft(p));
 /* ⚠️ 键里那四枚相对 DIST 而言**不带** dist/ 前缀——上一版把显示名和路径名混成一枚串，
    join(DIST, 'dist/essays/index.html') 得到 dist/dist/... ⇒ 四份产物一份都不存在、被 filter 静默丢掉，
@@ -322,7 +331,9 @@ for (const [key, groups, dir] of [['分类', bySize(groupBy(visible, categoryOf)
    已知局限——今天三篇稿子零枚围栏，见 §15），只是把 H3 一起数进来：本轮详情页收 H3，
    而**目录与刻度必须收同一批**（`site.js` 那枚 HEAD_SEL 是唯一出处），所以判据要能看见"只改了一处"。 */
 const HEADS = new Map();      // slug → { h2, h3, total }
-for (const p of visible) {
+/* 逐页对账吃 `routable`（含不列入的那几枚）：那一页**在盘上**，读者拿地址就读得到它，
+   所以它的正文也必须成了形——"不列入"减掉的是别人指向它，不是它自己的内容。 */
+for (const p of routable) {
   const out = join(DIST, 'essays', p.id, 'index.html');
   if (!existsSync(out)) { problems.push(`${p.id}：源码有稿而 dist/essays/${p.id}/index.html 不在 ⇒ 这一页根本没构建出来，结构对账无从谈起`); continue; }
   const want = (p.body.match(/^## /gm) || []).length;
@@ -347,6 +358,120 @@ for (const p of visible) {
   else notes.push(`灯箱在场对账 ${p.id}：图版 ${shots} 枚 ⇄ 灯箱 ${boxes} 枚（${shots ? '有载体，正合适' : '零枚 ⇒ 整块不出现，产物里一个字节都没有'}）✓`);
 }
 if (!HEADS.size) problems.push('目录⇄刻度对账没跑：可见稿件是 0 篇 ⇒ HEADS 是空的，那一格读不到任何对象（判据空转不算过）');
+
+/* ---------- 1c. 不列入（unlisted）的产物级对账——本卡的心脏 ----------
+   这一格只回答一句在源码上原理问不出来的话：**全站没有一处指向它**（第十六轮 `card/unlisted`）。
+   ⚠️ 分层规矩（§16 签过）：读产物的判据必须在 build 之后 ⇒ 这一格在 runtime-check（`gate` 里），
+      不许塞进 `npm run check`（干净检出上没有 dist/，塞进去红的是环境不是代码）。
+   断言四件，名单**按盘上真值现算**（`src/content/posts/*.md` 的 front matter ＋ shipped 的 `isUnlisted()`），
+   本文件里不许硬编码任何一枚 slug：
+     ① 页面在：`dist/essays/<id>/index.html` 必须存在——与草稿那一族**方向相反**（那边要的是不存在）。
+        漏这一条的形状＝详情页 `getStaticPaths` 吃了 `visiblePosts()`：路没建出来，"只有拿到地址的人能读"
+        被做成"这条路不存在"。
+     ② 那一页带 `<meta name="robots" content="noindex">`（落点在 `src/layouts/Layout.astro` 那一行条件）。
+     ③ 它不在 `sitemap-0.xml`、不在 `rss.xml`／`atom.xml`、不在 `search.json`、不在 `llms.txt`。
+     ④ **全站 href 扫描**：`dist/` 里除它自己那一页之外，任何一份文本产物都不许出现指向它的 `<a href>`。
+        prev/next 那一格要杀的就是这条——它是唯一一处"列表干净、地址活着、build 全绿"却能把它递出去的地方。
+   ⚠️ 零对象不许静默：今天 0 枚 unlisted 也照样打印"0 枚"并**当众跑三枚 needle**——
+      · 形状 needle（内置 fixture，不依赖盘）：href 收集器／路径归一／noindex 判据各正反两向，坏形状必红；
+      · 载体 needle（盘上正向）：**在册**稿件每一枚都能在自己那一页之外被 `<a href>` 指到；
+      · 机器 needle（盘上正向）：在册稿件每一枚都在 sitemap／两枚 feed／search.json／llms.txt 里读得到。
+      后两枚是"尺子还活着"的见证物——尺子瞎的时候"0 处指向／0 次出现"和"全过"长得一模一样（§14 第 14 项）。
+   ⚠️ 扫 HTML 前一律摘 `<!-- -->`（口径照上面那三格）：注释里的地址访客走不到，不算指向；
+      `Layout.astro` 那句 canonical 说明里就抄着 `/essays/foo/`，不摘的话在册稿件那一格会数出多余的一行。 */
+{
+  const textArts = [];
+  (function walkUn(dir) {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) { walkUn(p); continue; }
+      let buf;
+      try { buf = readFileSync(p); }
+      catch (e) { problems.push(`不列入对账读不开 ${p}（${e.message}）⇒ 全站 href 那一半不再等于全量，这一格不许算过`); continue; }
+      if (buf.includes(0)) continue;                       /* 二进制（png / woff2 / jpg）里不会有 <a href> */
+      textArts.push({ rel: '/' + p.slice(DIST.length + 1).split('\\').join('/'), txt: stripComments(buf.toString('utf8')) });
+    }
+  })(DIST);
+  if (!textArts.length) problems.push(`不列入对账：${DIST} 里一枚文本产物都没读到 ⇒ href 扫描根本没吃到东西，"零处指向"这一条不许算过`);
+
+  /* ---- 三把尺子 ---- */
+  const NOINDEX_RE = /<meta\b[^>]*name=["']robots["'][^>]*content=["'][^"']*noindex[^"']*["']/i;
+  const hrefsOf = txt => [...txt.matchAll(/<a\b[^>]*?href=(?:"([^"]*)"|'([^']*)')/gi)].map(m => m[1] ?? m[2] ?? '');
+  const pathOf = h => {
+    let p = String(h).split('#')[0].split('?')[0];
+    const m = /^[a-z][a-z0-9+.-]*:\/\/[^/]*(.*)$/i.exec(p);
+    if (m) p = m[1];                                        /* 绝对地址：取回 path 那一段再比 */
+    if (!p.startsWith('/')) p = `/${p}`;                    /* 本仓 href 一律钉到站点根（§15），这行只兜底 */
+    return `${p.replace(/\/+$/, '')}/`;                      /* 归一成"恰好一枚尾斜杠"：trailingSlash 是 ignore，两种写法都回 200 */
+  };
+  const pointsTo = (h, id) => { const p = pathOf(h); return p === `/essays/${id}/` || p.endsWith(`/essays/${id}/`); };
+  const refsFrom = id => textArts.filter(t => !t.rel.startsWith(`/essays/${id}/`)).filter(t => hrefsOf(t.txt).some(h => pointsTo(h, id))).map(t => t.rel);
+  /* 机器侧那五份产物：名字＝给人看的，parts＝找文件的（口径照上面 READABLE 那格——显示名与路径名分开写，
+     混成一枚串就会得到 dist/dist/... 那种"一份都不存在、被 filter 静默丢掉"的空转） */
+  const MACHINE = [['sitemap-0.xml', ['sitemap-0.xml']], ['rss.xml', ['rss.xml']], ['atom.xml', ['atom.xml']], ['search.json', ['search.json']], ['llms.txt', ['llms.txt']]];
+
+  /* ---- needle 之一：形状自证（内置 fixture，盘上零枚也照跑）---- */
+  const NP = 'needle-probe';
+  const broken = [];
+  if (hrefsOf(`<a class="row" href="/essays/${NP}/">标题</a>`).length !== 1) broken.push('href 收集器从一枚标准 <a href> 里读不到 1 枚 ⇒ 它已经不吃 <a> 了');
+  if (!pointsTo(`/essays/${NP}/`, NP)) broken.push('带尾斜杠的站内地址没被判成指向它');
+  if (!pointsTo(`/essays/${NP}`, NP)) broken.push('不带尾斜杠的地址没被判成指向它（trailingSlash: ignore 下两种写法都回 200，两种都算指向）');
+  if (!pointsTo(`https://mistwood.example.com/essays/${NP}/`, NP)) broken.push('绝对地址没被判成指向它（feed 与 JSON-LD 交的就是绝对地址）');
+  if (pointsTo(`/essays/${NP}-next/`, NP)) broken.push('一枚只是"前缀像"的地址被判成指向它 ⇒ 别稿的行会被数进这一枚的账，判据太宽');
+  if (pointsTo(`/categories/${NP}/`, NP)) broken.push('/categories/<同名>/ 被判成指向那一页 ⇒ 枚数会虚高');
+  if (!NOINDEX_RE.test('<meta name="robots" content="noindex">')) broken.push('noindex 尺子读不到标准写法那一枚 meta');
+  if (NOINDEX_RE.test('<meta name="description" content="noindex">')) broken.push('noindex 尺子把别的 meta 也认了（判据太宽，会假绿在真正缺 meta 的那一页上）');
+  for (const b of broken) problems.push(`不列入对账 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"0 处／0 次"从此不可信`);
+  notes.push(`不列入对账 needle·形状：8 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集与归一 6 条、noindex 2 条）；`
+    + `窗口现扫 ${textArts.length} 份文本产物，在册 ${visible.length} 枚各验一次"<a href> 指得到"、机器侧 ${MACHINE.length} 份各验一次"读得到"`);
+
+  /* ---- needle 之二／之三：盘上的正向见证物 ---- */
+  if (!visible.length) problems.push('不列入对账 needle：可见稿件是 0 篇 ⇒ "在册稿件一定被指到、一定在机器侧产物里"这两枚正向见证物没有对象，href 与 substring 那两把尺子无法自证（不许算过）');
+  const noAnchor = [];
+  for (const p of visible) { const n = refsFrom(p.id).length; if (!n) noAnchor.push(p.id); }
+  for (const id of noAnchor) problems.push(`不列入对账 needle：在册稿件 ${id} 在 dist/ 里被 <a href> 指到 0 处（自己那一页之外）⇒ 全站 href 扫描读不到"被指到"这件事本身，`
+    + `那么"不列入的稿子被指到 0 处"就是一条没有信息的判据（尺子或 href 的形状变了，先看 /essays/ 那一页还在不在）`);
+  const machineTxt = new Map();
+  for (const [name, parts] of MACHINE) {
+    const p = join(DIST, ...parts);
+    if (!existsSync(p)) { problems.push(`不列入对账：${name} 不在 dist/ ⇒ 那一处"出现 0 次"没有对象（这一格在空转，不许算过）`); continue; }
+    machineTxt.set(name, stripComments(readFileSync(p, 'utf8')));
+  }
+  for (const [name] of MACHINE) {
+    const txt = machineTxt.get(name);
+    if (txt === undefined) continue;
+    for (const p of visible) if (!txt.includes(`/essays/${p.id}/`)) problems.push(`不列入对账 needle：在册稿件 ${p.id} 在 ${name} 里读不到 ⇒ 那一枚"0 次"的判据没有对象（产物形状变了，或尺子被换窄了）`);
+  }
+
+  /* ---- 四件断言，逐枚点名 ---- */
+  notes.push(`不列入对账：按 front matter 现算出 **${unlisted.length} 枚** unlisted（名单：${unlisted.map(p => p.id).join('、') || '空 ⇒ 今天没有对象，四件断言由上面三枚 needle 当众验过；routable ${routable.length} 篇的页面全部回读过'}）`);
+  const clean = [];
+  for (const p of unlisted) {
+    const page = join(DIST, 'essays', p.id, 'index.html');
+    let ok = existsSync(page);
+    if (!ok) problems.push(`${p.id}：unlisted: true 而 dist/essays/${p.id}/index.html 不在 ⇒ "只有拿到地址的人能读"被做成了"这条路不存在"：`
+      + `详情页 getStaticPaths 那一处必须吃 publishedPosts()（路要建出来），把不列入一起滤掉就是这一条红`);
+    else if (!NOINDEX_RE.test(stripComments(readFileSync(page, 'utf8')))) {
+      ok = false;
+      problems.push(`${p.id}：那一页在盘上却没有 <meta name="robots" content="noindex"> ⇒ 抓取器会把它当目录里的一篇收走`
+        + `（落点是 src/layouts/Layout.astro 那一行 {noindex && <meta …>}，判据是 src/lib/taxonomy.js 的 isUnlisted()）`);
+    }
+    for (const [name] of MACHINE) {
+      const txt = machineTxt.get(name);
+      if (txt === undefined) continue;
+      if (txt.includes(`/essays/${p.id}/`)) { ok = false; problems.push(`${p.id}：unlisted: true 却出现在 ${name} 里 ⇒ 那一处入口没走 visiblePosts()（或 sitemap 的 filter 名单没覆盖到它）`); }
+    }
+    const refs = refsFrom(p.id);
+    if (refs.length) {
+      ok = false;
+      problems.push(`${p.id}：unlisted: true 却被 ${refs.length} 份产物的 <a href> 指到（${refs.slice(0, 6).join(' / ')}${refs.length > 6 ? ' …' : ''}）`
+        + ` ⇒ "站内任何一处都不指向它"破了。最常见的形状是 prev/next 吃了 publishedPosts()——邻居只许从 visiblePosts() 算`);
+    }
+    if (ok) clean.push(p.id);
+  }
+  if (clean.length) notes.push(`不列入对账：${clean.length} 枚（${clean.join('、')}）逐枚回读——页面在、带 noindex、`
+    + `${[...machineTxt.keys()].length} 份机器侧产物（${[...machineTxt.keys()].join(' / ')}）各 0 次、全站 ${textArts.length} 份文本产物里 <a href> 0 处指向 ✓`);
+}
 
 /* ---------- 2. 浏览器 ---------- */
 const EDGE_CANDIDATES = [
