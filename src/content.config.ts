@@ -56,6 +56,26 @@ const posts = defineCollection({
     sourceLink: blankSlot(z.string().default('')),
     licenseName: blankSlot(z.string().default('')),
     licenseUrl: blankSlot(z.string().default('')),
+    /* 系列族（第十六轮 `card/series`，学自参照站 Firefly 的 `src/content.config.ts:82-83` 那两枚键）：
+       ① `series` **与 `category` 同一枚 `blankSlot`**——理由全在上面 `const blankSlot` 头上那两段，这里不重写，
+          只指过去：YAML 里空着的 `series:` 是 **null**，而 `.default()` 与 `optional()` 一样只放行
+          `undefined`；少了那层预处理，作者留个空键就撞进 zod 的英文堆栈。不许 coerce、也不许必填。
+       ② `seriesOrder` **照上面 `hourSlot` 那枚的形状**（同一层 preprocess ＋ `z.coerce.number()`），
+          区别只有下界：这里是 `positive()` 而不是 `min(0)`——`seriesOrder: 0` 说的是"第 0 篇"，
+          那是编出来的序；第一篇从 1 数起。
+       ⚠️ 这一枚**用 `coerce.number()` 是合法的**，别跟着下面许可族那句"非布尔不 coerce"把它也改掉：
+          那条管的是布尔与字符串（`z.coerce.boolean()` 把 `"false"` 铸成 true、`z.coerce.string()` 把 null
+          铸成 "null"），而 `hour` 已经用同一枚形状并解释了为什么——空值（null / ''）在 preprocess 那一层
+          就先退回 `undefined` 了，`coerce` 铸不到它，`0` 那枚"凌晨"也就铸不出来（实测三种输入：
+          null→undefined、""→undefined、undefined→undefined；`"2"`→2，作者在小写上打了个数字也落得成数）。
+       口径与 `hour`／`category` 是同一句话：**没填 ⇒ 页面上一个字都不出现**，不是"出现一条空的系列行"，
+       也不是"生成一枚空名字的 `/series//`"（§12 死锚点那条的直接形状）。分组、排序与"这一枚进不进清单"
+       全部住在 `src/lib/series.js`，schema 这一侧**不写排序判据**——同一件事在两处各算一遍，早晚有一处漏。 */
+    series: blankSlot(z.string().default('')),
+    seriesOrder: z.preprocess(
+      v => (v === null || v === '' || v === undefined) ? undefined : v,
+      z.coerce.number().int().positive().optional(),
+    ),
   }),
 });
 
