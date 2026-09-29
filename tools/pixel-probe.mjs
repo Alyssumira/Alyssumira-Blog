@@ -25,7 +25,7 @@
    连拍两次首页能差到 99.54% 像素（一张抓到照片还没淡入）⇒ 那种帧根本量不出掩膜（词盒停在
    `translateY(112%)` 的半路里，字形覆盖率分布是一坨随机数）。第 2 条给出可比对的那一档就是这一档。
    顺带三件事由它一次解决：颗粒 `animation:none` ⇒ 停在固定 transform（不再 1.2s 跳帧）；
-   `src/scripts/hero.js:34` 的 `if (reduceMotion || narrow.matches) return` ⇒ 萤火虫**一只都不生成**，
+   `src/scripts/hero.js:35 sync()` 里的 `if (reduceMotion || narrow.matches) return` ⇒ 萤火虫**一只都不生成**，
    而它们的位置是 `Math.random()`（`hero.js:25-26`），不撤掉就是每拍一次换一批背景亮点；
    `.bg-photo{opacity:1}` ⇒ 照片不必等 2.2s 淡入。
    ⚠️ 代价照实登记：这一档测的是"静止的首屏"，颗粒与雾带停在起始帧而不是某一帧随机位置——写进规范。
@@ -92,7 +92,7 @@ function readInkTokens() {
   const out = {
     light: token(lightBlock, 'ink'), dark: token(darkBlock, 'ink'),
     lightBase: token(lightBlock, 'bg-base'), darkBase: token(darkBlock, 'bg-base'),
-    /* 标题里那个英文斜体词 `<em>light</em>` 不是 --ink：home.css:210/218 给它 --moss-deep（亮）/ --moss（暗）。
+    /* 标题里那个英文斜体词 `<em>light</em>` 不是 --ink：home.css:253 .hero-title em（亮）/ home.css:260（暗）给它 --moss-deep / --moss。
        它进不进掩膜，正是旧数与新数"尾部"最可能的一个口径差，所以单独量一档、不混进主表。 */
     lightEm: token(lightBlock, 'moss-deep'), darkEm: token(darkBlock, 'moss'),
   };

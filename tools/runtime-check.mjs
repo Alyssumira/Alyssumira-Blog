@@ -10,7 +10,7 @@
    浏览器里 `<html>` 上到底有没有那五枚、值合不合法。
 
    ── 为什么每个页面跑两档（本卡踩出来的，不是洁癖）─────────────────────────────
-   第一版只跑"完整档"，看着全绿，其实是**假门禁**：`src/scripts/site.js:37` 把 dataset 当唯一真相源读回来
+   第一版只跑"完整档"，看着全绿，其实是**假门禁**：`src/scripts/site.js:45 disp` 把 dataset 当唯一真相源读回来
    （`fog: root.dataset.fog || 'normal'`），第 40-43 行 `paintSettings()` 再把这四个值原样写回 `root.dataset`。
    也就是说——**内联脚本整段不跑，只要打包脚本在跑，data-fog/data-grain/data-fireflies/data-enter 照样是
    normal/on/on/auto，五枚一枚都不少**（第一次变异测试就是这么漏掉的，改动写在文件末尾的"踩坑"注释里）。所以：
@@ -26,9 +26,9 @@
    ── 取值合法集从哪来（不是猜的）───────────────────────────────────────────────
    写者只有一处：`src/layouts/Layout.astro` 第 55-67 行（第一段 `setAttribute('data-theme',t)`；第二段
    `d.fog||'normal'` / `d.grain||'on'` / `d.fireflies||'on'` / `enter=d.enter||'auto'`）。
-   词汇表三处对齐：`src/scripts/site.js:37` 的 `disp` 对象（同样四个默认值）、`Layout.astro` 里那排
+   词汇表三处对齐：`src/scripts/site.js:45` 的 `disp` 对象（同样四个默认值）、`Layout.astro` 里那排
    `<input type=radio>` 的 value（fog：thin/normal/thick，grain：on/off，fireflies：on/off，enter：auto/full）、
-   `src/styles/mistwood.css:223-225` 真正生效的 `html[data-fog="thin"]` / `[data-fog="thick"]` / `[data-grain="off"]`
+   `src/styles/mistwood.css:229-231` 真正生效的 `html[data-fog="thin"]` / `[data-fog="thick"]` / `[data-grain="off"]`
    （normal 与 on 是 CSS 默认分支所以不出现，但仍是合法值）。theme 的 light/dark 见 `home.css`/`mistwood.css` 的
    `html[data-theme="dark"]` 与静态 `<html data-theme="light">`。
    空串与集合外的值一律算红——"属性在但值是垃圾"和"属性不在"是同一件事。
@@ -40,10 +40,10 @@
    每页**打印实际读到的五枚属性清单**（缺的显示 ∅），不只打印 ✓。
 
    ── 故意没做的三条（报告里登记为"未验到"，不假装它们在里面）───────────────────
-   ① `data-revisit`：只在 `sessionStorage.getItem('mistwood-seen')` 已存在时才写（Layout.astro:114），
+   ① `data-revisit`：只在 `sessionStorage.getItem('mistwood-seen')` 已存在时才写（`Layout.astro:115` 那枚 `r.setAttribute('data-revisit','1')`），
       而 sessionStorage 是标签页级的 ⇒ 要同一浏览器**进程内两次导航**。`--dump-dom` 只有一次导航，
       给不出真判据；写一条永远断言不到的判据就是造假门禁。所以只**打印**、不判定。
-   ② 暗色下 `meta[name="theme-color"]` 改成 #0E130D（Layout.astro:106）：这版 Edge 不认
+   ② 暗色下 `meta[name="theme-color"]` 改成 #0E130D（`Layout.astro:107` 里那句 `m.setAttribute('content','#0E130D')`）：这版 Edge 不认
       `--force-prefers-color-scheme`（§16 ②），暗色只能靠 profile 预置 `localStorage.mistwood-theme=dark`，
       上一轮的做法是往 `dist/` 写一枚一次性种子页——门禁不该往构建产物里写文件（那会让 dist 的内容
       取决于门禁跑没跑过）。要做得先验证"预置 profile 可复跑"，本轮没验 ⇒ 不进自动化。
@@ -225,7 +225,7 @@ if (!PAGES.length) die(`${DIST} 里一份 HTML 都没有`, '  dist/ 空＝build 
    ⚠️ 顺序也在这里对：`/essays/` 里各行出现的先后必须等于 `sortPosts()` 给的那个顺序（置顶在最前）。
       文本判据管不住"比较函数写反"，这一条读的是产物。 */
 /* ⚠️ 扫产物 HTML 之前先把 <!-- --> 摘掉（本卡实测到的假红逼出来的，不是预防性写法）：
-   `src/layouts/Layout.astro:69` 那段规范链接的注释里原话写着"同一篇稿子的 /essays/foo 与 /essays/foo/
+   `src/layouts/Layout.astro:80` 那段规范链接的注释里原话写着"同一篇稿子的 /essays/foo 与 /essays/foo/
    各自回 200"——那是**给人读的一句说明**，今天真的烘进了每一页产物，于是"列表先后"那一格实测读出
    `foo forest-blog fog-debugging slow-frontend` 四行（多出来的 `foo` 就是那半句注释）⇒ exit 1。
    判据要抓的是**访客走得到的地址**，注释里的地址访客走不到 ⇒ 不算泄漏、也不算一行。
@@ -628,7 +628,7 @@ const tally = { isolate: 0, full: 0 };
 const witness = [];
 
 /* 见证物用 `#clock` 的文本，不用单选钮的 checked —— ⚠️ 这里踩过一次：
-   site.js:44 写的是 `i.checked = ...`，改的是 **IDL property**，不回写内容属性，
+   src/scripts/site.js:52 `paintSettings()` 里写的是 `i.checked = ...`，改的是 **IDL property**，不回写内容属性，
    `outerHTML` 里一个 `checked` 都不出现（实测：模块脚本确实跑了，dump 里 checked 仍是 0 枚）。
    拿 property 当判据＝一条永远断言不到的判据。而 `#clock` 在静态产物里恒为 `--:--`，
    只有 site.js 的 `tick()` 会把它写成 `HH:MM`；`tick()` 在源码里排在 `paintSettings()`（第 52 行）之后，
