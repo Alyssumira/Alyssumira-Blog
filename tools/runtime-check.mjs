@@ -51,6 +51,8 @@
       一进门就挡掉所有工作，而逼人绕过门禁比没有门禁更糟。判法从**产物**里读绝对地址（og:url / rss /
       sitemap），不正则去抠 astro.config.mjs 的写法——配置将来改成 `process.env.SITE ?? '…'` 也不会瞎。
       一个绝对地址都读不到会打印一条"判据没吃到东西"的提示，不静默。
+      普查窗口（第 7 节）＝`dist/` 里**全部文本产物**（按内容判文本，不是按名单），另配一条
+      "名单点名的产物不在盘上就红"的断言——窗口宽窄与"读没读到"是两件事，都得有格子看着。
 
    ── 取 DOM 的路线结论（写死在这里，下次不必再试）─────────────────────────────
    路线 A 通：`msedge --headless=new --user-data-dir=<一次性目录> --virtual-time-budget=6000 --dump-dom <url>`，
@@ -623,18 +625,44 @@ const countHosts = txt => {
     hostHits.set(host, (hostHits.get(host) || 0) + 1);
   }
 };
-for (const p of PAGES) countHosts(readFileSync(p.file, 'utf8'));
-for (const f of ['rss.xml', 'sitemap-0.xml', 'sitemap-index.xml']) {
-  const path = join(DIST, f);
-  if (existsSync(path)) countHosts(readFileSync(path, 'utf8'));
+/* 普查窗口＝dist/ 里**全部文本产物**。改前这里是三枚硬编码文件名（rss.xml / sitemap-0.xml /
+   sitemap-index.xml）+ 所有 HTML ⇒ atom.xml（9 处）与 robots.txt（1 处）从来没进过窗，
+   打印的处数比逐份 grep 少 10 枚（2026-09-29 实测：打印 159、全量 169）。
+   ⚠️ 这一格修的是**普查口径与枚数**，不是"漏了占位域名"：占位域名在 HTML 里必然出现，改前改后警告照样响。
+   判"文本"用内容不用扩展名，也不用名单：读整枚文件，撞见 NUL 字节就当二进制跳过（png / jpg / woff2 全是）。
+   这样 build 将来多产一种文本产物（新的 feed、新的 manifest）自动进窗——口径一旦写死在名单上，
+   它就只是"上一轮数出来的那份名单"，下一轮必须有人追认才会变宽，而没人追认时它悄悄窄着。 */
+const textArtifacts = [];
+(function walkText(dir) {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) { walkText(p); continue; }
+    let buf;
+    try { buf = readFileSync(p); }
+    catch (e) { problems.push(`SITE 普查窗口读不开 ${p}（${e.message}）⇒ 打印的处数不再等于全量，这一格的口径不完整`); continue; }
+    if (buf.includes(0)) continue;
+    textArtifacts.push({ file: p, txt: buf.toString('utf8') });
+  }
+})(DIST);
+if (!textArtifacts.length) problems.push(`SITE 普查窗口在 ${DIST} 里一枚文本产物都没找到 ⇒ 这一格根本没吃到东西，不许算"读过且没有占位"`);
+for (const t of textArtifacts) countHosts(t.txt);
+
+/* ⚠️ 名单的角色换了：它不再决定窗口（窗口照上面走盘），只断言"这些产物必须在盘上"。
+   原来那句 `if (existsSync(path)) countHosts(...)` 是"缺文件就静默跳过"——本仓在 `dist/dist/...`
+   那一次栽的就是同一形状（规范 §16 登记的空转判据）：文件不在 ⇒ 少读几枚 ⇒ 数字变小而一声不吭。
+   现在少一枚是一条具名的红。名单本身按"谁在写绝对地址"取：两枚 feed、两枚 sitemap、robots.txt、search.json。 */
+const EXPECTED_TEXT = ['rss.xml', 'atom.xml', 'sitemap-index.xml', 'sitemap-0.xml', 'robots.txt', 'search.json'];
+const seenText = new Set(textArtifacts.map(t => t.file.slice(DIST.length + 1).split('\\').join('/').toLowerCase()));
+for (const f of EXPECTED_TEXT) {
+  if (!seenText.has(f.toLowerCase())) problems.push(`SITE 普查窗口里少了名单点名的 ${f}（dist/${f} 不在盘上，或不再是文本产物）⇒ 打印的处数不是全量，这一格在空转`);
 }
 const hosts = [...hostHits.entries()];
 if (!hosts.length) {
-  console.log('\n  ⚠️ 产物里一个绝对地址都没读到（og:url / rss / sitemap 全空？）——SITE 这条判据没吃到东西，去看产物');
+  console.log(`\n  ⚠️ 产物里一个绝对地址都没读到（og:url / rss / sitemap 全空？）——SITE 这条判据没吃到东西，去看产物（窗口读了 ${textArtifacts.length} 枚文本产物）`);
 } else {
   const ph = hosts.filter(([h]) => PLACEHOLDER.test(h));
   if (ph.length) {
-    const msg = `SITE 还是占位域名：${ph.map(([h, n]) => `${h}（产物里 ${n} 处）`).join('、')} —— 它决定 rss.xml / sitemap / og:url 的绝对地址，上线前必改（§16）`;
+    const msg = `SITE 还是占位域名：${ph.map(([h, n]) => `${h}（产物里 ${n} 处）`).join('、')} —— 它决定 rss.xml / sitemap / og:url 的绝对地址，上线前必改（§16）。普查窗口＝${DIST} 里全部文本产物 ${textArtifacts.length} 枚（其中 HTML ${PAGES.length} 份）`;
     if (STRICT_SITE) problems.push(msg + '（--strict-site）');
     else console.log(`\n  ⚠️ ${msg}\n    默认只警告不红；要拦发布那一次就传 --strict-site。（恒红会让人绕着门禁走，那比没门禁更糟）`);
   } else {
