@@ -32,7 +32,7 @@
        `scripts/quarantine-bad-posts.mjs:27-48` 要手写 `stripCode()` 剥三遍才做对的事，渲染器已经做对了；
      · 段里夹的图、图包在链接里的图、整段是一枚图，三种形状都已经被 `renderMd` 收成 `<img>`；
      · `data:` 与 `javascript:` 这类协议由 `imgSrc()` 直接画成空 src（一枚 `<img>` 都不产），本卡无从查起；
-     · 详情页吃的就是 `renderMd(post.body)`（`src/pages/essays/[slug].astro:74`），与这里同一个入参。
+     · 详情页吃的就是 `renderMd(post.body)`（`src/pages/essays/[slug].astro:94 bodyHtml`），与这里同一个入参。
    代价照实登记：产物里没有行号。所以**判断只来自产物，行号只用于点名是哪一行**（拿同一枚路径字面量回
    源码行里找，找不到也照样红，只是那一行少一个坐标）。自造第三套 markdown 正则——禁止，本卡没有。
 
