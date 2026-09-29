@@ -40,10 +40,11 @@ const posts = defineCollection({
     tags: blankSlot(z.array(z.string()).default([])),
     draft: blankSlot(z.boolean().default(false)),
     pinned: blankSlot(z.boolean().default(false)),
-    /* 稿件级转载许可族（第十二轮 `card/permit`，学自参照站 Firefly 的 `src/content.config.ts:64-90`）：
+    /* 稿件级转载许可族（第十二轮 `card/permit`，学自参照站 Firefly 的 `src/content.config.ts:75-78`）：
        四枚**可空**键，照 `blankSlot` 那条路子走，**非布尔一律不 coerce**——`z.coerce.string()` 会把空着的
-       `author:`（null）铸成 "null"、`licenseUrl:` 空着铸成 ""，schema 全绿而页面替作者署下一个他从来没写过的名字、
-       或宣称这一篇有出处链接。口径与 `hour`／`blankSlot` 那两段是同一句话：**没填必须渲染成不出现**。
+       `author:`（YAML 落成 null）铸成字符串 "null"，`.default('')` 就再也不认得了：schema 全绿，而页面替作者
+       署下一个他从来没写过的名字、或宣称这一篇有出处链接。口径与 `hour`／`blankSlot` 那两段是同一句话：
+       **没填必须渲染成不出现**。
        ⚠️ **`author` 不许回落到站点作者常量**（`src/data/site.js` 的 `AUTHOR`）——本轮裁决，落点在
        `src/pages/essays/[slug].astro` 的那一行：回落会造出一枚"作者签了名但其实没写"的假语境。
        `sourceLink` 非空而 `author` 空着的那一格，正确表现是**整行不出现**，而不是替作者署上站主的名。
