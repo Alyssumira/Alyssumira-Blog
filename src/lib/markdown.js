@@ -18,6 +18,7 @@ function root(u){
   return '/' + p;
 }
 function href(s){ const u = root(String(s).trim()); return (!HAS_SCHEME.test(u) || OK_LINK.test(u)) ? attr(u) : '#'; }
+function strictHref(s){ const u = String(s).trim(); if (!HAS_SCHEME.test(u)) return ''; const h = href(u); return h === '#' ? '' : h; }   /* front matter 那两枚 URL 键要的读法：要么能用、要么没有。协议判据仍然只有 :10-11 那两枚正则加 href()，这里不新开第三份白名单；为什么要有它——见文件末导出表那一格 */
 function imgSrc(s){ const u = root(String(s).trim()); return (!HAS_SCHEME.test(u) || /^https?:/i.test(u)) ? attr(u) : ''; }
 
 const U = '((?:[^()\\s]|\\([^()]*\\))*)';           /* 允许 url(Wikipedia) 这种带括号的地址：括号要成对才吃 */
@@ -265,5 +266,12 @@ function fmtDate(d){
 
 /* `href` 自第十二轮 `card/permit` 起对外导出：详情页页脚那一行要消毒 front matter 里的两枚 URL
    （`sourceLink` / `licenseUrl`），而**协议白名单只许有一处真值**——`OK_LINK` 与 `HAS_SCHEME` 就住在上面
-   :10-11，`link()` 与页面消费的是同一枚函数。渲染逻辑一个字没改，改的只有这一行导出表。 */
-export { renderMd, inlineMd, fmtDate, root, safe, splitBlocks, href };
+   :10-11，`link()` 与页面消费的是同一枚函数。渲染逻辑一个字没改，改的只有这一行导出表。
+   `strictHref()`（:21，同一轮的补丁 `card/permitfix` 多导出的那一枚）为什么存在——`href()` 有两副坏形状，
+   正文里都是对的、页脚那一行里都不许留：① 协议不合格（`javascript:`／`data:`／`vbscript:`）时它交回**字面量 `'#'`**，
+   那是正文链接要的兜底（句子里那枚坏地址仍要留在纸上），却正是 §12 死锚点禁令的 canonical 形状；
+   ② **缺协议头**（`example.com/x`）时 `root()` 把它当站内相对路径钉到站点根（⇒ `/example.com/x`），
+   长出一枚看着像真链接、点开 404 的活锚，比 `#` 更隐蔽。front matter 这两枚键要的是"**要么能用、要么没有**"，
+   所以在这里多导出第二枚函数，而不是让页面或 `tools/` 各写一份协议判据。正文那条路（`link()` / `href()`）
+   一个字没动——改的只有导出表这一行与它上面这段说明。 */
+export { renderMd, inlineMd, fmtDate, root, safe, splitBlocks, href, strictHref };
