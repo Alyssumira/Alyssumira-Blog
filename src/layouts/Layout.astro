@@ -9,7 +9,18 @@ import { fonts, FONT_HOST, FONT_FILE_HOST } from '../data/site.js';
 
 /* revised / date 只有详情页（src/pages/essays/[slug].astro 那个 <Layout> 标签）会传：其余五页没有 ⇒
    Seo 那一格整字段不写，不许拿别的日期顶上（§13a） */
-const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website', revised, date, ogCard } = Astro.props;
+const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website', revised, date, ogCard, noindex = false } = Astro.props;
+/* 不列入（第十六轮 `card/unlisted`，判据是 `src/lib/taxonomy.js` 的 `isUnlisted()`、由详情页传进来）：
+   `noindex` 为真 ⇒ 下面多一行 `<meta name="robots" content="noindex">`，为假 ⇒ 一个字节都不多。
+   ⚠️ **为什么是一枚 prop、条件落在这枚壳里**：这就是 §13a 那一格记过的同一招——"要收掉 404 的 canonical
+      只有一行 `{tier !== 'lost' && <link …>}`"。全站只有一枚 `<head>`，所以"这一页要不要被机器收进索引"
+      这件事也只许有那一处落点；在 `src/pages/essays/[slug].astro` 里另写一份 head、或再开一枚组件，
+      就是给同一件事立第二套机制（§16 那一族）。默认值 `false` ⇒ **没传它的页面一个字节都不多**，
+      这正是本项目那把"改前改后逐字节对账"的尺子量得动的形状。
+   ⚠️ **说明不许写成模板里的 HTML 注释**：Astro 把 HTML 注释原样落进产物（`[slug].astro` 那段许可族的注释
+      就是为同一件事写在 `---` 里的），写在这儿就会跟着每一页进 dist/，那枚"逐字节相同"的尺子当场破。
+   ⚠️ 这一枚 meta 挡的是"被搜索引擎与抓取器顺手收走"，挡不了"知道地址的人读到"——这一族要的就是这个差别。
+      §12 那条"静态站上不许宣称密码保护"记的就是这条界线：诚实的名字是**不列入**，不是"加密"。 */
 /* 绝对地址：社交卡与 og:url 拿的是访客之外第三双眼睛看到的 URL，相对路径在那边不成立。
    Astro.site 现在是占位域名（§16），改了 astro.config.mjs 这两行跟着变，不另抄一份 */
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -70,6 +81,7 @@ const FONTS = `${FONT_HOST}/css2?${remoteFonts.map(f => 'family=' + f.q).join('&
      等于给搜索引擎留了两枚地址却没有一句话说明哪一枚是那一本——这一枚就是那句话。
      值就是上面那个 URL 对象，不在这里再算第二个，也不许往别处抄第三份绝对地址（同一页只许一个真值，§16） -->
 <link rel="canonical" href={canonical.href}>
+{noindex && <meta name="robots" content="noindex">}
 <meta property="og:title" content={title}>
 <meta property="og:description" content={desc}>
 <meta property="og:image" content={ogImage.href}>
