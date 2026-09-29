@@ -76,6 +76,11 @@ const HEX = /(--[a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})\b/g;
    这种一长串偏移打头的写法，用 `:\s*(rgba?\(` 去抠会一个字都不中，漂移检查当场变成摆设（实测踩过）。
    新写的"色板令牌只许一处"判据照抄这条口径，别退回那个抠法。 */
 const FN = /(--[a-z0-9-]+):([^;]*rgba?\([^)]*\)[^;]*)/g;
+/* ⚠️ 2026-09-29 加这一条：正文脚下那层地面光（§15）不是一枚 rgba 字面量，是从 `--lit` 按比例解出来的
+   `color-mix(in srgb, var(--lit) 30%, transparent)`——**零新色**那条纪律（§12 第五色 / 上面那格）
+   唯一的写法就是派生，而派生写法只在 FN 那条里活不下来（它要求值里含 `rgba(`）。
+   不认它 = 第二层光的判据从源码里就读不到东西 = §16 点名的那个"扫了但一个字都没匹配到"的形状。 */
+const CMIX = /(--[a-z0-9-]+):\s*(color-mix\([^;]*\))/g;
 /* 按大括号深度切，带 @media / @supports 的上下文——归并之后同一个选择器文本可以合法地出现在
    两份表里（各自声明自己那一层的令牌），所以键必须是"上下文 + 选择器 + 令牌名"，
    只看选择器文本会把 `@media (max-width:720px)` 里那条当成顶层那条的副本。 */
@@ -96,6 +101,9 @@ function allBlocks(src){
       const toks = {}, fn = {};
       for (const t of body.matchAll(HEX)) toks[t[1]] = t[2].toUpperCase();
       for (const t of body.matchAll(FN)) fn[t[1]] = t[2].replace(/\s+/g, '');
+      /* 派生色（color-mix）也算"色板令牌"：同一个键在第二份表里再声明一次就是第二处真值，
+         上面那条"一处真值"判据必须看得见它，所以它走进同一张 `fn` 表。 */
+      for (const t of body.matchAll(CMIX)) fn[t[1]] = t[2].replace(/\s+/g, '');
       out.push({ ctx, sel: top.pre, attrs, toks, fn, line: lineOf(top.start) });
     }
     else if (c === ';' && !stack.length) start = i + 1;
@@ -258,11 +266,31 @@ const RGBA_RE = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\
 const parsePaint = v => { const m = v && RGBA_RE.exec(v); return m ? { r:+m[1], g:+m[2], b:+m[3], a: m[4] === undefined ? 1 : +m[4] } : null; };
 const overHex = (bg, p) => { const [r, g, b] = hexToRgb(bg); const mix = (d, s) => Math.round(d * (1 - p.a) + s * p.a);
   return '#' + [mix(r, p.r), mix(g, p.g), mix(b, p.b)].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase(); };
+/* 把一枚令牌解成"可以合成进底"的实体漆：两种合法写法
+   ① 字面 `rgba(…)` / `rgb(…)`（`--lit` 走这条）；
+   ② `color-mix(in srgb, var(--某枚漆) P%, transparent)`（正文脚下那层 `--ground` 走这条）——
+      sRGB 插值是按**预乘 alpha** 算的（CSS Color 4），与 `transparent`（α=0）混之后 RGB 不变、
+      α 乘 P/100，所以这一支的解就是"母漆的 RGB + α × P%"。⚠️ 母漆**按当档的有效值**取：
+      傍晚的 `--lit` 是 .15，那么 `--ground` 就是 .045——时段一转两盏灯一起转，这里不抄第二份数。
+   解不动的写法回 'unparsed'（**不是 null**）：null＝"这一档没声明这一枚"，'unparsed'＝"声明了但
+   这一关读不懂它"，两种都当场红，不许退化成"没这东西 ⇒ 不用算"。 */
+const CMIX_RE = /^color-mix\(insrgb,var\((--[a-z0-9-]+)\),?([0-9.]+)%,transparent\)$/;
+function paintOf(name, effFn){
+  const raw = effFn[name];
+  if (raw === undefined) return null;
+  const direct = parsePaint(raw);
+  if (direct) return direct;
+  const m = CMIX_RE.exec(String(raw).replace(/\s+/g, ''));
+  if (!m) return 'unparsed';
+  const src = paintOf(m[1], effFn);
+  if (!src || src === 'unparsed') return src === 'unparsed' ? 'unparsed' : null;
+  return { ...src, a: src.a * Number(m[2]) / 100 };
+}
 
 const vs = variants(per);
 console.log('\n=== 条件块（data-phase / data-moon）过闸 ===');
 if (!vs.length) console.log('  （没有条件块，跳过）');
-let bad2 = 0, litChecked = 0;
+let bad2 = 0, litChecked = 0, groundChecked = 0;
 function stateLine(label, eff, effFn, coverNote){
   const bgB = eff['--bg-base'], bgT = eff['--bg-top'];
   let line = `  ${label}：底 ${bgB} 顶 ${bgT}${coverNote ? `（覆盖 ${coverNote}）` : ''}`;
@@ -278,25 +306,50 @@ function stateLine(label, eff, effFn, coverNote){
   if (lit.a === 0){ bad2++; console.log(line + `\n    ✗ ${label} 的 --lit α=0 —— 这盏灯根本没亮，判据空转`); return; }
   litChecked++;
   const litB = overHex(bgB, lit), litT = overHex(bgT, lit);
-  let tight = Infinity, wk = '', wok = true;
-  for (const [k, floor] of Object.entries(FLOOR)){
-    const w = Math.min(ratio(eff[k], litB), ratio(eff[k], litT));
-    if (w < floor) wok = false;
-    if (w - floor < tight){ tight = w - floor; wk = `${k} ${w.toFixed(2)}（地板 ${floor}）`; }
-  }
-  if (!wok){ bad2++; line += `  光 α${lit.a} → ✗ 铺满全页时有档位跌破地板，最紧一档 ${wk}`; }
-  else line += `  光 α${lit.a} → 底${litB} 顶${litT}，最紧一档 ${wk}✓`;
-  console.log(line + (ok && wok ? '  ⇒ 全过' : ''));
+  /* 同一把尺子复用一个函数：单盏灯与两层合成跑的是**同一批地板**，两套判据不许长歪 */
+  const worstOn = (bHex, tHex) => {
+    let tight = Infinity, wk = '', wok = true;
+    for (const [k, floor] of Object.entries(FLOOR)){
+      const w = Math.min(ratio(eff[k], bHex), ratio(eff[k], tHex));
+      if (w < floor) wok = false;
+      if (w - floor < tight){ tight = w - floor; wk = `${k} ${w.toFixed(2)}（地板 ${floor}）`; }
+    }
+    return { tight, wk, wok };
+  };
+  const one = worstOn(litB, litT);
+  if (!one.wok){ bad2++; line += `  光 α${lit.a} → ✗ 铺满全页时有档位跌破地板，最紧一档 ${one.wk}`; }
+  else line += `  光 α${lit.a} → 底${litB} 顶${litT}，最紧一档 ${one.wk}✓`;
+  /* 第二层光（正文脚下那层地面光，§15 详情页那一格）：**两层合成**再复算一遍同一批地板。
+     判法照上面那条最坏假设——不量半径、不量方位、不量两盏灯重不重叠，当作两盏都铺满全页。
+     合成次序按真实层序：底 → 方向光（`.wrap::before`，z-index:-1，画在内容之下）→
+     地面光（`.post-body` 自己的背景，坐在方向光之上、字之下）。
+     ⚠️ 这一档不是"α 很小所以不用进账"：第二层光落在文字底下（量过，见 §15 那一格的逐像素读数），
+     而 §2.4 那笔地板账是按**有效底**算的 ⇒ 它必须进这 12 档 × 两盏灯的合算里。 */
+  const ground = paintOf('--ground', effFn);
+  if (!ground){ bad2++; console.log(line + `\n    ✗ ${label} 读不到 --ground —— 第二层光的判据正在空转`); return; }
+  if (ground === 'unparsed'){ bad2++; console.log(line + `\n    ✗ ${label} 的 --ground 这一关读不懂（合法写法只有 rgba() 与 color-mix(in srgb, var(…) P%, transparent)）——判据不许靠"读不懂"变绿`); return; }
+  if (ground.a === 0){ bad2++; console.log(line + `\n    ✗ ${label} 的 --ground α=0 —— 这层光根本没亮，判据空转`); return; }
+  groundChecked++;
+  const gB = overHex(litB, ground), gT = overHex(litT, ground);
+  const two = worstOn(gB, gT);
+  if (!two.wok){ bad2++; line += `  两层 α${lit.a}+${ground.a.toFixed(3).replace(/0+$/, '')} → ✗ 铺满全页时有档位跌破地板，最紧一档 ${two.wk}`; }
+  else line += `  两层 α${lit.a}+${ground.a.toFixed(3).replace(/0+$/, '')} → 底${gB} 顶${gT}，最紧一档 ${two.wk}✓`;
+  console.log(line + (ok && one.wok && two.wok ? '  ⇒ 全过' : ''));
 }
 for (const [tName, tBase, tFn] of [['light', light, lightFn], ['dark', dark, darkFn]]){
+  /* ⚠️ 暗色档的**函数色板**要从基准板起算再盖暗色那份，不是只拿暗色块自己那一份：
+     CSS 级联里"只在 `:root` 声明过的令牌"在夜林照样在场（`--ground` 就是这种只声明一次的派生量），
+     而它内部的 `var(--lit)` 取的是**当档有效值** ⇒ 暗色档解出来的 `--ground` 自动是月雾那枚的三成。
+     这一句不是给工具开后门：`--lit` 这类在暗色块里重声明过的键由 spread 顺序自然盖掉基准值。 */
+  const fnBase = { ...lightFn, ...tFn };
   /* 基准档 = :root / [data-theme=dark] 自己：亮色的 day、两主题的无月之夜 */
-  stateLine(`${tName} day（基准）`, { ...tBase }, { ...tFn }, null);
+  stateLine(`${tName} day（基准）`, { ...tBase }, { ...fnBase }, null);
   for (const phase of PHASES) for (const moon of MOONS){
     /* 没点名 data-theme 的块按"亮色专用"处理——§2.3 明写暗色不随时段变色，
        所以一条裸 [data-phase] 规则套到夜林头上同样算分叉 */
     const usable = vs.filter(v => (v.attrs.theme || 'light') === tName)
                      .filter(v => (!v.attrs.phase || v.attrs.phase === phase) && (!v.attrs.moon || v.attrs.moon === moon));
-    const eff = { ...tBase }, effFn = { ...tFn }, from = [];
+    const eff = { ...tBase }, effFn = { ...fnBase }, from = [];
     for (const v of usable) for (const [k, val] of Object.entries(v.toks)){ if (eff[k] !== val) from.push(`${k}←${v.file}`); eff[k] = val; }
     for (const v of usable) for (const [k, val] of Object.entries(v.fn)){ if (effFn[k] !== val) from.push(`${k}←${v.file}`); effFn[k] = val; }
     if (!from.length) continue;                       // 这个组合一个令牌都不覆盖，不必报
@@ -304,7 +357,9 @@ for (const [tName, tBase, tFn] of [['light', light, lightFn], ['dark', dark, dar
   }
 }
 console.log(`  方向光复算 ${litChecked} 档（0 档＝这盏灯没进过闸）`);
-if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相与方向光都没有把任何一档推下它的地板');
+console.log(`  两层光（方向光 + 正文脚下地面光）复算 ${groundChecked} 档（0 档＝第二层光没进过闸；` +
+  `${groundChecked < litChecked ? `少于方向光的 ${litChecked} 档＝有档位被第二层漏掉了` : '与方向光同档数＝两盏灯跑的是同一批档'}）`);
+if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相、方向光与两层光的合成都没有把任何一档推下它的地板');
 
 if (bad || bad2 || drift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');
