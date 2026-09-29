@@ -95,7 +95,7 @@ async function check() {
     if (!tax.errors.length) taxPosts.push({ id: slug, data: { category: tax.category, tags: tax.tags, series: tax.series } });
     if (tax.draft) { console.log(`· ${f}：draft: true —— 这一篇不进列表、不进首页那三篇、没有详情页地址、不进两枚订阅源，关于页那几个数也不数它`); }
     if (tax.pinned) { console.log(`· ${f}：pinned: true —— 它排在 / 与 /essays/ 的最前面（目录行的门牌 folio 跟着新顺序继续连号）`); }
-    /* 稿件级转载许可族的两枚 URL 键（键是第十二轮 `card/permit` 的，这一格是补丁轮 `card/permitfix` 加的）：
+    /* 稿件级转载许可族的两枚 URL 键（键是第十五轮 `card/permit` 的，这一格是补丁轮 `card/permitfix` 加的）：
        **非空**却 `strictHref()` 判成"不能当路用" ⇒ 详情页那一行里这一枚锚点根本不会出现，作者却以为写了就有。
        页面已经不许为它长出 `<a>` 了（`src/pages/essays/[slug].astro` 那段 `---` 注释钉着），所以这里必须当面说破，
        不然坏写法只剩"页面上少一行"这一种表现，build 全绿。两种坏形状**分开点名**、各带出路：
