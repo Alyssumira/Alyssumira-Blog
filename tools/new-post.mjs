@@ -43,7 +43,9 @@ function argList(argv) {
 }
 
 /* front matter 认 title/date/excerpt/cover 四个键，外加可选的 hour（0–23，写作时刻）；
-   第十轮起再多四枚可空键：category / tags / draft / pinned（schema 在 content.config.ts）。
+   第十轮起再多四枚可空键：category / tags / draft / pinned（schema 在 content.config.ts）；
+   第十六轮起再多一枚布尔键 `unlisted`（不列入：页面在、地址能读、站内没有一处指向它）——
+   骨架**不写**这一行（没写＝没填＝照常被列出），要的人自己加；--check 那格逐篇读它并打印"扫了几篇、几枚是 true"。
    骨架不写 hour：它空着比写一个 0 好——0 会被读成"凌晨写的"。要填自己加一行。
    四枚新键骨架**给空值**（`category: ""` / `tags: []` / `draft: false` / `pinned: false`）：
    空值与缺省同解（页面上不出现胶囊、不生成分类页、算已发布、不置顶），
@@ -57,6 +59,7 @@ async function check() {
   const files = readdirSync(POSTS).filter(f => f.endsWith('.md'));
   let bad = 0;
   let urlChecked = 0;                /* 许可族两枚 URL 键里"非空而被 checked 过"的枚数——这一格的看得见数（下面那行打它） */
+  let unlistedSeen = 0;              /* 写着 unlisted: true 的篇数——同一族看得见数，0 枚也要打（见下面那行） */
   const taxPosts = [];                 /* 撞名要跨篇比，所以先收齐（顺序＝文件名序，可复现） */
   for (const f of files) {
     const slug = f.slice(0, -3);
@@ -94,6 +97,13 @@ async function check() {
     if (!tax.errors.length) taxPosts.push({ id: slug, data: { category: tax.category, tags: tax.tags, series: tax.series } });
     if (tax.draft) { console.log(`· ${f}：draft: true —— 这一篇不进列表、不进首页那三篇、没有详情页地址、不进两枚订阅源，关于页那几个数也不数它`); }
     if (tax.pinned) { console.log(`· ${f}：pinned: true —— 它排在 / 与 /essays/ 的最前面（目录行的门牌 folio 跟着新顺序继续连号）`); }
+    /* 不列入（第十六轮 `card/unlisted`）：与上面 `draft` 那一行**同形状、同一种语气**，但后果要说全——
+       这一枚最容易被读错成"跟草稿一样"，而它是反的：**页面在、地址是真的、能读**，只是站内没有一处指过去。
+       一处一处点名比一句"不进列表"有用，因为作者记住的是"我藏起来了"，读者找的是"我搜不到它"。 */
+    if (tax.unlisted) { unlistedSeen++; console.log(`· ${f}：unlisted: true —— 这一篇**发了**，但它自己的地址是唯一入口：不进列表、不进首页那三篇、`
+      + `不进分类/标签/系列任何一格目录、不进两枚订阅源、不进 search.json 那份索引、不进 llms.txt、也不进 sitemap-0.xml，`
+      + `详情页的上一篇/下一篇里也没有它；而它的页面照常构建（/essays/${slug}/ 在 dist/ 里就有，拿到地址的人读得到），那一页带 noindex。`
+      + `⚠️ 它不是密码：静态站没有服务端，产物到了谁手里谁就能离线读——这一枚挡的是"被目录与抓取器收走"，不是"被人读到"（§12）。`); }
     /* 稿件级转载许可族的两枚 URL 键（键是第十五轮 `card/permit` 的，这一格是补丁轮 `card/permitfix` 加的）：
        **非空**却 `strictHref()` 判成"不能当路用" ⇒ 详情页那一行里这一枚锚点根本不会出现，作者却以为写了就有。
        页面已经不许为它长出 `<a>` 了（`src/pages/essays/[slug].astro` 那段 `---` 注释钉着），所以这里必须当面说破，
@@ -121,6 +131,10 @@ async function check() {
   /* 看得见数（上面那一格的对象枚数）：**0 也要打这一行**。三篇真稿四枚键全空 ⇒ 这里报 0 处，
      它证明这一格真的跑过每一篇，而不是一枚从没被喂过输入的保险——本仓被"空转的保险"骗过一次（§16 那一族）。 */
   console.log(`· 许可族 URL 检查 ${urlChecked} 处（posts 里 sourceLink / licenseUrl 非空的枚数；全空 ⇒ 0 处而这一行照样打出来）`);
+  /* ⚠️ 不列入那一枚的**零对象看得见数**：今天一篇都没标 ⇒ 这里仍旧打印"扫了 N 篇、其中 0 篇"。
+     这一行存在的理由与上面那枚一模一样（§16 那一族："扫了但没匹配到"与"扫了且全过"长得一样）：
+     它证明这一格真的逐篇读过那一枚键，而不是一枚从没被喂过输入的保险。 */
+  console.log(`· 不列入检查 ${files.length} 篇：其中 ${unlistedSeen} 篇写着 unlisted: true${unlistedSeen ? '' : '（0 篇是今天签字的状态，不是这一格没跑——每一篇的 front matter 都被读过）'}`);
   /* ⚠️ 用 shipped 的那个分组函数，不在工具里再猜一遍归一化：两份实现会各自赦免同一个错，
      于是"预检全绿、astro build 当场抛"（或反过来）都会发生。构建期那一侧是**抛**——
      静默合并等于替作者把两件事说成一件（§12 假语境的近亲），起名是他的活，不是机器的。 */
@@ -238,6 +252,10 @@ function create() {
   /* 四枚新键的写法与后果一次说清——`--check` 那格拦的是坏写法，这一行管的是"忘了有这四枚" */
   console.log(`  分类 category: "散文"（一篇一个，进 /categories/<名字>/）；标签 tags: [甲, 乙] 或下面几行"- 甲"（不是逗号字符串）`);
   console.log(`  draft: true ⇒ 这一篇从站上完全消失（列表／详情／订阅源／关于页那几个数）；pinned: true ⇒ 排在 / 与 /essays/ 最前面`);
+  /* 第三枚布尔键（第十六轮 `card/unlisted`）：这一行管的是"忘了有这四枚之外的这一枚"——
+     骨架**故意不写** `unlisted:` 那一行（没写＝没填＝照常被列出，与写 `false` 同解），要的人自己加一行。 */
+  console.log(`  unlisted: true ⇒ 第三枚布尔键，与 draft **反着**：页面照常构建、那个地址照常读得到，只是站内任何一处都不指向它`);
+  console.log(`    （列表／首页那三篇／分类·标签·系列三族／两枚订阅源／search.json／llms.txt／sitemap-0.xml／上下篇全没有它）。它不是密码——静态站没有服务端（§12）`);
   console.log(`  都空着就是"没填"：不画胶囊、不生成分类页——本站不许替作者起名字，也不许留一枚指向空页的锚点`);
   console.log(`  本地看：npm run dev → /essays/${slug}/`);
   return 0;
