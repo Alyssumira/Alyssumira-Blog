@@ -536,8 +536,10 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
   html .code-copy, html .lightbox{ display:none; }
 
   /* 身后的雾（`essay.css:97-98`）：`--read-fog` 是 site.js 每个滚动帧写一次的，纸上没有那个驱动者，
-     起始值 -9999px 会把整段正文推进"淡到底"那一侧 ⇒ 印出来是一片看不见的字。与上面同族，同一个病。 */
-  html article.post-body{ -webkit-mask-image:none; mask-image:none; }
+     起始值 -9999px 会把整段正文推进"淡到底"那一侧 ⇒ 印出来是一片看不见的字。与上面同族，同一个病。
+     ⚠️ 同一条选择器顺手撤掉的 `background-image` 是正文脚下那层地面光（§15 详情页那一格）：
+     它在 19.1 归属的就是"方向光与那层气"那一行——纸不给它任何"面"，纸上也不需要有照度。 */
+  html article.post-body{ -webkit-mask-image:none; mask-image:none; background-image:none; }
 
   /* ---- 纸本身：不给它任何"面" ---- */
   /* ⚠️ 不设 `print-color-adjust:exact`（§19.4）：纸上留下的每一样都不靠背景表达，所以这一档掉下来的信息量是 0。
