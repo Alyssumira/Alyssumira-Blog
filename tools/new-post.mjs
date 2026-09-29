@@ -7,8 +7,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { safe } from '../src/lib/markdown.js';   /* 锚点归一化只有一份实现，检查脚本不许自己再猜一遍 */
-import { splitFm, readTaxonomy } from './frontmatter.mjs';
+import { safe, href, strictHref } from '../src/lib/markdown.js';   /* 锚点归一化只有一份实现，检查脚本不许自己再猜一遍；
+   两枚 URL 键"能不能当路用"同样只有一份：strictHref()。tools/ 这一侧**不写第二份协议正则**，
+   只纯消费它和 href() 的返回值——两者的差恰好就是把两种坏形状分开点名的依据（见下面那一格） */
+import { splitFm, readTaxonomy, unquote } from './frontmatter.mjs';
 import { groupMany } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -54,6 +56,7 @@ async function check() {
   if (!existsSync(POSTS)) { console.log(`✗ ${POSTS} 不存在`); return 1; }
   const files = readdirSync(POSTS).filter(f => f.endsWith('.md'));
   let bad = 0;
+  let urlChecked = 0;                /* 许可族两枚 URL 键里"非空而被 checked 过"的枚数——这一格的看得见数（下面那行打它） */
   const taxPosts = [];                 /* 撞名要跨篇比，所以先收齐（顺序＝文件名序，可复现） */
   for (const f of files) {
     const slug = f.slice(0, -3);
@@ -91,7 +94,33 @@ async function check() {
     if (!tax.errors.length) taxPosts.push({ id: slug, data: { category: tax.category, tags: tax.tags } });
     if (tax.draft) { console.log(`· ${f}：draft: true —— 这一篇不进列表、不进首页那三篇、没有详情页地址、不进两枚订阅源，关于页那几个数也不数它`); }
     if (tax.pinned) { console.log(`· ${f}：pinned: true —— 它排在 / 与 /essays/ 的最前面（目录行的门牌 folio 跟着新顺序继续连号）`); }
+    /* 稿件级转载许可族的两枚 URL 键（键是第十二轮 `card/permit` 的，这一格是补丁轮 `card/permitfix` 加的）：
+       **非空**却 `strictHref()` 判成"不能当路用" ⇒ 详情页那一行里这一枚锚点根本不会出现，作者却以为写了就有。
+       页面已经不许为它长出 `<a>` 了（`src/pages/essays/[slug].astro` 那段 `---` 注释钉着），所以这里必须当面说破，
+       不然坏写法只剩"页面上少一行"这一种表现，build 全绿。两种坏形状**分开点名**、各带出路：
+         · `href(v) === '#'` ⇒ 带了协议头而协议不被站内白名单收（javascript:/data:/vbscript: 那一族），消毒成 '#'；
+         · 否则 ⇒ 没有协议头，`root()` 把它当站内相对路径钉到站点根（`example.com/x` ⇒ `/example.com/x`），
+           那是一枚看着像真链接、点开 404 的活锚——比 `#` 隐蔽，所以两种都要说。
+       ⚠️ 这一格里**没有第二份协议正则**：判据是 `markdown.js` 导出的 `strictHref()` / `href()` 的返回值，
+       这里只把两枚结果之差翻译成人话（`OK_LINK`／`HAS_SCHEME` 若在这儿抄第三份，早晚有一处漏掉 javascript:）。 */
+    for (const [key, effect] of [
+      ['sourceLink', '页面上"原文 …"那一段整段不出现（"本文作者 "那一段照旧——它的主键是 author，与路无关）'],
+      ['licenseUrl', '页面上许可那一段只剩没有锚点的散文（`licenseName` 仍上屏，只是没得点）'],
+    ]) {
+      const v = unquote(fm[key] ?? '');                  /* 单/双引号都按页面那侧的口径摘掉，免得假红；键没写 ⇒ 空串（不是 "undefined"） */
+      if (!v) continue;
+      urlChecked++;
+      if (strictHref(v)) continue;
+      const why = href(v) === '#'
+        ? '协议不在站内白名单里，消毒之后是一枚 href="#" 的死锚，而这一族不许产出它'
+        : `没有协议头，它会被当站内相对路径钉到站点根（${href(v)}），点开是一枚 404 的活锚`;
+      console.log(`✗ ${f}：${key} "${v}" 不会出现在页面上——${why}；${effect}。要它出现就写成带协议头的 https://…，或者把这一行整条删掉（删掉＝没填＝这一项本来就不该有）`);
+      bad++;
+    }
   }
+  /* 看得见数（上面那一格的对象枚数）：**0 也要打这一行**。三篇真稿四枚键全空 ⇒ 这里报 0 处，
+     它证明这一格真的跑过每一篇，而不是一枚从没被喂过输入的保险——本仓被"空转的保险"骗过一次（§16 那一族）。 */
+  console.log(`· 许可族 URL 检查 ${urlChecked} 处（posts 里 sourceLink / licenseUrl 非空的枚数；全空 ⇒ 0 处而这一行照样打出来）`);
   /* ⚠️ 用 shipped 的那个分组函数，不在工具里再猜一遍归一化：两份实现会各自赦免同一个错，
      于是"预检全绿、astro build 当场抛"（或反过来）都会发生。构建期那一侧是**抛**——
      静默合并等于替作者把两件事说成一件（§12 假语境的近亲），起名是他的活，不是机器的。 */

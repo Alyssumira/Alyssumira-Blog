@@ -23,7 +23,11 @@ export function splitFm(raw){
   return { fm, fmText, body: text.slice(end + 5).replace(/^\r?\n/, '') };
 }
 
-const unquote = s => {
+/* 值两侧的单/双引号摘掉：`splitFm` 那一份只摘了双引号（`^"(.*)"$`），单引号写法（`sourceLink: 'https://…'`）
+   要由消费侧再走一次这里才算读到位——页面那侧 gray-matter 两种引号都剥，工具侧不剥就是**假红**
+   （新-post 文件头那条同一个教训：假阳性比漏检更糟，它教人忽略门禁）。摘引号是**读法**不是判据，
+   所以它住在这儿（工具侧只此一份），而不是住在 `new-post.mjs` 的那一格旁边。 */
+export const unquote = s => {
   const v = String(s).trim();
   const q = v[0];
   return (q === '"' || q === "'") && v.endsWith(q) && v.length > 1 ? v.slice(1, -1) : v;
