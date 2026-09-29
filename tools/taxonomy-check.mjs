@@ -305,6 +305,10 @@ cell('⑥', 'codeOnly 自己也要有尺子：字符串感知 + 真注释照抹�
   assert.ok(!outB.includes('z.coerce.boolean()'),
     '⑥ fixture B：真块注释里的坏写法没被抹掉 —— 剥离器不吃注释了，③ 会把自己举的反例当成违规代码');
   assert.ok(outB.includes('blankSlot(z.boolean().default(false))'), '⑥ fixture B：抹注释顺手把真代码也抹了 —— 太窄，判据会瞎');
+  notes.push(`⑥·A 朝宽（glob 串里的假注释开头不许吃真代码）：cover 行过 codeOnly 后${outA.includes("cover: z.string().default('')") ? '还在' : '没了'}、`
+    + `尾注释抹除${outA.includes('白名单不是装饰') ? '失守' : '照常'} ✓`);
+  notes.push(`⑥·B 朝窄（真块注释里的坏写法必须照抹）：z.coerce.boolean() 过 codeOnly 后${outB.includes('z.coerce.boolean()') ? '还在（失守）' : '已不在'}、`
+    + `注释外真代码${outB.includes('blankSlot(z.boolean().default(false))') ? '留着' : '被误杀'} ✓`);
   return 4;
 });
 
