@@ -57,7 +57,9 @@ let folio = 0;
             return (
               <>
                 <span class:list={['tick', { nil: !c, now: i === 11 }]} style={`${pos};height:${h}px`}></span>
-                {lab && <span class:list={['d-lab', { now: i === 11 }]} style={pos}>{brch ? <><span class="full">{stamp(months[i])}</span><span class="short">{pad(months[i].m + 1)}</span></> : pad(months[i].m + 1)}</span>}
+                {/* 首尾两枚标签换成贴栏缘（head=左缘对齐、tail=右缘对齐，样式在 mistwood.css 的 .d-lab.head/.d-lab.tail）：
+                    标签是文字，居中会让它探出栏左缘、切断全站那条左对齐线；柱仍居中，因为柱心是数据位置。key 顺序 head/tail 排在 now 前面是刻意的——产物里那枚 class 串要读成 `d-lab tail now`。 */}
+                {lab && <span class:list={['d-lab', { head: i === 0, tail: i === perMonth.length - 1, now: i === 11 }]} style={pos}>{brch ? <><span class="full">{stamp(months[i])}</span><span class="short">{pad(months[i].m + 1)}</span></> : pad(months[i].m + 1)}</span>}
               </>
             );
           })}

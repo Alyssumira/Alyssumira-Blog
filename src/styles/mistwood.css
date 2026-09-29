@@ -386,7 +386,7 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 /* 密度尺：最近 12 个月每月一根，构建期算好画成 HTML。空月也画刻度——一把尺子比三根柱子诚实。
    ⚠️ 尺身不能是 SVG 拉宽：viewBox 是**等比放大整张画**，宽度换 100% 会连字带轴一起放大、`height:auto` 按 5:1 把带高长到 224px＝一次垂直大改；320px 档旧版实测整张缩到 135.31px 宽（柱 4→1.8、空月 3→1.35、标签字盒 13→6px）。换算与结论在 §15 那一格。已有的数一枚没改：柱宽 4、柱高 6+(c/peak)*30、空月 3、带高 60、轴 y=46、标签 10px mono .06em、三档 opacity .55/.22/.95。 */
 .density-wrap{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin-top:22px; }   /* 尺身全宽 ⇒ 图例落到下一行：单值 gap 换行后自己兼作 row-gap ⇒ 零枚新垂直槽位（在册那两枚 gap:14px / margin-top:22px 的值·属性名·档位都没动） */
-.density{ position:relative; display:block; width:100%; height:60px; }   /* 带高仍旧 60、轴线仍旧 y=46，柱与标签的偏移都按这两枚数摆；首尾柱心各探出 2px 是刻意的——轴线必须与 .essay-index 同宽，左右各出一点走 translateX 不走负 margin（先例见 :329 那枚 .row::before 的 left/right） */
+.density{ position:relative; display:block; width:100%; height:60px; }   /* 带高仍旧 60、轴线仍旧 y=46，柱与标签的偏移都按这两枚数摆；首尾柱心各探出 2px 是刻意的——轴线必须与 .essay-index 同宽，左右各出一点走 translateX 不走负 margin（先例见 :329 那枚 .row::before 的 left/right）。⚠️ 探出的口径是"柱探出 2px、标签不探出（首尾两枚换成贴栏缘，`head`／`tail`，见下面那两条）"：柱的位置是数据、居中才落在真实刻度上，所以那 2px 是买轴线同宽付的、已签；标签是文字，跟着居中就会把左缘探出栏外、切断全站那条左对齐线，所以它不享有这 2px。 */
 .density::before{ content:""; position:absolute; left:0; right:0; top:46px; height:1px; background:var(--line); }   /* 原来那枚 <line class="axis" stroke-width:1>：1px、--line、横向铺满；crispEdges 不迁，HTML 这一枚本来就是整像素 */
 .density .tick{ position:absolute; bottom:14px; width:4px; transform:translateX(-50%); background:var(--moss); opacity:.55; }   /* 柱高 6+(c/peak)*30、空月 3 由模板按数据给：那是数据不是样式。原 SVG 那枚 rx="1" 没迁——圆角只住在 §4 那根 11 档梯子上（gap-check 在册 30 枚／12 种写法，一枚都不许多） */
 .density .tick.nil{ background:var(--ink-3); opacity:.22; }
@@ -394,6 +394,10 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .density .d-lab .short{ display:none; }   /* 平时只露长形式：带年的那一格（窗口起点与年份边界）说 2025.10／2026.01，窄屏在下面那档换回短形式 */
 /* 月份刻度走 --ink-2 不走 --ink-3：读不出月份就读不出这排柱子的横轴，和 .density-cap 那句"图例是看得懂刻度的前提"同一个理由（次要档，不是装饰档）。⚠️ font-size:10px 与 letter-spacing:.06em 是这根尺的两枚硬数——§4 那张字距审计表里"密度条月份标签"那一行钉的就是 .06em（载体由 SVG `<text>` 换成 HTML `<span>`，那一行的现值与 Δ0.00 是过去时的实测记录，没跟着改数字）；行盒 1.3 让基线落回 y≈58，实测字盒 top=48／bot=61，与 SVG 档逐位相同。 */
 .density .d-lab{ position:absolute; top:48px; line-height:1.3; transform:translateX(-50%); white-space:nowrap; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:10px; letter-spacing:.06em; color:var(--ink-2); }
+/* 首尾两枚标签改贴栏缘，只换 transform 这一枚属性（top／字号／字距／行盒／nowrap／颜色一律沿用上面那条，两枚旗标由模板按 i 给）。
+   为什么只有首尾：居中变换让首枚标签（`2025.10`，实测宽 46.2px）的左缘探出栏左缘 23.1px，而页标题、`.year-mark`、目录行的左缘全部严格贴在栏左缘上——探出去就是切断全站那条左对齐线；末枚 `09` 同理探出右缘。柱不许跟着改：柱心＝数据位置，居中才落在真实刻度上。 */
+.density .d-lab.head{ transform:none; }   /* 左缘贴栏左缘（`left` 已经在 i/11 处＝0，不再往回扯半枚字宽） */
+.density .d-lab.tail{ transform:translateX(-100%); }   /* 右缘贴栏右缘（i=11 的 `left` 已经是 100%） */
 .density .d-lab.now{ color:var(--moss-ink); }
 @media (max-width:720px){ .density .d-lab .full{ display:none; } .density .d-lab .short{ display:inline; } }   /* 窄屏退回短标签：display:none 不占位 ⇒ 零新垂直槽位；区间那句仍旧由 .density-cap 说话 */
 .density-cap{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档 */
