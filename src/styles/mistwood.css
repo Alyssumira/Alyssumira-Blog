@@ -315,9 +315,40 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 .essay-index li{ position:relative; border-top:1px solid transparent; }
 .essay-index li:last-child{ border-bottom:1px solid transparent; }
 .row{
+  position:relative;   /* ← 伪元素的包含块，写死；理由见下面那一格（首页那三行还带 `.reveal` 的 transform） */
   display:flex; align-items:baseline; gap:24px; padding:26px 0;
   transition:transform .5s cubic-bezier(.22,1,.36,1);
 }
+/* 悬停铺面：碰到才在行底铺一块面（规范 §8.3「悬停目录行」那一格的第 0 问落在这儿）。
+   ⚠️ `position:absolute` 不是可选的：`.row` 自己就是 `display:flex`，裸一枚 `::before` 会成**第四枚
+   flex 项目**，`gap:24px` 把编号／标题／日期整排重新挪一遍——同一族的坑在 §9 为 `.post-nav` 记过
+   （"它的 `::before` 必须带 `position:absolute`，不然就是第三枚 flex 项目"）。
+   ⚠️ 宿主的 `position:relative` 写死：首页那三行是 `<a class="row reveal">`（`index.astro:72`），
+   `.reveal` 挂着 `transform:translateY(16px)`，会**临时**顶上绝对定位的包含块与层叠上下文；
+   §9 那句原话照抄——"那是打包顺序的运气不是设计，`position:relative` 写死"。
+   ⚠️ 左右各出 12px 走 `left/right` 的偏移量，不走负 margin（负 margin 会碰布局），也不走
+   `box-shadow` 扩散（在 §8.8 白名单外）。12px 在 §4 那根 11 档圆角梯子上（图鉴玻璃条 `:446` 用的就是它）。
+   ⚠️ 垂直方向只有两枚 `0`、零枚固定 px：面铺满 `.row` 自己的 padding box，行上下内垫（`26px`／
+   窄屏 `20px`／首页 `18px`）与行高一个字没动 ⇒ `:365` 归巢与 `:372` 摘要常驻的位置全不受影响，
+   `tools/gap-check.mjs` 也因此零枚新垂直槽位要认领。
+   ⚠️ `z-index:-1`：同族先例是 `.page-head::before` 那层"气"（`:271`，§15"气这一层必须在 `z-index:-1`"）。
+   `.row` 是 `position:relative` + `z-index:auto` ⇒ 自己**不是**层叠上下文，面落到最近祖先层叠上下文的
+   负 z 那一格；本仓 `html` 没有 `background`（`base.css:211` 只有 `scroll-behavior`），`body` 那条
+   40vh 渐变走的是**画布底**、比什么都先画 ⇒ 面压在字底下但浮在纸面上（产物逐像素差分在案，读数见 §8.3 那一格）。
+   ⚠️ 8% 不是新配比：`base.css:391` `.search-row:hover` 与 §9 标签胶囊"悬停填 8% 苔绿"就是这一档，
+   连语义也一样——"碰到才长出底"。这里不用 25%：那一枚的语义是"选中／标记的底"（`base.css:398`、
+   `::selection`），一整块 25% 的苔绿面会把 §1.2"至多两处点缀"的配额一次用完。零新 hex、零新 rgba。 */
+.row::before{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  top:0; right:-12px; bottom:0; left:-12px;
+  border-radius:12px;
+  background:color-mix(in srgb,var(--moss) 8%,transparent);
+  opacity:0;
+  transition:opacity .5s cubic-bezier(.22,1,.36,1);
+}
+/* 显形名单与 `:377` 那枚摘要同一条（`.row:hover` ∪ `.row:focus-visible`）——键盘走同一扇门，
+   面与摘要不许一个亮一个不亮。按下那一下（`:353`）不动这枚面：它管的只有位移与回弹。 */
+.row:hover::before,.row:focus-visible::before{ opacity:1; }
 .row:hover{ transform:translateX(6px); }
 .row:active{ transform:translateX(6px) scale(.995); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 .folio{
