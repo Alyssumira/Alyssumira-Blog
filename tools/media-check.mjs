@@ -19,9 +19,11 @@
 
    ── 为什么走 renderMd 产物这一条路（从产物里的 <img src> 收），而不是复用那两枚模式 ──
    解析形状在 `src/lib/markdown.js:27-28`（`IMG_ONE`＝整段是一枚图，`IMG_LINK`＝图包在链接里），两枚都
-   没有导出（导出表 `:266`：`renderMd, inlineMd, fmtDate, root, safe, splitBlocks`）。
+   没有导出（导出表 `src/lib/markdown.js:277`：`renderMd, inlineMd, fmtDate, root, safe, splitBlocks, href, strictHref`——
+   后两枚是第十五轮 `card/permit` 与它的补丁 `card/permitfix` 加出去的，**这一串清单数的一直是"没导出的那两枚不在其中"，
+   加导出没改变那件事**）。
    另一条路要先把它们导出来，然后在工具里**重做一遍块切分**才用得动，而那两枚锚死整块的模式盖不住
-   第三种形状：句子中间夹一枚图走的是 `IMG_RE`（`:25`，全局匹配；`renderMd` 把段里的图提到段后落图版）。
+   第三种形状：句子中间夹一枚图走的是 `IMG_RE`（`src/lib/markdown.js:26`，全局匹配；`renderMd` 把段里的图提到段后落图版）。
    ⇒ 只搬那两枚 const 就会**漏掉段里夹的图**，而那是稿件里最常见的一种写法。要补齐就得连 `splitBlocks`
    的围栏语义、表格格子不走图片规则、`imgSrc()` 的协议过滤一起重写第二份，工具侧与渲染器侧从此成了
    两份实现：改一边、另一边照样绿，正是 §16 记过好几次的"两边各自赦免同一个错"。
@@ -30,7 +32,7 @@
        `scripts/quarantine-bad-posts.mjs:27-48` 要手写 `stripCode()` 剥三遍才做对的事，渲染器已经做对了；
      · 段里夹的图、图包在链接里的图、整段是一枚图，三种形状都已经被 `renderMd` 收成 `<img>`；
      · `data:` 与 `javascript:` 这类协议由 `imgSrc()` 直接画成空 src（一枚 `<img>` 都不产），本卡无从查起；
-     · 详情页吃的就是 `renderMd(post.body)`（`src/pages/essays/[slug].astro:58`），与这里同一个入参。
+     · 详情页吃的就是 `renderMd(post.body)`（`src/pages/essays/[slug].astro:74`），与这里同一个入参。
    代价照实登记：产物里没有行号。所以**判断只来自产物，行号只用于点名是哪一行**（拿同一枚路径字面量回
    源码行里找，找不到也照样红，只是那一行少一个坐标）。自造第三套 markdown 正则——禁止，本卡没有。
 
