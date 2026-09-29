@@ -122,7 +122,7 @@ function hard(msg){ problems.push(msg); }
 
 /* ==================== 源码侧那批稿子 ====================
    读 .md 原文只为准挑探针词与对账篇数；"哪些篇该进索引"由 shipped 的 isDraft + isUnlisted + sortPosts 判
-   （第十六轮 `card/unlisted` 起那一枚 filter 与页面那侧的 `visiblePosts()` 同一条：不列入的一篇不进索引，
+   （第十五轮 `card/unlisted` 起那一枚 filter 与页面那侧的 `visiblePosts()` 同一条：不列入的一篇不进索引，
    正如它不进列表、不进 feed——这里少滤一道，② 那格的枚数对账就会在探针态上报一条假红）。
    ⚠️ 这一族"没有对象就没法判"的关口一律不 throw 到进程外（见上面 hard() 那段）：
       语料空 / 挑不出探针 ⇒ 记一条有名有姓的红，然后**照常走到打印那一步**。
@@ -152,7 +152,7 @@ const CORPUS = (() => {
 })();
 const VISIBLE = sortPosts(CORPUS.filter(p => !isDraft(p) && !isUnlisted(p)));
 const DRAFTS = CORPUS.filter(p => isDraft(p));
-/* 不列入的那几枚（第十六轮）：地址是活的、页面在盘上，但它不许进索引——它进了索引就等于
+/* 不列入的那几枚（第十五轮）：地址是活的、页面在盘上，但它不许进索引——它进了索引就等于
    搜索框替站内所有页面长出了一枚指向它的结果行，"只有拿到地址的人读得到"当场破。
    名单现算、不写死（今天 0 枚也要有这一枚数可报，见 ② 那句打印）。 */
 const UNLISTED = CORPUS.filter(p => !isDraft(p) && isUnlisted(p));
@@ -251,7 +251,7 @@ if (product) cell('②', '索引里那批 ⇄ 源码里"可见"那批（滤草�
     `${u} 在可见清单里却不在索引里 ⇒ 这一篇永远搜不到，而它在 /essays/ 上明明有一行`);
   for (const d of DRAFTS) assert.ok(!product.docs.some(x => x.u === `/essays/${d.slug}/`),
     `${d.slug} 标着 draft:true 却进了索引 ⇒ 列表里没有它、地址照样活着：草稿泄漏最新的一种形状`);
-  /* 不列入那一族（第十六轮 `card/unlisted`）：与草稿那一半同一个形状，但**页面上那一页是在的**——
+  /* 不列入那一族（第十五轮 `card/unlisted`）：与草稿那一半同一个形状，但**页面上那一页是在的**——
      所以这里不能拿"dist 里没有那一页"当判据（那是草稿的形状），只能拿"索引里没有它"当判据。
      它要是进了索引，运行时那一侧就长出真结果行、真地址，"站内任何一处都不指向它"破在搜索框里
      （上面那条 `docs.length === want.length` 的枚数对账咬得住"多了一篇"，这一条点名的是"哪一枚多了"）。

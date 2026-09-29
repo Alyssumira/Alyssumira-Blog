@@ -10,7 +10,7 @@ import { fonts, FONT_HOST, FONT_FILE_HOST } from '../data/site.js';
 /* revised / date 只有详情页（src/pages/essays/[slug].astro 那个 <Layout> 标签）会传：其余五页没有 ⇒
    Seo 那一格整字段不写，不许拿别的日期顶上（§13a） */
 const { title, desc = '在森林与代码之间，收集微风、光影和好文章。', here = '', tier = 'read', type = 'website', revised, date, ogCard, noindex = false } = Astro.props;
-/* 不列入（第十六轮 `card/unlisted`，判据是 `src/lib/taxonomy.js` 的 `isUnlisted()`、由详情页传进来）：
+/* 不列入（第十五轮 `card/unlisted`，判据是 `src/lib/taxonomy.js` 的 `isUnlisted()`、由详情页传进来）：
    `noindex` 为真 ⇒ 下面多一行 `<meta name="robots" content="noindex">`，为假 ⇒ 一个字节都不多。
    ⚠️ **为什么是一枚 prop、条件落在这枚壳里**：这就是 §13a 那一格记过的同一招——"要收掉 404 的 canonical
       只有一行 `{tier !== 'lost' && <link …>}`"。全站只有一枚 `<head>`，所以"这一页要不要被机器收进索引"

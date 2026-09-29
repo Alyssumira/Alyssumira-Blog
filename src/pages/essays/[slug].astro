@@ -12,7 +12,7 @@ import { lastRevisionDate, whenLine } from '../../lib/revised.js';
 import { cjkCount, latinWords } from '../../lib/stats.js';
 
 export async function getStaticPaths(){
-  /* 这一格里**两枚读函数各管一件事**（第十六轮 `card/unlisted`，口径写在 `src/lib/posts.js` 头上那段），
+  /* 这一格里**两枚读函数各管一件事**（第十五轮 `card/unlisted`，口径写在 `src/lib/posts.js` 头上那段），
      混了就两头都坏，所以两行分开、各带一句理由：
      ⚠️ **路**从 `publishedPosts()` 建——它只滤草稿。漏掉这一道就是"列表搜不到、详情页照样能访问"那种最坏的假完成
         （地址、og:url、上一层 prev/next 全都会带着草稿）；反过来把不列入的也一并挡在这里，那一枚地址就当
@@ -37,7 +37,7 @@ export async function getStaticPaths(){
   });
 }
 const { post, prev, next, revised } = Astro.props;
-/* 不列入（第十六轮 `card/unlisted`）：这一页对那一枚键只做两件事，**页面本身照常是它**——
+/* 不列入（第十五轮 `card/unlisted`）：这一页对那一枚键只做两件事，**页面本身照常是它**——
    ① 给壳传 `noindex={isUnlisted(post)}`（条件那一行在 `src/layouts/Layout.astro`，§13a 记过的同一招），
    ② 拿不到邻居 ⇒ 下面那一整块 `.post-nav` 不出现（口径在上面 `getStaticPaths` 那一段）。
    标题、正文、og、许可行、系列行一个字都不减：这一族少的只是"别人指向它"与"机器把它收进索引"两件事，

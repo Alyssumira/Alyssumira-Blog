@@ -40,7 +40,7 @@ const posts = defineCollection({
     tags: blankSlot(z.array(z.string()).default([])),
     draft: blankSlot(z.boolean().default(false)),
     pinned: blankSlot(z.boolean().default(false)),
-    /* 不列入（第十六轮 `card/unlisted`，学自参照站 Firefly 的"隐藏文章"那一族，但**换了机制**——
+    /* 不列入（第十五轮 `card/unlisted`，学自参照站 Firefly 的"隐藏文章"那一族，但**换了机制**——
        理由两条登记在 `docs/设计规范.md` §12 那一格与 §15「不列入的文章」那一格，这里只留口径）。
        ⚠️ **与上面 `draft`／`pinned` 同一条路，一律不做 coerce**：`unlisted: yes` 在 YAML 1.2 核心 schema 里
        是一枚字符串 `"yes"`，`z.coerce.boolean()` 把非空字符串全铸成 `true`（连 `unlisted: "false"` 都是 `true`）——

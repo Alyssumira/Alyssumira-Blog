@@ -51,7 +51,7 @@ function flowItems(inner){
 /* 六枚可空键（category / tags / draft / pinned ＋ 第十五轮 `card/series` 的 series / seriesOrder）的读法
    ＋ 坏写法的报错句子。两枚系列键的读法**只是翻译**：真值在 `src/content.config.ts` 与 `src/lib/series.js`，
    这里不写第二份归一化、也不写第二份排序。
-   ⚠️ 第十六轮 `card/unlisted` 起这一份**还多读一枚布尔键 `unlisted`**（走 `parseFlag` 那同一枚读法，
+   ⚠️ 第十五轮 `card/unlisted` 起这一份**还多读一枚布尔键 `unlisted`**（走 `parseFlag` 那同一枚读法，
       与 draft/pinned 同一条口径：只认 YAML 1.2 核心 schema 那六个字面量、引号不剥、空着＝没填＝默认），
       所以这一族今天交出来的是**七枚键**。为什么工具侧必须读得到它：`runtime-check` 的"不列入对账"那一格
       要按**盘上真值**现算名单（"哪些稿子该从产物里消失"这件事不许在工具里另猜一遍，也不许硬编码名单），
@@ -137,7 +137,7 @@ export function readTaxonomy(fmText){
       + `详情页那一行与 /series/ 的清单都不会因为它多出现一个字。要么把系列名填上，要么把这一行删掉（"作者写了却看不见"就是 §12 那一族，本工具专门点名它）`);
   }
 
-  /* 草稿与置顶（第十六轮起再多一枚同族的 `unlisted`，见下面那句注释）：只认 YAML 1.2 核心 schema 的
+  /* 草稿与置顶（第十五轮起再多一枚同族的 `unlisted`，见下面那句注释）：只认 YAML 1.2 核心 schema 的
      那六个字面量，空着＝没填＝默认 */
   const flags = {};
   const effect = {

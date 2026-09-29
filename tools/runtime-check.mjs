@@ -249,7 +249,7 @@ for (const name of postFiles) {
   if (tax.errors.length) { problems.push(`${slug}：front matter 的四枚新键读不过预检（${tax.errors[0]}）——--check 那一格本该先拦下`); continue; }
   corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, date: new Date(parsed.fm.date) } });
 }
-/* 三份名单，各对一个"页面那侧的谁"，一枚都不许多出来（第十六轮 `card/unlisted` 起了中间那枚）：
+/* 三份名单，各对一个"页面那侧的谁"，一枚都不许多出来（第十五轮 `card/unlisted` 起了中间那枚）：
    · `routable` ⇄ `publishedPosts()`（只滤草稿）——**这些页必须在 dist/ 里存在**，包括不列入的那几枚；
    · `visible`  ⇄ `visiblePosts()`（滤草稿＋滤不列入）——列表顺序、关于页那几个数、三族目录、feed 与索引
      吃的都是这一份，所以"产物里被指到的那批"最多只能有这一份那么大；
@@ -360,7 +360,7 @@ for (const p of routable) {
 if (!HEADS.size) problems.push('目录⇄刻度对账没跑：可见稿件是 0 篇 ⇒ HEADS 是空的，那一格读不到任何对象（判据空转不算过）');
 
 /* ---------- 1c. 不列入（unlisted）的产物级对账——本卡的心脏 ----------
-   这一格只回答一句在源码上原理问不出来的话：**全站没有一处指向它**（第十六轮 `card/unlisted`）。
+   这一格只回答一句在源码上原理问不出来的话：**全站没有一处指向它**（第十五轮 `card/unlisted`）。
    ⚠️ 分层规矩（§16 签过）：读产物的判据必须在 build 之后 ⇒ 这一格在 runtime-check（`gate` 里），
       不许塞进 `npm run check`（干净检出上没有 dist/，塞进去红的是环境不是代码）。
    断言四件，名单**按盘上真值现算**（`src/content/posts/*.md` 的 front matter ＋ shipped 的 `isUnlisted()`），

@@ -1,5 +1,5 @@
 /* taxonomy-check.mjs —— 分类/标签/草稿/置顶（第十轮 `card/taxonomy`）＋ 系列/序数（第十五轮 `card/series`）
-   ＋ 不列入（第十六轮 `card/unlisted`）
+   ＋ 不列入（第十五轮 `card/unlisted`）
    这一族的**结构 + 行为**门禁
    用法  node tools/taxonomy-check.mjs            （接进 npm run check，跑在 build 之前，不需要 dist/）
          node tools/taxonomy-check.mjs --list     （外加打印当前稿件算出来的分类/标签/系列清单——0 枚也打）
@@ -14,7 +14,7 @@
    ② **八个调用点确实在用那份**：点名 index / essays 列表 / essays 详情（getStaticPaths 那一格最容易漏）/
       rss / atom / about / 系列索引 / 单枚系列页（最后两枚是第十五轮 `card/series` 添的），
       每处都要出现 `visiblePosts(`。只查①的话，把某处整段删掉也算"没绕过"。
-      ⚠️ 第十六轮 `card/unlisted` 起这一格还多钉一件事：`publishedPosts()` 的**合法调用者只有一处**
+      ⚠️ 第十五轮 `card/unlisted` 起这一格还多钉一件事：`publishedPosts()` 的**合法调用者只有一处**
       （详情页 `getStaticPaths`，那一处要的是"哪些地址要建出来"）。名单是**扫 src 现算的**、不是抄的——
       谁哪天拿它去画列表或算邻居，这一格直接点名是哪个文件（邻居那一步要是吃了它，
       不列入的稿子就会出现在别人的上一篇／下一篇里，"站内任何一处都不指向它"当场破）。
@@ -33,7 +33,7 @@
    ⑤ **真实稿件的清单算得出**：用 shipped 的分组函数把 posts/ 过一遍，断言每组的 slug 非空且互不相同
       （空 slug ⇒ /categories// 那种死锚点；重复 ⇒ 两个名字并成一页）。零枚是合法状态（空态），
       但**一枚都没扫到**（读不到稿件文件）就是判据空转 ⇒ 红。
-      ⚠️ 这一格的 `visible` 从第十六轮起与页面那一侧同一条 filter（滤草稿 **＋** 滤不列入）：
+      ⚠️ 这一格的 `visible` 从第十五轮起与页面那一侧同一条 filter（滤草稿 **＋** 滤不列入）：
       不列入的那一篇不在任何一格清单里，正如它不在 `/categories/` 的任何一行里。
       那句"0 枚不列入"同样自带一枚"填了就读得到"的内置 fixture（口径照下面第⑥格那两枚）——
       它必须是**稿子里真没填**，不是工具读不到那一枚键。
@@ -151,7 +151,7 @@ cell('①', '读 posts 的唯一入口（别的调用点一律红；两枚读函
   const inLib = codeOnly(readFileSync(join(ROOT, 'src', 'lib', 'posts.js'), 'utf8').replace(/\r\n/g, '\n'));
   assert.ok(/getCollection\s*\(\s*['"]posts['"]\s*\)/.test(inLib), '① src/lib/posts.js 里没有 getCollection(\'posts\') —— 唯一入口自己没了，"没有第二处"是删出来的假绿');
   assert.ok(/!isDraft\(/.test(inLib), '① src/lib/posts.js 里不再滤草稿（找不到 !isDraft(）—— 入口还在，牙被拔了');
-  /* 第十六轮 `card/unlisted` 那一枚牙：两枚读函数都必须在，而且**各滤各的**——
+  /* 第十五轮 `card/unlisted` 那一枚牙：两枚读函数都必须在，而且**各滤各的**——
      `publishedPosts` 只滤草稿（建路用），`visiblePosts` 多滤一道不列入（列出与邻居用）。
      少了 `!isUnlisted(` ＝ 那一枚键形同虚设（稿子照常被列出来，而作者以为藏起来了）；
      把它写进 `publishedPosts` 那一行 ＝ 那一枚地址当不存在（这一条的另一半在第②格与 runtime-check 的产物格）。 */
@@ -191,7 +191,7 @@ cell('②', '读 posts 的页面都在吃 visiblePosts()，而 publishedPosts() 
   assert.ok(gsp, '② 详情页找不到 getStaticPaths —— 这一格的对象没了');
   assert.ok(/visiblePosts\s*\(/.test(gsp[0]), '② 详情页的 getStaticPaths 里没有 visiblePosts() —— 那就是"列表没有、地址照样烘出来"那一格，全卡最容易漏的一处');
   assert.ok(/publishedPosts\s*\(/.test(gsp[0]), '② 详情页的 getStaticPaths 里没有 publishedPosts() —— 那一枚地址建不出来（不列入＝"只有拿到地址的人能读"，不是"这条路不存在"）');
-  /* ②·第二半（第十六轮 `card/unlisted`）：**`publishedPosts()` 的调用者名单现扫现算**、合法的那一个名字钉死。
+  /* ②·第二半（第十五轮 `card/unlisted`）：**`publishedPosts()` 的调用者名单现扫现算**、合法的那一个名字钉死。
      为什么这一条要在这儿：它是"含不列入"的那一枚读函数，被多一处用就破一处语义——
      拿它算邻居 ⇒ 不列入的稿子出现在别人的上一篇／下一篇里；拿它画列表 ⇒ 它整篇回到 `/essays/`；
      拿它喂 feed／索引 ⇒ 订阅者收到一封"作者说没发"的推送。名单不抄进本文件（抄了就是第二处真值，
@@ -233,7 +233,7 @@ cell('③', 'content.config.ts 的七枚键（taxonomy 四枚 + 系列两枚 + �
   /* ⚠️ 这一条是本卡最像"洁癖"、也最值钱的一条：coerce 会把假语境铸出来。
      `z.coerce.boolean()` 连 `draft: "false"` 都读成 true（非空字符串全真），一篇作者要发的稿子从站上整个消失，
      而 build 一点不红——§12 禁假数字的近亲。所以查的是**代码里不许出现**那串，不是注释里写了什么。
-     第十六轮 `card/unlisted` 起那一枚也在这一句的名单里：它被 coerce 铸成 true 的形状是
+     第十五轮 `card/unlisted` 起那一枚也在这一句的名单里：它被 coerce 铸成 true 的形状是
      "一篇作者照常发的稿子从列表／feed／搜索里消失，而构建全绿"——同一枚假语境，换了个键。 */
   const badCoerce = /(?:draft|pinned|unlisted)[^\n]*z\.coerce\.boolean\(\)/.exec(src);
   assert.ok(!badCoerce, `③ draft/pinned/unlisted 用了 z.coerce.boolean()（"${badCoerce && badCoerce[0]}"）—— 那会把 "false"、"no"、"0" 全铸成 true`);
@@ -270,7 +270,7 @@ cell('④', 'shipped 的那几个纯函数吃反例（逻辑写反这族文本�
   assert.equal(isDraft(mk('live', {})), false, '④ isDraft 对没填读成真 —— 所有稿子都会消失');
   assert.equal(isDraft(mk('f', { draft: false })), false, '④ isDraft 对 false 读成真');
 
-  /* ---- 不列入那一枚（第十六轮 `card/unlisted`）：三档读数 ＋ 两枚"读串键"的反例 ----
+  /* ---- 不列入那一枚（第十五轮 `card/unlisted`）：三档读数 ＋ 两枚"读串键"的反例 ----
      ⚠️ 那两枚反例是这一格里唯一管得住"把上一行复制下来改一个键"的牙：`isDraft` 与 `isUnlisted` 的形状
         逐字符相同（`!!post.data.<键>`），一旦后者被写成读 `draft`，① ② ③ 三格**全绿**——
         文本判据看不见逻辑，而产物上两件事会并成一件：那一枚地址既不建、也不列入清单，
@@ -387,7 +387,7 @@ cell('⑤', 'posts/ 真实稿件过一遍 shipped 的分组函数（分类 / 标
     if (tax.draft) draft++;
     posts.push(mkPost(f.slice(0, -3), tax, parsed.fm.date));
   }
-  /* ⚠️ 这一枚 filter 从第十六轮起与页面那一侧**同一条**（滤草稿 ＋ 滤不列入，`src/lib/posts.js` 的
+  /* ⚠️ 这一枚 filter 从第十五轮起与页面那一侧**同一条**（滤草稿 ＋ 滤不列入，`src/lib/posts.js` 的
      `visiblePosts()` 就是这个形状）：不列入的那一篇不该在任何一格清单里——正如它不在 `/categories/`、
      `/tags/`、`/series/` 的任何一行里。工具这里少滤一道，就会把"清单里有它、产物里没有它"报成假红。 */
   const visible = sortPosts(posts.filter(p => !isDraft(p) && !isUnlisted(p)));
@@ -416,7 +416,7 @@ cell('⑤', 'posts/ 真实稿件过一遍 shipped 的分组函数（分类 / 标
   assert.equal(seen.seriesOrder, 2, '⑤ 工具侧读不到 seriesOrder —— 每一组都会永远退回按 date 排，而打印里看不出来');
   assert.equal(seriesGroups([mkPost('fixture', seen, '2026-01-01')]).length, 1,
     '⑤ 名字读到了却进不了清单（shipped 的分组函数与工具侧读法脱钩了）');
-  /* 同一枚形状的**第二对**格子（第十六轮 `card/unlisted`）：下面那句"不列入 0 枚"的可信度全在这儿——
+  /* 同一枚形状的**第二对**格子（第十五轮 `card/unlisted`）：下面那句"不列入 0 枚"的可信度全在这儿——
      0 必须是因为稿子里真没填那一枚键，而不是因为工具读不到它。
      "填了就读得到"与"没填就读成假"两半各一枚断言（口径照上面那对系列 fixture 与 ⑥ 那两枚）：
      只钉前一半的话，工具把 `unlisted` 恒读成 true 也照样绿，而产物那一侧看到的是"全站一篇都不列"。 */

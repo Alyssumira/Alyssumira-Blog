@@ -44,7 +44,7 @@ function argList(argv) {
 
 /* front matter 认 title/date/excerpt/cover 四个键，外加可选的 hour（0–23，写作时刻）；
    第十轮起再多四枚可空键：category / tags / draft / pinned（schema 在 content.config.ts）；
-   第十六轮起再多一枚布尔键 `unlisted`（不列入：页面在、地址能读、站内没有一处指向它）——
+   第十五轮起再多一枚布尔键 `unlisted`（不列入：页面在、地址能读、站内没有一处指向它）——
    骨架**不写**这一行（没写＝没填＝照常被列出），要的人自己加；--check 那格逐篇读它并打印"扫了几篇、几枚是 true"。
    骨架不写 hour：它空着比写一个 0 好——0 会被读成"凌晨写的"。要填自己加一行。
    四枚新键骨架**给空值**（`category: ""` / `tags: []` / `draft: false` / `pinned: false`）：
@@ -97,7 +97,7 @@ async function check() {
     if (!tax.errors.length) taxPosts.push({ id: slug, data: { category: tax.category, tags: tax.tags, series: tax.series } });
     if (tax.draft) { console.log(`· ${f}：draft: true —— 这一篇不进列表、不进首页那三篇、没有详情页地址、不进两枚订阅源，关于页那几个数也不数它`); }
     if (tax.pinned) { console.log(`· ${f}：pinned: true —— 它排在 / 与 /essays/ 的最前面（目录行的门牌 folio 跟着新顺序继续连号）`); }
-    /* 不列入（第十六轮 `card/unlisted`）：与上面 `draft` 那一行**同形状、同一种语气**，但后果要说全——
+    /* 不列入（第十五轮 `card/unlisted`）：与上面 `draft` 那一行**同形状、同一种语气**，但后果要说全——
        这一枚最容易被读错成"跟草稿一样"，而它是反的：**页面在、地址是真的、能读**，只是站内没有一处指过去。
        一处一处点名比一句"不进列表"有用，因为作者记住的是"我藏起来了"，读者找的是"我搜不到它"。 */
     if (tax.unlisted) { unlistedSeen++; console.log(`· ${f}：unlisted: true —— 这一篇**发了**，但它自己的地址是唯一入口：不进列表、不进首页那三篇、`
@@ -252,7 +252,7 @@ function create() {
   /* 四枚新键的写法与后果一次说清——`--check` 那格拦的是坏写法，这一行管的是"忘了有这四枚" */
   console.log(`  分类 category: "散文"（一篇一个，进 /categories/<名字>/）；标签 tags: [甲, 乙] 或下面几行"- 甲"（不是逗号字符串）`);
   console.log(`  draft: true ⇒ 这一篇从站上完全消失（列表／详情／订阅源／关于页那几个数）；pinned: true ⇒ 排在 / 与 /essays/ 最前面`);
-  /* 第三枚布尔键（第十六轮 `card/unlisted`）：这一行管的是"忘了有这四枚之外的这一枚"——
+  /* 第三枚布尔键（第十五轮 `card/unlisted`）：这一行管的是"忘了有这四枚之外的这一枚"——
      骨架**故意不写** `unlisted:` 那一行（没写＝没填＝照常被列出，与写 `false` 同解），要的人自己加一行。 */
   console.log(`  unlisted: true ⇒ 第三枚布尔键，与 draft **反着**：页面照常构建、那个地址照常读得到，只是站内任何一处都不指向它`);
   console.log(`    （列表／首页那三篇／分类·标签·系列三族／两枚订阅源／search.json／llms.txt／sitemap-0.xml／上下篇全没有它）。它不是密码——静态站没有服务端（§12）`);

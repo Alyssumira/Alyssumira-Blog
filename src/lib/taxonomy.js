@@ -87,7 +87,7 @@ export function bySize(groups){
    `!!` 是刻意的：front matter 没经过 schema 直接进来的场合（工具喂的对象）也不至于把 undefined 读成真。 */
 export const isDraft = post => !!post.data.draft;
 
-/* 不列入的判据（第十六轮 `card/unlisted`）：与上面 `isDraft` 同一条形状、同一族口径，
+/* 不列入的判据（第十五轮 `card/unlisted`）：与上面 `isDraft` 同一条形状、同一族口径，
    所以它也住在这份**不 import 'astro:content'** 的纯文件里——`tools/` 里的门禁（`taxonomy-check` 的行为格、
    `runtime-check` 的产物格、`search-check` 的篇数格）吃的是**这一个实现**，不会出现"门禁一套读法、页面一套读法"
    然后两边各自赦免同一个错（§16 记过的那一族）。为什么这里只回答"是不是不列入"、不回答"那就意味着什么"：

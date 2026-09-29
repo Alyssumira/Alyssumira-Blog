@@ -11,7 +11,7 @@
       这里只留"必须拿到集合本身才能做的那一步"：取集合 → 滤草稿 → 排序（→ 可见那一枚再滤不列入）。
    ⚠️ 页面请这样 import：`visiblePosts` 从这份，其余（categoryOf / tagsOf / groupBy / tagGroups /
       bySize / taxSlug）从 `taxonomy.js`——分得清哪一步需要构建期集合、哪一步是纯函数。
-   ③ 第十六轮 `card/unlisted` 起这份文件有**两枚**读函数，两枚的语义必须一个字都不含糊：
+   ③ 第十五轮 `card/unlisted` 起这份文件有**两枚**读函数，两枚的语义必须一个字都不含糊：
       · `publishedPosts()` ＝ **只滤草稿**，含不列入的那几枚。唯一合法调用者是详情页的 `getStaticPaths`
         ——那一处要的是"哪些地址要建出来"，不是"哪些稿子要被人看见"。
       · `visiblePosts()` ＝ 滤草稿 **＋** 滤不列入。首页、`/essays/`、分类·标签·系列三族、两枚 feed、
