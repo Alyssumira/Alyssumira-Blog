@@ -130,7 +130,7 @@ async function check() {
   }
   /* 数量直接 import 来数：site.js 是真模块，按文本猜格式会静默读成 0 */
   const { things, notes } = await import(pathToFileURL(DATA).href);
-  /* /things/ 那几枚卡的名字与链接（页面侧的对应物是 `src/pages/things.astro:23 url`，产物在 `:29 <a class="thing reveal">`）。
+  /* /things/ 那几枚卡的名字与链接（页面侧的对应物是 `src/pages/things.astro:23 url`，产物在 `src/pages/things.astro:30 <a class="thing reveal">`）。
      这一格必须在：坏写法在页面上的表现是**整枚卡退成不可点的图鉴**（没有 href、没有悬停那一下），
      build 全绿、页面上一个字的报错都没有——作者却以为写了就能点。两种坏形状**分开点名**、各带出路（口径与上面许可族那一格同源）：
        · `href(v) === '#'` ⇒ 带了协议头而协议不被站内白名单收（javascript:／data:／vbscript: 那一族），消毒成 '#'；
