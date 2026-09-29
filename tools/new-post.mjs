@@ -85,9 +85,8 @@ async function check() {
       if (keyed.has(k)) { console.log(`✗ ${f}：[^${keyed.get(k)}] 与 [^${d}] 归一化后都成 "${k}"，锚点会撞车`); bad++; }
       keyed.set(k, d);
     }
-    /* 分类 / 标签 / 草稿 / 置顶（第十轮 `card/taxonomy`）＋ 系列 / 序数（第十五轮 `card/series`）。
-       这六枚键的坏写法**都让构建炸**（zod 抛），但炸出来的是一段英文堆栈，不是人话——所以在这里提前拦，
-       并把后果说清（同上面脚注那两条的口径）。
+    /* 分类 / 标签 / 草稿 / 置顶（第十轮 `card/taxonomy`）＋ 系列 / 序数（第十五轮 `card/series`）：这六枚键的坏写法**都让构建炸**（zod 抛），
+       但炸出来的是一段英文堆栈，不是人话——所以在这里提前拦，并把后果说清（同上面脚注那两条的口径）。
        读法不在这里重写：`tools/frontmatter.mjs` + `src/lib/taxonomy.js` ＋ `src/lib/series.js` 是页面用的那一份。 */
     const tax = readTaxonomy(parsed.fmText);
     for (const e of tax.errors) { console.log(`✗ ${f}：${e}`); bad++; }
