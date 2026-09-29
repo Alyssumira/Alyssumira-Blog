@@ -264,7 +264,7 @@ function fmtDate(d){
   return [d.getUTCFullYear(), String(d.getUTCMonth() + 1).padStart(2, '0'), String(d.getUTCDate()).padStart(2, '0')].join('.');
 }
 
-/* `href` 自第十二轮 `card/permit` 起对外导出：详情页页脚那一行要消毒 front matter 里的两枚 URL
+/* `href` 自第十五轮 `card/permit` 起对外导出：详情页页脚那一行要消毒 front matter 里的两枚 URL
    （`sourceLink` / `licenseUrl`），而**协议白名单只许有一处真值**——`OK_LINK` 与 `HAS_SCHEME` 就住在上面
    :10-11，`link()` 与页面消费的是同一枚函数。渲染逻辑一个字没改，改的只有这一行导出表。
    `strictHref()`（:21，同一轮的补丁 `card/permitfix` 多导出的那一枚）为什么存在——`href()` 有两副坏形状，

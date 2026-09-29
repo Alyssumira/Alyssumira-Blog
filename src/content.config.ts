@@ -40,7 +40,7 @@ const posts = defineCollection({
     tags: blankSlot(z.array(z.string()).default([])),
     draft: blankSlot(z.boolean().default(false)),
     pinned: blankSlot(z.boolean().default(false)),
-    /* 稿件级转载许可族（第十二轮 `card/permit`，学自参照站 Firefly 的 `src/content.config.ts:75-78`）：
+    /* 稿件级转载许可族（第十五轮 `card/permit`，学自参照站 Firefly 的 `src/content.config.ts:75-78`）：
        四枚**可空**键，照 `blankSlot` 那条路子走，**非布尔一律不 coerce**——`z.coerce.string()` 会把空着的
        `author:`（YAML 落成 null）铸成字符串 "null"，`.default('')` 就再也不认得了：schema 全绿，而页面替作者
        署下一个他从来没写过的名字、或宣称这一篇有出处链接。口径与 `hour`／`blankSlot` 那两段是同一句话：

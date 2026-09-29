@@ -57,7 +57,7 @@ const words = cjkCount(post.body) + latinWords(post.body);
    ⚠️ 判据不写成运行时的 querySelectorAll：那样静态产物里就永远躺着一枚没人认领的空 dialog。 */
 const bodyHtml = renderMd(post.body);
 const hasShot = /<figure class="shot"/.test(bodyHtml);
-/* ---- 稿件级转载许可族（§15 详情页那一格，第十二轮 `card/permit`）----
+/* ---- 稿件级转载许可族（§15 详情页那一格，第十五轮 `card/permit`）----
    四枚都可空，**没填 ⇒ 这一段一个字节都不出现**（与上面 whenText / hasTax / hasShot 同一条模式，
    不是"发一块再 display:none"）。落点是 `.post-tail` 里的一枚 `<p class="post-when">`：
    复用上面"写于／改于"那一行**同一份声明**（§3 的"说明 14"档、14px 宋体 `--ink-2`、`margin-top:14px`），
