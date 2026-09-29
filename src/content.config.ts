@@ -40,6 +40,23 @@ const posts = defineCollection({
     tags: blankSlot(z.array(z.string()).default([])),
     draft: blankSlot(z.boolean().default(false)),
     pinned: blankSlot(z.boolean().default(false)),
+    /* 不列入（第十六轮 `card/unlisted`，学自参照站 Firefly 的"隐藏文章"那一族，但**换了机制**——
+       理由两条登记在 `docs/设计规范.md` §12 那一格与 §15「不列入的文章」那一格，这里只留口径）。
+       ⚠️ **与上面 `draft`／`pinned` 同一条路，一律不做 coerce**：`unlisted: yes` 在 YAML 1.2 核心 schema 里
+       是一枚字符串 `"yes"`，`z.coerce.boolean()` 把非空字符串全铸成 `true`（连 `unlisted: "false"` 都是 `true`）——
+       上面那段警告说的"假语境换个键又来了"在这里一模一样成立：一篇作者要照常发的稿子会自己从目录里消失，
+       而构建全绿。所以非布尔就让它红在构建期，并由 `tools/new-post.mjs --check` 提前用人话说破。
+       ⚠️ **语义差别（这一枚存在的理由就是这一句，两枚不许混成一枚）**：
+         · `draft` ＝ **没写完、不发**：那一枚地址根本不烘出来，站上任何一处读不到它，拿到地址的人也不行。
+         · `unlisted` ＝ **发了，但它自己的地址是唯一入口**：页面照常构建、照常读得到，而站内**任何一处都不指向它**
+           （首页那三篇／`/essays/`／分类·标签·系列三族／两枚 feed／`search.json`／`llms.txt`／sitemap 全没有它，
+           详情页的上一篇／下一篇也没有它）。
+       ⚠️ 默认 `false` ＝ 没填 ＝ **照常被列出**：这里不许把缺省读成 `true` 去替作者把一篇稿子藏起来
+       （与上面 `draft`/`pinned` 那句"缺省读成 true 就是替作者决定这篇发不发"同一条）。
+       ⚠️ 判据只许住在 `src/lib/taxonomy.js` 的 `isUnlisted()`（纯布尔读法，那份文件不 import 'astro:content'，
+       所以 `tools/` 里的门禁吃的是同一份实现），"谁吃这份判据"住在 `src/lib/posts.js` 那两枚读函数
+       （`publishedPosts()` 建路／`visiblePosts()` 列出与邻居），schema 这一侧**不写消费规则**。 */
+    unlisted: blankSlot(z.boolean().default(false)),
     /* 稿件级转载许可族（第十五轮 `card/permit`，学自参照站 Firefly 的 `src/content.config.ts:75-78`）：
        四枚**可空**键，照 `blankSlot` 那条路子走，**非布尔一律不 coerce**——`z.coerce.string()` 会把空着的
        `author:`（YAML 落成 null）铸成字符串 "null"，`.default('')` 就再也不认得了：schema 全绿，而页面替作者
