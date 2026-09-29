@@ -82,8 +82,10 @@ const hasShot = /<figure class="shot"/.test(bodyHtml);
    ⚠️ 判"填没填"用的是**原始字符串**非空，消毒后的结果只在真的进链接时才算：`href('')` 会被 `root()`
    解成 `/`（相对路径钉站点根），那是一枚作者什么都没写却出现在页面上的活锚点，必须赶在进消毒函数之前挡掉
    （`strictHref('')` 自己也是空串，这一道是留着的第二防线，不是拿来省事的）。
-   ⚠️ `target="_blank" rel="noopener noreferrer"` 无条件挂在这两枚外链上（写法口径照 `markdown.js` 的 `link()` 那一条，
-   rel 组合不新开一套）；这里不再判第二次协议——判协议是 `markdown.js` 那一处的事。
+   ⚠️ `target="_blank" rel="noopener noreferrer"` **只挂在 `^https?:` 的地址上**——条件是 `markdown.js:43` 里 `link()`
+      那一枚 `/^https?:/i.test(raw)`，这一行照它同一形状钉，rel 组合不新开一套。`mailto:` 那种不挂：`strictHref` 照
+      `OK_LINK`（`:10`）放行它，无条件挂 `target` 就开出一枚空白新标签页去等邮件客户端（这一族今天不会有 `#`——
+      `strictHref()` 那一关早撤了）。**这里判的是"要不要新标签页"，与"能不能用"是两件事**：协议判据仍只有那一处。
    ⚠️ 这段说明留在 `---` 里而不是写成模板里的 HTML 注释：Astro 把 HTML 注释**原样落进产物**，
       那样"三篇稿子四枚全空 ⇒ 产物一字不变"当场就破（§14 那条"注释里的地址访客走不到"同一个方向的反面——
       注释在产物里，它就是产物）。
@@ -104,6 +106,9 @@ const licUrlRaw = seg(post.data.licenseUrl);
    许可那一段退回没有锚点的散文（下面 url ? <a> : text）——两枚值都不许是 '#'，也不许是钉到站点根的相对路径 */
 const sourceHref = sourceRaw ? strictHref(sourceRaw) : '';
 const licHref = licUrlRaw ? strictHref(licUrlRaw) : '';
+/* 这枚地址要不要新开标签页：条件与 `markdown.js:43` 的 `link()` 同一形状（只有 `^https?:` 才挂 target＋rel）。
+   它不判"能不能用"——那一处真值仍然只有 `OK_LINK`／`HAS_SCHEME`／`href()`，这里不新开第三份协议判据。 */
+const tabAttrs = u => (/^https?:/i.test(u) ? { target: '_blank', rel: 'noopener noreferrer' } : {});
 const licenseSegs = [];
 if (byline){
   licenseSegs.push({ pre: '本文作者 ', text: byline, url: '' });
@@ -168,7 +173,7 @@ if (licName) licenseSegs.push({ pre: '许可 ', text: licName, url: licHref });
       {licenseSegs.length > 0 && (
         <p class="post-when">{licenseSegs.map((s, i) => <>
           {`${i > 0 ? ' · ' : ''}${s.pre}`}
-          {s.url ? <a class="post-act" href={s.url} target="_blank" rel="noopener noreferrer">{s.text}</a> : s.text}
+          {s.url ? <a class="post-act" href={s.url} {...tabAttrs(s.url)}>{s.text}</a> : s.text}
         </>)}</p>
       )}
     </div>
