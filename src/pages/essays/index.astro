@@ -13,11 +13,11 @@ const pad = n => String(n).padStart(2, '0');
 
 /* 阅读时长的算法在 lib/stats.js：列表页与关于页的"总计"必须是同一把尺子，不能各算各的 */
 
-/* 密度条：最近 12 个月每月几篇。空月份也画，一条刻度尺比三根柱子诚实。
-   ⚠️ 2026-09-28 从 132×20 放大（美化建议 §2.2）：原尺寸实测读不出"哪几个月写过"，
-   那就只是装饰档里一个看不清的点缀。现在高 60、每月一根、补月份刻度、当前月那根用 --moss 点亮。
+/* 密度尺：最近 12 个月每月几篇。空月份也画刻度，一条刻度尺比三根柱子诚实。
+   ⚠️ 2026-09-28 从 132×20 放大（美化建议 §2.2）：原尺寸实测读不出"哪几个月写过"，那就只是装饰档里一个看不清的点缀。
+   ⚠️ 2026-09-29 尺身从 SVG 换成**全宽 HTML**：拉宽 viewBox 会等比放大整张画（柱、字、轴线一起长），机制与三档实测在 §15 那一格。
    柱高仍旧**归一到峰值**（原口径，§15 已登记"给条子留一口气"），不改成按篇数绝对计——
-   现在三篇分在三个月里，绝对高度和相对高度画出来是同一排等高，改了也不多说一个字。 */
+   今天三篇全在 2026.09 那一格里（i=11，c=3 ⇒ h=36），其余 11 格各是一枚 3px 的空月刻度：绝对与相对画出来是同一根柱，改了也不多说一个字。 */
 const now = new Date();
 const months = Array.from({ length: 12 }, (_, i) => {
   const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11 + i, 1));
@@ -47,22 +47,22 @@ let folio = 0;
           由 `.page-head .sec-label` 那条既有声明给，版面逐位不变）；理由全文在 SearchEntry.astro 头上。 */}
       <div class="sec-label">essays — <b>{pad(posts.length)}</b> →<SearchEntry /></div>
       <span class="density-wrap">
-        <svg class="density" viewBox="0 0 300 60" width="300" height="60" role="img"
-             aria-label={`近 12 个月（${span}）：${wrote} 个月有更新，共 ${posts.length} 篇`}>
-          <line class="axis" x1="0" y1="46" x2="300" y2="46"/>
+        {/* 尺身是 HTML 不是 SVG：`.density` 的宽度换成 100% 在 SVG 上不是"换个分母"，是整张画等比放大（10px 标签随视口漂、带高按 5:1 长到 224px），理由与三档实测读数在 §15 那一格。横向映射 x=i*26+5（300 用户单位内）→ left=i/11*100%（全宽内）；柱宽 4、柱高 6+(c/peak)*30、空月 3、带高 60、轴在 y=46、标签 10px mono .06em 一个都没改。 */}
+        <span class="density" aria-hidden="true">
           {perMonth.map((c, i) => {
-            const x = i * 26 + 5;                            /* 右移 5：第一个月份刻度的左半不能被 viewBox 切掉 */
             const h = c ? 6 + (c / peak) * 30 : 3;            /* 空月也留一根 3px 的刻度：尺子不能缺齿 */
             const lab = i % 3 === 0 || i === 11;              /* 每三个月一个月份刻度 + 当月必标 */
+            const brch = i === 0 || months[i - 1].y !== months[i].y;   /* 带年的只有两格：窗口起点 i=0，与窗口里的年份边界（今天 i=3＝2026.01） */
+            const pos = `left:calc(${i} / 11 * 100%)`;        /* 柱心落位、translateX(-50) 居中 ⇒ 首尾各探出 2px 是刻意的：轴线必须与 .essay-index 同宽 */
             return (
-              <g class:list={{ now: i === 11 }}>
-                <rect class:list={{ nil: !c }} x={x} y={46 - h} width="4" height={h} rx="1"></rect>
-                {lab && <text x={x + 2} y="58">{pad(months[i].m + 1)}</text>}
-              </g>
+              <>
+                <span class:list={['tick', { nil: !c, now: i === 11 }]} style={`${pos};height:${h}px`}></span>
+                {lab && <span class:list={['d-lab', { now: i === 11 }]} style={pos}>{brch ? <><span class="full">{stamp(months[i])}</span><span class="short">{pad(months[i].m + 1)}</span></> : pad(months[i].m + 1)}</span>}
+              </>
             );
           })}
-        </svg>
-        <span class="density-cap">近 12 个月 · {span}</span>
+        </span>
+        <span class="density-cap">近 12 个月 · {span}（{wrote} 个月有更新，共 {posts.length} 篇）</span>   {/* 尺身 aria-hidden ⇒ 那条 aria 串逐字符搬进这句看得见的图例（仓库没有 sr-only 那一族，也不为它新写一条藏法的类） */}
       </span>
     </header>
 
