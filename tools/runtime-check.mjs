@@ -75,9 +75,6 @@
      --jobs=<n>            并发浏览器数（默认 4；每档每槽位一枚一次性 profile，共 2×jobs 枚，跑完删）
      --keep-profile        跑完不删临时 profile（调试用，会打印路径）
      --strict-site         占位域名从警告变红
-     --static-only         只跑不碰浏览器的三段（1b 结构／1c 不列入／1d 死锚点两侧对账），
-                           浏览器两档当众报"没跑"（`card/anchors` 当天本机 msedge 起不来才加的退路；
-                           日常 `npm run gate` 不引用它，别把它读成绿）
 */
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -103,12 +100,6 @@ const DIST = resolve(opt('dist') || join(ROOT, 'dist'));
 const PORT = opt('port') ? Number(opt('port')) : 0;
 const JOBS = Math.max(1, Number(opt('jobs') || 4));
 const STRICT_SITE = flag('--strict-site');
-/* ⚠️ `--static-only` 是给"本机起不了 headless 浏览器"那一条环境退路（2026-09-30 `card/anchors` 当天撞上：
-   msedge 无论 `--dump-dom` 还是 `--screenshot` 都**当场 exit 0、零 stdout、零 stderr**，连 about:blank 都不出图，
-   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的三段（1b 结构／1c 不列入／1d 死锚点），
-   并且**当众打印"运行时 DOM 那一档没跑"**——它不是一条绿，是一次部分交付。
-   `npm run gate` 一个字都没引用它；日常门禁仍然是两档 × 全站。 */
-const STATIC_ONLY = flag('--static-only');
 const KEEP_PROFILE = flag('--keep-profile');
 const LAUNCH_TIMEOUT = 90_000;
 const MAX_DUMP = 64 * 1024 * 1024;
@@ -368,112 +359,6 @@ for (const p of routable) {
 }
 if (!HEADS.size) problems.push('目录⇄刻度对账没跑：可见稿件是 0 篇 ⇒ HEADS 是空的，那一格读不到任何对象（判据空转不算过）');
 
-/* ---------- 1d. 目录 ⇄ 正文 id ⇄ 刻度：三排节点的两侧对账（`card/anchors` 这卡的牙）----------
-   这一格回答一句 §12 死锚点禁令在"降级"这一侧的话：**HTML 里有目录、`href` 指向产物里不存在的 id**
-   就是死锚点，与"关掉一档留下能访问的壳"同罪。§12 那条 404 禁令的精神同样适用——不许出现
-   "看着有一块目录、点开那一条什么也没跳"的半成品。
-   ⚠️ 为什么它落在**不碰浏览器**的那一段（1b 同层）：这一族的卖点正是"构建期就在盘上"，
-   所以它原理上不需要运行时 DOM——读 `dist/` 的字节就够了。浏览器两档（第 6 节）读的是同一批节点
-   在 DOM 里没被脚本重复追加，那是另一件事。
-   断言四件，逐篇：
-     ① 目录里每枚 `href="#x"`（按序）⇄ 正文 `<article class="post-body">` 里那排 `h2:not(.fn-title)/h3`
-        的 `id`（按序）——**两侧集合与顺序都算**，多一枚少一枚换一枚都红；
-     ② 正文每枚章的 id 非空且不重复（`id=""` 是一枚点不开的活锚，也是"两条 href 跳同一枚"的来源）；
-     ③ 刻度那一排 `<span>` 枚数 ⇄ 同一批章（目录给名字、这一排给形状，窄屏没有目录时刻度还在——
-        两边枚数分叉就是 §15 那条"同一枚选择器只改了一处"的产物形状）；
-     ④ 上面三枚数各自 ⇄ **源码**里行首 `^## `/`^### ` 数出来的总数（同一把尺子来自 1b 的 HEADS，
-        不许由渲染器自己出：渲染器塌了两边一起塌，正好互相赦免，§16 那条老账）。
-   外加全站扫描：`dist/` 每一份 HTML 里任何一枚**具名**片段 `href="#x"` 必须在同一份文件里有 `id="x"`。
-   ⚠️ `href="#"`（空片段）不报红、只报数：那是 `markdown.js` 消毒坏协议时正文链接的兜底形状
-   （`href()` 交回字面量 `'#'`，§15「许可」那一格记过——句子里那枚坏地址仍要留在纸上），
-   今天产物里读到 0 枚；把它判红会连带否决那一条已签字的兜底。具名片段缺失才是死锚点。 */
-const tocHrefsOf = html => {
-  const m = /<nav id="toc"[^>]*>([\s\S]*?)<\/nav>/i.exec(html);
-  return m ? [...m[1].matchAll(/href="#([^"]*)"/g)].map(x => x[1]) : null;
-};
-/* 正文那一排章的 id：`h2:not(.fn-title), h3` 的**产物级同形读法**（文末那枚"注"不算章，口径与 site.js
-   那枚 HEAD_SEL、1b 那两格计数三处同源）。⚠️ 取"第一个 `</article>` 之前"那一段：详情页正文里不许
-   嵌第二枚 `<article>`（渲染器白名单没有它，§15），真嵌了就是这一格的读法要跟着改的那天。 */
-const bodyHeadIdsOf = html => {
-  const m = /<article class="post-body[\s\S]*?<\/article>/i.exec(html);
-  if (!m) return null;
-  return [...m[0].matchAll(/<h([23])\b([^>]*)>/g)]
-    .filter(x => !/fn-title/.test(x[2]))
-    .map(x => (/id="([^"]*)"/.exec(x[2]) || [, ''])[1]);
-};
-const markSpansOf = html => {
-  const m = /<div id="progress-marks"[^>]*>([\s\S]*?)<\/div>/i.exec(html);
-  return m ? (m[1].match(/<span\b/g) || []).length : null;
-};
-{
-  /* 防空转的正向控制（本仓那条老判据："扫了但没匹配到"与"扫了且全过"长得一模一样）：
-     两枚内置 fixture 先自证这三枚收集器还活着——一枚坏形状必须被抓，一枚好形状不许误抓。 */
-  const fxBad = '<nav id="toc"><a href="#甲">甲</a><a href="#幽灵">幽灵</a></nav><article class="post-body"><h2 id="甲">甲</h2><h3 id="">坏</h3></article>';
-  const fxOk = '<nav id="toc"><a href="#甲">甲</a><a href="#乙">乙</a></nav><article class="post-body"><h2 id="甲">甲</h2><h2 id="乙">乙</h2></article><div id="progress-marks"><span></span><span></span></div>';
-  const badToc = tocHrefsOf(fxBad), badIds = bodyHeadIdsOf(fxBad), okToc = tocHrefsOf(fxOk), okIds = bodyHeadIdsOf(fxOk);
-  if (!badToc || !badIds || !okToc || !okIds) die('1d 死锚点对账的收集器读不出内置 fixture ⇒ 这三枚收集器已经瞎了，整格不许算过');
-  if (!(badToc.length === 2 && badIds.length === 2 && badIds[0] === '甲' && badIds[1] === '')) die('1d 控制样本（坏形状）收集结果与预期不符 ⇒ 收集器空转');
-  if (!(okToc.join(' ') === okIds.join(' ') && markSpansOf(fxOk) === 2)) die('1d 控制样本（好形状）被误报 ⇒ 判据朝窄侧失灵');
-  if (tocHrefsOf('<p>没有目录</p>') !== null || bodyHeadIdsOf('<p>没有正文</p>') !== null) die('1d 收集器在缺宿主时交回了非 null ⇒ "读不到"会被当成"读到零枚"放过');
-  notes.push('1d 收集器自证：坏 fixture（目录 2 条 ⇄ 正文 2 枚、其中一枚 id 空）被如实读出、好 fixture（2⇄2⇄2）零误报');
-  let asserted = 0, nonzero = 0;
-  for (const p of routable) {
-    const file = join(DIST, 'essays', p.id, 'index.html');
-    if (!existsSync(file)) continue;                       /* 页面不存在那一支已由 1b 报红，这里不重复点名 */
-    const html = stripComments(readFileSync(file, 'utf8'));  /* 注释里的地址访客走不到：口径与 1b 那三格同一条 */
-    const toc = tocHrefsOf(html), ids = bodyHeadIdsOf(html), marks = markSpansOf(html);
-    const want = HEADS.get(p.id) || { total: 0, h2: 0, h3: 0 };
-    if (toc === null || ids === null || marks === null) { problems.push(`${p.id}：产物里找不到 #toc / <article class="post-body"> / #progress-marks 那一枚宿主 ⇒ 死锚点对账没有对象（"读不到"从来不算过）`); continue; }
-    asserted++;
-    if (want.total) nonzero++;
-    const diff = [];
-    const n = Math.max(toc.length, ids.length);
-    for (let i = 0; i < n; i++) if (toc[i] !== ids[i]) diff.push(`第 ${i + 1} 枚：目录 ${toc[i] === undefined ? '∅' : `"#${toc[i]}"`} ⇄ 正文 ${ids[i] === undefined ? '∅' : `id="${ids[i]}"`}`);
-    if (diff.length) {
-      /* 红名要说准是哪一面：拿"集合"比而不是只比枚数，才有这一句判别。
-         §16 那条残账（"对账比的是枚数，章序颠倒、标题掉了字它看不见"）在**目录⇄正文这一对**上顺手补掉了——
-         两侧按序比，掉字与颠倒都红（正文⇄源码那一格的枚数账照旧，它仍然只管成形）。 */
-      const ghosts = toc.filter(x => !ids.includes(x));
-      const unlisted = ids.filter(x => !toc.includes(x));
-      const why = ghosts.length ? `目录里有 ${ghosts.length} 枚 href 指向正文里不存在的 id（${ghosts.map(x => '#' + x).join(' ')}）⇒ §12 死锚点：关掉 JS 它也照样是一条点不开的行`
-        : unlisted.length ? `正文有 ${unlisted.length} 枚章在目录里没有条目（${unlisted.map(x => '#' + x).join(' ')}）⇒ 半张地图：章在、读者拿不到入口`
-        : '两侧集合相同但先后不同 ⇒ 章序被改了一遍（目录与正文各排各的）';
-      /* 空串 id 单独说一句：产物里那枚章**没有 id 属性**与"id 是空串"对浏览器是同一件事（都指不到），
-         但成因不同——前者是"id 又回到运行期脚本去补"（旧机制，§19.3 同族），后者是规范化退化。 */
-      const noId = ids.filter(x => x === '').length;
-      problems.push(`${p.id}：目录与正文的章 id 对不上（${diff.length} 处）——${diff.slice(0, 4).join('；')} ⇒ ${why}`
-        + (noId && ghosts.length === 0 ? `　〔其中 ${noId} 枚章的 id 读出来是空串＝产物里根本没有 id 属性：那正是"锚点由 JS 落"的旧机制，无 JS／深链／打印三路都跳不到〕` : ''));
-    }
-    else if (toc.length !== want.total) problems.push(`${p.id}：目录 ⇄ 正文两侧都是 ${toc.length} 枚，源码却是 ${want.h2} 枚 "## " ＋ ${want.h3} 枚 "### " ＝ ${want.total} —— 两侧一起漏，问题在渲染器而不是对账`);
-    else if (marks !== ids.length) problems.push(`${p.id}：刻度 ${marks} 枚 ≠ 正文章 ${ids.length} 枚 ⇒ 目录给名字、这一排给形状，两把尺子分叉了（§15 那条"同一枚选择器只改一处"）`);
-    else {
-      const empty = ids.filter(x => x === '').length;
-      const dup = ids.length - new Set(ids).size;
-      if (empty) problems.push(`${p.id}：正文里 ${empty} 枚章的 id 是空串 ⇒ 那是一条点不开的活锚，而且第二枚空串会与它撞车（§12）`);
-      else if (dup) problems.push(`${p.id}：正文章的 id 有 ${dup} 处重值 ⇒ 目录那两条 href 会跳到同一枚元素，另一章永远跳不到`);
-      else notes.push(`目录⇄正文 id⇄刻度 ${p.id}：${toc.length} 条 ⇄ ${ids.length} 枚 ⇄ ${marks} 枚 ＝ 源 ${want.h2}＋${want.h3}（两侧同值、无空 id、无重值）✓ 目录那排是 ${toc.map(x => `"#${x}"`).join(' ')}`);
-    }
-  }
-  if (!asserted) problems.push('1d 死锚点对账一份详情页都没读到 ⇒ 这一格空转（不许算过）');
-  else if (!nonzero) problems.push(`1d 死锚点对账跑了 ${asserted} 页，而每篇的章总数都是 0 ⇒ 两侧都是零的相等没有信息量（三篇稿子一枚标题都没有？去看 src/content/posts/）`);
-  else console.log(`  目录⇄正文 id：${asserted} 页进入 1d，其中 ${nonzero} 页章总数非零（防空转：两侧都为零的相等不算看见）`);
-}
-/* 全站具名片段扫描（同一枚 §12 禁令的通用面：不止目录，正文里作者手写的那枚 `(#某节)` 也要算） */
-{
-  let named = 0, empty = 0; const dead = [];
-  for (const { file, url } of PAGES) {
-    const txt = stripComments(readFileSync(file, 'utf8'));
-    const ids = new Set([...txt.matchAll(/\bid="([^"]*)"/g)].map(m => m[1]));
-    for (const m of txt.matchAll(/href="#([^"]*)"/g)) {
-      if (m[1] === '') { empty++; continue; }
-      named++;
-      if (!ids.has(m[1])) dead.push(`${url} → #${m[1]}`);
-    }
-  }
-  if (dead.length) problems.push(`死锚点扫描：${dead.length} 枚具名片段在本页产物里找不到同值的 id —— ${dead.slice(0, 6).join('、')}`);
-  else notes.push(`死锚点扫描（全站 ${PAGES.length} 份 HTML）：具名片段 ${named} 枚全部在本页找到 id ✓；空片段 href="#" ${empty} 枚（只报不判，口径见上面 1d 那段：它是消毒坏地址的正文兜底形状）`);
-}
-
 /* ---------- 1c. 不列入（unlisted）的产物级对账——本卡的心脏 ----------
    这一格只回答一句在源码上原理问不出来的话：**全站没有一处指向它**（第十五轮 `card/unlisted`）。
    ⚠️ 分层规矩（§16 签过）：读产物的判据必须在 build 之后 ⇒ 这一格在 runtime-check（`gate` 里），
@@ -519,12 +404,7 @@ const markSpansOf = html => {
     if (!p.startsWith('/')) p = `/${p}`;                    /* 本仓 href 一律钉到站点根（§15），这行只兜底 */
     return `${p.replace(/\/+$/, '')}/`;                      /* 归一成"恰好一枚尾斜杠"：trailingSlash 是 ignore，两种写法都回 200 */
   };
-  /* ⚠️ 第十六轮 `card/feedout` 把这一枚判据从"等于/结尾那一枚目录"换成"**开头**在那一枚目录下"：
-     同一篇稿子今天有两枚表示——`/essays/<slug>/`（页）与 `/essays/<slug>/index.md`（原文）。
-     旧写法读不到后者，于是"给不列入的那一篇递一枚原文地址"会绿着过全站 href 扫描，
-     而那正是这一族唯一要防的形状换了个文件名又来一次。`-next` 那枚反例钉住它没有放宽到"前缀像"：
-     尾斜杠在比较串里是必须的，`/essays/x-next/` 落不进 `/essays/x/`。 */
-  const pointsTo = (h, id) => pathOf(h).startsWith(`/essays/${id}/`);
+  const pointsTo = (h, id) => { const p = pathOf(h); return p === `/essays/${id}/` || p.endsWith(`/essays/${id}/`); };
   const refsFrom = id => textArts.filter(t => !t.rel.startsWith(`/essays/${id}/`)).filter(t => hrefsOf(t.txt).some(h => pointsTo(h, id))).map(t => t.rel);
   /* 机器侧那五份产物：名字＝给人看的，parts＝找文件的（口径照上面 READABLE 那格——显示名与路径名分开写，
      混成一枚串就会得到 dist/dist/... 那种"一份都不存在、被 filter 静默丢掉"的空转） */
@@ -533,25 +413,16 @@ const markSpansOf = html => {
   /* ---- needle 之一：形状自证（内置 fixture，盘上零枚也照跑）---- */
   const NP = 'needle-probe';
   const broken = [];
-  let tried = 0;
-  /* 每枚 needle 自己计数：上面那句"8 条内置自证"曾是手抄的，加一条就得记着改一处——
-     抄的枚数迟早和判据分叉（本仓为这一族写过好几次"六处复述"的账），所以这里由 `probe()` 现数。 */
-  const probe = (ok, msg) => { tried++; if (!ok) broken.push(msg); };
-  probe(hrefsOf(`<a class="row" href="/essays/${NP}/">标题</a>`).length === 1, 'href 收集器从一枚标准 <a href> 里读不到 1 枚 ⇒ 它已经不吃 <a> 了');
-  probe(pointsTo(`/essays/${NP}/`, NP), '带尾斜杠的站内地址没被判成指向它');
-  probe(pointsTo(`/essays/${NP}`, NP), '不带尾斜杠的地址没被判成指向它（trailingSlash: ignore 下两种写法都回 200，两种都算指向）');
-  probe(pointsTo(`https://mistwood.example.com/essays/${NP}/`, NP), '绝对地址没被判成指向它（feed 与 JSON-LD 交的就是绝对地址）');
-  /* 第十六轮 `card/feedout` 那两枚：同一篇稿子的**原文**地址算不算"指向这一篇"。
-     认不出它的那一版扫描会绿着放行"给不列入的稿子递原文"，而那一族的坏形状恰恰只露在这一枚串上。 */
-  probe(pointsTo(`/essays/${NP}/index.md`, NP), '原文 Markdown 那枚同址写法没被判成指向它 ⇒ 有人把不列入那一篇的 .md 链出去也不会红');
-  probe(pointsTo(`https://mistwood.example.com/essays/${NP}/index.md`, NP), '绝对形式的原文地址没被判成指向它（feed 交的就是绝对地址）');
-  probe(!pointsTo(`/essays/${NP}-next/`, NP), '一枚只是"前缀像"的地址被判成指向它 ⇒ 别稿的行会被数进这一枚的账，判据太宽');
-  probe(!pointsTo(`/categories/${NP}/`, NP), '/categories/<同名>/ 被判成指向那一页 ⇒ 枚数会虚高');
-  probe(!pointsTo(`/og/${NP}.png`, NP), '逐篇社交卡那枚文件名被判成指向这一篇 ⇒ 目录行与卡片同名的稿子会被自己那一页顶掉计数');
-  probe(NOINDEX_RE.test('<meta name="robots" content="noindex">'), 'noindex 尺子读不到标准写法那一枚 meta');
-  probe(!NOINDEX_RE.test('<meta name="description" content="noindex">'), 'noindex 尺子把别的 meta 也认了（判据太宽，会假绿在真正缺 meta 的那一页上）');
+  if (hrefsOf(`<a class="row" href="/essays/${NP}/">标题</a>`).length !== 1) broken.push('href 收集器从一枚标准 <a href> 里读不到 1 枚 ⇒ 它已经不吃 <a> 了');
+  if (!pointsTo(`/essays/${NP}/`, NP)) broken.push('带尾斜杠的站内地址没被判成指向它');
+  if (!pointsTo(`/essays/${NP}`, NP)) broken.push('不带尾斜杠的地址没被判成指向它（trailingSlash: ignore 下两种写法都回 200，两种都算指向）');
+  if (!pointsTo(`https://mistwood.example.com/essays/${NP}/`, NP)) broken.push('绝对地址没被判成指向它（feed 与 JSON-LD 交的就是绝对地址）');
+  if (pointsTo(`/essays/${NP}-next/`, NP)) broken.push('一枚只是"前缀像"的地址被判成指向它 ⇒ 别稿的行会被数进这一枚的账，判据太宽');
+  if (pointsTo(`/categories/${NP}/`, NP)) broken.push('/categories/<同名>/ 被判成指向那一页 ⇒ 枚数会虚高');
+  if (!NOINDEX_RE.test('<meta name="robots" content="noindex">')) broken.push('noindex 尺子读不到标准写法那一枚 meta');
+  if (NOINDEX_RE.test('<meta name="description" content="noindex">')) broken.push('noindex 尺子把别的 meta 也认了（判据太宽，会假绿在真正缺 meta 的那一页上）');
   for (const b of broken) problems.push(`不列入对账 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"0 处／0 次"从此不可信`);
-  notes.push(`不列入对账 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集 1、"算指向"正例 5、"不算指向"负例 3、noindex 2）；`
+  notes.push(`不列入对账 needle·形状：8 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集与归一 6 条、noindex 2 条）；`
     + `窗口现扫 ${textArts.length} 份文本产物，在册 ${visible.length} 枚各验一次"<a href> 指得到"、机器侧 ${MACHINE.length} 份各验一次"读得到"`);
 
   /* ---- needle 之二／之三：盘上的正向见证物 ---- */
@@ -767,27 +638,18 @@ function clockOf(html) {
   return m ? m[1].trim() : null;
 }
 
-/* ---------- 目录 ⇄ 刻度：同一批标题的两个投影（`card/detail` 落下的格，`card/anchors` 换了归属） ----------
-   ⚠️ **这一格的期望数在 `card/anchors` 之后真的变了**，而且是这卡的价值所在：
-   原先那两排节点由 `site.js` 的 `buildToc()` 与 `markEls = headsOf().map(造 span)` 生成 ⇒
-   隔离档（.js 全 404）里必须是 0 条 / 0 枚，那枚 0 当时是"静态产物里没有目录"的见证物。
-   今天节点是构建期烘进 HTML 的（`[slug].astro` 吃 `renderArticle` 的章清单），脚本只剩高亮与几何 ⇒
-   **两档读数必须相同、且都等于源码标题总数**。于是这一格反过来还多拦一件事：完整档里若读到 2N 枚，
-   就是脚本仍在往已经存在的目录里追加节点（重复的章、重复的死锚点）。
-   复制钮那一族不变：它仍是脚本挂上去的，隔离档里必须 0 枚——那一枚 0 现在才是"这一档真把 .js 拦住了"
-   的唯一 DOM 见证物（`#clock` 是另一枚）。
-   ⚠️ 口径与 1d 那一格同源，但对象是**运行时 DOM**：1d 判"盘上的字节对不对"，这一格判"脚本有没有把
-   对的东西改坏"。两格不互相担保（⑤ 红的时候 1d 可以绿，反之亦然）。 */
+/* ---------- 目录 ⇄ 刻度：同一批标题的两个投影（本轮 `card/detail` 那一格的牙） ----------
+   `site.js` 把唯一那枚 `HEAD_SEL` 交出去两次：buildToc 造 `#toc a`、刻度那一排造 `#progress-marks span`。
+   两条判据叠在一起才叫有牙：① 各自都等于源码里 H2＋H3 的总数，② 而且彼此相等。
+   "只改了一处"（目录收 H3、刻度不收）单看任何一边都长得像对的，只有并排读才看得见少了哪一枚。
+   ⚠️ 两档的读数是**故意不同**的：这两排节点都由脚本造 ⇒ 隔离档（.js 全 404）里必须一枚都不在，
+     那枚 0 就是"静态产物里没有目录"这一条的见证物；完整档里才判它等于标题总数。 */
 function headNodes(html) {
-  /* ⚠️ 目录与刻度这两枚数**不再在这里各数一遍**：直接吃 1d 那三枚收集器（`tocHrefsOf` / `markSpansOf`）。
-     原先这里自己写着 `/<a\b/g` 与 `/<span\b/g`，与 1d 的"按 href／按 id 取值"是两把尺子——
-     同一件事两处各数迟早分叉（本仓为 `HEAD_SEL` 那枚字面量写三遍记过同一笔账，§15）。
-     现在产物级与运行期级读的是同一定义，只是对象不同：1d 读盘上的字节，这里读 dump 里的 DOM。 */
-  const toc = tocHrefsOf(html || '');
-  const marks = markSpansOf(html || '');
+  const toc = /<nav id="toc"[^>]*>([\s\S]*?)<\/nav>/i.exec(html || '');
+  const mk = /<div id="progress-marks"[^>]*>([\s\S]*?)<\/div>/i.exec(html || '');
   return {
-    toc: toc ? toc.length : null,
-    marks,
+    toc: toc ? (toc[1].match(/<a\b/g) || []).length : null,
+    marks: mk ? (mk[1].match(/<span\b/g) || []).length : null,
     /* 复制钮那一族：外壳是渲染器发的静态形状，钮是 site.js 挂上去的——两枚数在完整档里必须相等，
        在隔离档里钮必须是 0（"没 JS 就没有钮"）。只数带 data-lang 的外壳：那是挂点的定义域。 */
     blocks: (html || '').match(/class="codeblock" data-lang=/g)?.length ?? 0,
@@ -805,17 +667,14 @@ function assertHeads(label, url, stdout, kind) {
   headAsserted++;
   blockSeen += kind === 'full' ? got.blocks : 0;
   if (kind === 'isolate') {
-    /* `card/anchors` 之后这一档的预期从"必须 0"翻成"必须等于源码总数"：节点已在构建期的 HTML 里。
-       翻回 0 判据也不亏——它现在拦的是"目录又被挪回运行期"这一族倒退（§19.3 那格同族陷阱）。 */
-    if (got.toc !== want.total || got.marks !== want.total) problems.push(`[内联隔离档] ${url}：无 JS 这一档读到目录 ${got.toc} 条 / 刻度 ${got.marks} 枚，源码是 ${want.total} 枚标题 ⇒ 那两排节点又不在这份 HTML 里了（目录与刻度必须由构建期烘出来：无 JS 的访客、深链、打印都读得到同一批章）`);
+    if (got.toc || got.marks) problems.push(`[内联隔离档] ${url}：目录 ${got.toc} 条、刻度 ${got.marks} 枚 ⇒ .js 根本没被拦住，这一档白跑（那两排节点只应由 site.js 造，隔离档里必须是 0）`);
     else if (got.copies) problems.push(`[内联隔离档] ${url}：读到 ${got.copies} 枚代码块复制钮 ⇒ .js 其实跑了（隔离档里那枚钮一枚都不该在）`);
-    else notes.push(`目录⇄刻度（隔离档）${url}：${got.toc} 条 / ${got.marks} 枚 ＝ 源码 ${want.total} 枚标题 ✓（无 JS 也在场，这是 card/anchors 要的读数）；复制钮 0 枚 ✓ —— 那一枚仍由脚本挂`);
+    else notes.push(`目录⇄刻度（隔离档）${url}：0 条 / 0 枚 / 复制钮 0 枚 ✓ —— 三样都由脚本造，静态产物里没有它们`);
     return;
   }
   if (got.copies !== got.blocks) problems.push(`[完整档] ${url}：带 data-lang 的代码块 ${got.blocks} 枚、复制钮却只有 ${got.copies} 枚 ⇒ 复制钮没挂上（或挂错了定义域：挂点是 .codeblock[data-lang] 那一行标签）`);
   if (want.total > 0) headNonZero++;
-  if (got.toc === want.total * 2 && got.toc > 0) problems.push(`[完整档] ${url}：目录读到 ${got.toc} 条 ＝ 源码 ${want.total} 枚的两倍 ⇒ 脚本还在往构建期已经存在的目录里追加节点（旧 buildToc 那一种形状）：章名重复上屏，而且两枚 href 指着同一批 id`);
-  else if (got.toc !== want.total) problems.push(`[完整档] ${url}：目录 ${got.toc} 条，而源码是 ${want.h2} 枚 H2 ＋ ${want.h3} 枚 H3 ＝ ${want.total} 枚标题 ⇒ 完整档比隔离档少/多，问题在脚本改了那批节点（构建期烘出来的那一排应当两档同值）`);
+  if (got.toc !== want.total) problems.push(`[完整档] ${url}：目录 ${got.toc} 条，而源码是 ${want.h2} 枚 H2 ＋ ${want.h3} 枚 H3 ＝ ${want.total} 枚标题 ⇒ buildToc 少收或多收了（本轮起 H3 要收进目录）`);
   else if (got.marks !== got.toc) problems.push(`[完整档] ${url}：刻度 ${got.marks} 枚 ≠ 目录 ${got.toc} 条 ⇒ 两把尺子分叉了：同一枚选择器只改了一处（目录与刻度必须吃同一个 HEAD_SEL，这是规范禁的那个形状）`);
   else if (got.marks !== want.total) problems.push(`[完整档] ${url}：目录与刻度各 ${got.toc} 枚，源码却是 ${want.total} 枚标题 ⇒ 两边一起漏，问题在 HEAD_SEL 或标题本身没进正文`);
   else notes.push(`目录⇄刻度 ${url}：${got.toc} 条 ⇄ ${got.marks} 枚 ＝ 源 ${want.h2} 枚 H2 + ${want.h3} 枚 H3（同一批标题的两个投影）✓${got.blocks ? `；代码块 ${got.blocks} 枚、复制钮 ${got.copies} 枚 ✓` : ''}`);
@@ -862,26 +721,20 @@ async function runPhase(kind, profiles) {
 }
 
 /* 每槽位一枚一次性 profile：N 个并发浏览器不能共用 user-data-dir（会互相抢锁） */
-if (STATIC_ONLY) {
-  console.log('\n  ⚠️ --static-only：**浏览器两档一次都没跑**（内联隔离档 / 完整档 / 五枚属性 / 运行时 DOM 那一格目录⇄刻度 / phase 对账全部未断言）。');
-  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的三段（1b 结构对账、1c 不列入、1d 死锚点两侧对账）跑完了。');
-  console.log('     日常门禁 `npm run gate` 不带这一枚开关；它存在的理由见上面定义处那条环境记录。');
-} else {
-  await runPhase('isolate', Array.from({ length: JOBS }, (_, i) => newProfile(`iso${i}`)));
-  await runPhase('full', Array.from({ length: JOBS }, (_, i) => newProfile(`full${i}`)));
+await runPhase('isolate', Array.from({ length: JOBS }, (_, i) => newProfile(`iso${i}`)));
+await runPhase('full', Array.from({ length: JOBS }, (_, i) => newProfile(`full${i}`)));
 
-  if (!tally.isolate || !tally.full) die(`断言份数不正常：隔离档 ${tally.isolate}、完整档 ${tally.full}（0 份＝没进过闸）`);
-  /* 目录⇄刻度那一格的防空转（本节开头那条老判据：跑了但一页都没读 ≠ 读过且全过）：
-     一份详情页都没进这一格 ⇒ 红；进了而**每一篇的标题总数都是 0** ⇒ 也红（两侧都是零的相等没有信息量）。 */
-  if (!headAsserted) problems.push(`目录⇄刻度这一格一个断言都没跑（详情页一份都没读到 #toc / #progress-marks）⇒ 判据空转，不许算过`);
-  else if (!headNonZero) problems.push(`目录⇄刻度跑了 ${headAsserted} 页，而每页的标题总数都是 0 ⇒ 相等是相等，判据什么也没看见（三篇稿子一枚标题都没有？去看 src/content/posts/）`);
-  else console.log(`  目录⇄刻度：${headAsserted} 页读进这一格，其中 ${headNonZero} 页的标题总数非零（防空转：两侧都为零的相等不算看见）`);
-  if (headAsserted && !blockSeen) notes.push('代码块复制钮：完整档里全站 0 枚带 data-lang 的围栏 ⇒ 这一格今天没有对象（读得到形状、判据仍然算跑过——口径照上面"草稿对账"那一格）');
-  console.log(`\n  断言份数：内联隔离档 ${tally.isolate} / 完整档 ${tally.full}，浏览器共启动 ${launched} 次`);
-  console.log(`  见证物 #clock 文本：${witness.join('，')}`);
-  console.log(`  隔离档里被拦下的 .js：${served.blocked.size} 种（这一档靠它保证"五枚属性只剩内联脚本一个写者"）`);
-  console.log(`  完整档里真正送出去的 .js：${served.js.size} 种（对账用：0 种就说明资源根本没喂到，见证物必然也是红的）`);
-}
+if (!tally.isolate || !tally.full) die(`断言份数不正常：隔离档 ${tally.isolate}、完整档 ${tally.full}（0 份＝没进过闸）`);
+/* 目录⇄刻度那一格的防空转（本节开头那条老判据：跑了但一页都没读 ≠ 读过且全过）：
+   一份详情页都没进这一格 ⇒ 红；进了而**每一篇的标题总数都是 0** ⇒ 也红（两侧都是零的相等没有信息量）。 */
+if (!headAsserted) problems.push(`目录⇄刻度这一格一个断言都没跑（详情页一份都没读到 #toc / #progress-marks）⇒ 判据空转，不许算过`);
+else if (!headNonZero) problems.push(`目录⇄刻度跑了 ${headAsserted} 页，而每页的标题总数都是 0 ⇒ 相等是相等，判据什么也没看见（三篇稿子一枚标题都没有？去看 src/content/posts/）`);
+else console.log(`  目录⇄刻度：${headAsserted} 页读进这一格，其中 ${headNonZero} 页的标题总数非零（防空转：两侧都为零的相等不算看见）`);
+if (headAsserted && !blockSeen) notes.push('代码块复制钮：完整档里全站 0 枚带 data-lang 的围栏 ⇒ 这一格今天没有对象（读得到形状、判据仍然算跑过——口径照上面"草稿对账"那一格）');
+console.log(`\n  断言份数：内联隔离档 ${tally.isolate} / 完整档 ${tally.full}，浏览器共启动 ${launched} 次`);
+console.log(`  见证物 #clock 文本：${witness.join('，')}`);
+console.log(`  隔离档里被拦下的 .js：${served.blocked.size} 种（这一档靠它保证"五枚属性只剩内联脚本一个写者"）`);
+console.log(`  完整档里真正送出去的 .js：${served.js.size} 种（对账用：0 种就说明资源根本没喂到，见证物必然也是红的）`);
 if (notes.length) { console.log('  顺带读到的（不参与判定）：'); for (const n of notes) console.log(`    ${n}`); }
 
 /* ---------- 7. SITE 占位域名：默认警告 + exit 0，--strict-site 才红 ---------- */
@@ -956,7 +809,5 @@ if (problems.length) {
   }
   process.exit(1);
 }
-console.log(STATIC_ONLY
-  ? `\n✓ 不碰浏览器的那三段跑完且全过（1b 结构／1c 不列入／1d 死锚点）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
-  : `\n✓ 运行时五枚属性全部落地：${KEYS.join(' / ')}（内联脚本在跑，打包脚本也在跑）`);
+console.log(`\n✓ 运行时五枚属性全部落地：${KEYS.join(' / ')}（内联脚本在跑，打包脚本也在跑）`);
 process.exit(0);

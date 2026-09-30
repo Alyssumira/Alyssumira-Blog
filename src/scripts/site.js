@@ -349,8 +349,7 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
            所以：**刻度是地图（这一章占全文的哪一段），点亮才是进度**。两件事分开，各自成立。 */
         if (r.height !== lastTotal){
           lastTotal = r.height;
-          const n = Math.min(markEls.length, markAt.length);
-          for (let i = 0; i < n; i++) markEls[i].style.left = (markAt[i] / r.height * 100).toFixed(3) + '%';
+          for (let i = 0; i < markEls.length; i++) markEls[i].style.left = (markAt[i] / r.height * 100).toFixed(3) + '%';
         }
         let cur = -1;
         /* ⚠️ 用**没被夹过的** raw，不用上面那个 `done`：`done` 的上限是 `total`（正文高 − 视口），
@@ -386,40 +385,36 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
 
   /* ⚠️ 目录与章节刻度**吃同一枚选择器，而且从这一行起只有一个出处**：原先 :204/:226/:231 三处
      各写一遍字面量 `'h2:not(.fn-title)'`，注释还写着"两把尺子必须是同一把"——一句注释守不住的东西，
-     挪成一份常量才守得住。第十一轮把 H3 一起收进来（§15 详情页那一格），三处同向变：
+     挪成一份常量才守得住。本轮把 H3 一起收进来（§15 详情页那一格），三处同向变：
      只改目录不改刻度就是当场制造分叉，而那种分叉两边都长得像"对的"。
-     文末那枚"注"（.fn-title）仍旧不算章——它是那一块的标题，不是一章。
-     ⚠️ `card/anchors` 之后这一枚选择器的身份变了：它**不再决定目录里有几条**（那批 `<a>` 与 `<span>`
-     由 `[slug].astro` 在构建期烘进 HTML，与正文那排 id 同源于 `markdown.js` 的 `renderArticle`），
-     它只管"给哪一枚标题做高亮/点亮"。选择器仍然只有这一份出处，两边（高亮与刻度点亮）不许各写一遍。 */
+     文末那枚"注"（.fn-title）仍旧不算章——它是那一块的标题，不是一章。 */
   const HEAD_SEL = 'h2:not(.fn-title), h3';
   const headsOf = () => Array.from(postBody ? postBody.querySelectorAll(HEAD_SEL) : []);
 
-  /* 高亮"正在读的那一章"——目录剩下的唯一一件真·运行时职责（§1：无 JS 时目录仍然在、仍然能跳）。
-     ⚠️ 这里**不再补 id、不再造 `<a>`**：正文那排 id 与目录那批 href 都是构建期产物、同一批字符串，
-     运行期再补一枚就是给「目录⇄正文 id」那条对账判据造第二真值（§12 死锚点那一族的成因）。
-     ⚠️ 比对走 `getAttribute('href')` 而不是 `a.hash`：`a.hash` 是 **IDL 属性**，按 WHATWG URL 序列化
-     把非 ASCII 逐字节百分号化（`#日志是灯` → `#%E6%97%A5…`），而 `'#' + h.id` 拿到的是原文 ⇒
-     本站的章名是 CJK，两边永远比不中、高亮恒不亮。旧代码没撞上这一条，是因为它用
-     `a.href = '#'+id` 赋值，反射回属性时两侧都已编码过一遍——同一枚坑换了来源就现形。
-     内容属性（盘上那串字节）与正文的 id 逐字符相同，所以这一枚比对与产物级对账读的是同一个值。 */
-  function highlightToc(){
+  function buildToc(){
     if (!toc || !postBody) return;
-    const links = Array.from(toc.querySelectorAll('a'));
     const heads = headsOf();
-    if (!links.length || !heads.length) return;
+    heads.forEach((h, i) => {
+      if (!h.id) h.id = 'sec-' + i;
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      /* H3 在目录里是二级条目：只交"它是哪一级"这一枚事实，缩进怎么画归 CSS（§9 那条
+         "同一个符号不许表达两种状态"，所以这里不加新记号、不补第二枚短线） */
+      if (h.tagName === 'H3') a.classList.add('sub');
+      toc.appendChild(a);
+    });
+    const links = Array.from(toc.children);
     const spy = new IntersectionObserver(entries => {
       entries.forEach(e => {
-        if (e.isIntersecting) links.forEach(l => l.classList.toggle('on', l.getAttribute('href') === '#' + e.target.id));
+        if (e.isIntersecting) links.forEach(l => l.classList.toggle('on', l.hash === '#' + e.target.id));
       });
     }, { rootMargin: '-20% 0px -70% 0px' });
     heads.forEach(h => spy.observe(h));
   }
-  highlightToc();
+  buildToc();
 
-  /* 刻度的那一排 span：与目录同一批标题、同一个选择器（上面那枚 `HEAD_SEL`）。
-     ⚠️ `card/anchors` 之后 span 本身是构建期烘进 HTML 的（`[slug].astro`），脚本只量位置、只点亮；
-     这里取 `Math.min(枚数, 位置数)` 不是兜底，是**不给"两边各数各的"留活路**——真分叉了产物级对账先红。 */
+  /* 刻度的那一排 span：与目录同一批标题、同一个选择器（上面那枚 `HEAD_SEL`） */
   function measureMarks(){
     if (!marks || !postBody) return;
     const base = postBody.getBoundingClientRect().top + scrollY;
@@ -427,7 +422,11 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     lastTotal = -1;                       /* 逼一次重排：图落地之后位置会变 */
   }
   if (marks && postBody){
-    markEls = Array.from(marks.children);
+    markEls = headsOf().map(() => {
+      const m = document.createElement('span');
+      marks.appendChild(m);
+      return m;
+    });
     measureMarks();
     updateProgress();                     /* 首帧：上面那次调用还在 markEls 为空的时候，补一次 */
     /* 内容图把正文撑长之后刻度位置会漂：load 在模块脚本之后触发，正好补这一次 */
