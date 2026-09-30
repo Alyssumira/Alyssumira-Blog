@@ -93,6 +93,20 @@ const posts = defineCollection({
       v => (v === null || v === '' || v === undefined) ? undefined : v,
       z.coerce.number().int().positive().optional(),
     ),
+    /* 旧地址那一族（第十七轮 `card/aliases`，本站 URL 是目录式 `/essays/<slug>/`、slug＝文件名 ⇒ 改文件名
+       那天所有分享过的旧地址当场断死，站内原先没有任何机制接得住）：**与 `tags` 同一枚 `blankSlot` 形状**
+       （`z.array(z.string()).default([])`）——理由全在上面 `const blankSlot` 头上那两段与 `tags` 那一格，
+       这里只留口径：YAML 里空着的 `aliases:` 是 **null**，少了那层 preprocess 就撞进 zod 的英文堆栈；
+       **不许 coerce**（`z.coerce.string()` 把空着的键铸成 "null" 那一族，上面许可族那两段说的是同一件事）。
+       ⚠️ **没填 ⇒ 一枚产物都不生成**（`default([])` ⇒ 空数组 ⇒ `[...alias].astro` 的 `getStaticPaths` 一枚都不返回）。
+          这一族的"没填"与 `category`/`series` 那一族同一条纪律：不猜、不替作者补一枚旧地址、
+          也不生成一份空页再藏起来（§12"关掉之后不留活壳"）。
+       ⚠️ schema 这一侧**不写路径判据**：一串字符串里哪一枚能当站内地址、坏写法长什么样，只住在
+          `src/lib/taxonomy.js` 的 `aliasSlot()`（不碰 `astro:content`，`tools/` 与页面吃同一份）；
+          同一件事在两处各算一遍，早晚有一处放过 `../` 或者带协议头的那一枚。谁消费它：建路住在
+          `src/pages/[...alias].astro`（吃 `visiblePosts()`——草稿与不列入的一篇都不建），
+          产物级对账住在 `tools/alias-check.mjs`（`gate` 里、build 之后）。 */
+    aliases: blankSlot(z.array(z.string()).default([])),
   }),
 });
 

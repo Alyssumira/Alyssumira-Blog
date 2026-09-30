@@ -106,6 +106,44 @@ export function sortPosts(posts){
   });
 }
 
+/* ── 旧地址那一族（第十七轮 `card/aliases`）───────────────────────────────────
+   本站的 URL 是目录式 `/essays/<slug>/`，而 slug 就是 `src/content/posts/<slug>.md` 的文件名 ⇒ 作者
+   改文件名那天，所有外部分享过的旧地址当场断死，站内没有任何机制接得住。front matter 的可选 `aliases`
+   收的就是那批旧路径，`src/pages/[...alias].astro` 为每一条烘一枚真产物。
+   ⚠️ 这里只做**纯派生**的那一半：把作者写的那枚串钉成站内目录式地址，并给出"钉不成"的成因。
+      两件事不住在这儿："这一枚地址该不该建"住在 `src/lib/posts.js` 的 `visiblePosts()`
+      （草稿与不列入的一篇都不建，与 `isDraft`/`isUnlisted` 同一对读法）；"产物对不对"住在
+      `tools/alias-check.mjs`（`gate` 里、build 之后）。判据只有一份，谁吃它住在别处——同 `isUnlisted` 那一格。
+   ⚠️ 不合格的一项**交回成因句、不猜、不"顺手补一个"**：静默丢掉就是"作者写了却看不见"（§12 那一族，
+      `tools/new-post.mjs --check` 的责任），而替作者猜一枚"他大概想要的地址"更坏——这一族唯一的活就是
+      "旧地址仍然能到达那一篇"，到达错了地方比到不了更难被发现。 */
+export function aliasSlot(raw){
+  const v = String(raw ?? '').trim();
+  if (v === '') return { path: '', bad: '这一项是空的（`aliases: [/a/, , /b/]` 那种）——空串清完没有地址，硬画就是一枚指不到东西的活壳（§12 死锚点那一族）' };
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return { path: '', bad: `"${v}" 带协议头——那是站外的地址，alias 只收站内的旧路径（要放外链请写进正文或许可那一行）` };
+  if (/[?#]/.test(v)) return { path: '', bad: `"${v}" 含 ? 或 #——查询与片段不是路径：实测带 ? 的那一枚被烘成 dist/…%3F/index.html，跟声明的地址不是同一枚。旧地址要去掉那一截再写` };
+  if (v.includes('%')) return { path: '', bad: `"${v}" 含 %——那是百分号编码的残迹，这里不替作者解码；要指哪一枚地址就把那一枚原样写出来` };
+  if (/\s/.test(v)) return { path: '', bad: `"${v}" 含空格——它会落成 %20，而"作者心里的旧地址"与"盘上那枚文件名"就分成了两枚；写连字符那一形，或者干脆别收` };
+  if (/[<>:"\\|*]/.test(v)) return { path: '', bad: `"${v}" 含 Windows 保留字符（< > : " \\ | *）——那枚文件根本落不到盘上，build 会红在别处，这里先说清是哪一项` };
+  const segs = v.replace(/^\/+/, '').replace(/\/+$/, '').split('/').filter(Boolean);
+  if (!segs.length) return { path: '', bad: `"${v}" 清完什么都不剩——'/' 是首页，它不可能是某一篇文章的旧地址` };
+  if (segs.some(s => s === '.' || s === '..')) return { path: '', bad: `"${v}" 含 . 或 .. 那一段——它要当文件路径用，那一路指向的是产物目录之外` };
+  const dotted = segs.find(s => /\.[A-Za-z0-9]{1,5}$/.test(s));
+  if (dotted) return { path: '', bad: `某一段带扩展名（"${dotted}"）——这种写法烘出来的是 /foo.html/index.html 这样一枚**目录页**（实测），与你声明的那枚地址不是同一处；本站的 URL 只有目录式一种，把旧地址写成它的目录形式` };
+  return { path: `/${segs.join('/')}/`, bad: '' };
+}
+/* 一项一项过（含坏的那几枚）：工具要逐枚点名，页面只要能用上的那些 */
+export const aliasSlotsOf = post => (post.data.aliases ?? []).map(aliasSlot);
+/* 一篇稿子的旧地址：不合格的不出现，同一枚写了两次只算一枚，顺序照作者写的顺序（不排字典序——同 tagsOf 那句） */
+export function aliasesOf(post){
+  const seen = new Set();
+  for (const s of aliasSlotsOf(post)) if (s.path && !seen.has(s.path)) seen.add(s.path);
+  return [...seen];
+}
+/* 坏写法那几枚的成因句（页面侧不调它，`--check` 与 `tools/alias-check.mjs` 调）：
+   "aliases 填了却一枚都没生成"必须由人看见，不许退成沉默 */
+export const aliasProblems = post => aliasSlotsOf(post).filter(s => s.bad).map(s => s.bad);
+
 /* 文本 → 布尔那一半（**工具侧**用：--check 与 runtime-check 自己读 front matter，读来的是字符串）。
    为什么放在这份纯文件里：这一族判据一旦在两个工具里各写一遍，就会出现
    "new-post 放行的写法构建期炸"或反过来——同一件事两处说了算。
