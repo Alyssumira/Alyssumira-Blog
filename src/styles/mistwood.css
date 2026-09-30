@@ -373,6 +373,19 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-weight:600;
   font-size:24px; line-height:1.45; letter-spacing:.02em;
 }
+/* 已访问的目录行＝标题那一行深一档（§12 那句"本机状态要留就用墨色差"，2026-09-30 `card/visited-ink` 落地）。
+   只此一枚属性、只走 `color`：Blink 对 `:visited` 本来就只放开 color 一族，而 §12 给的形状也是色差——
+   **不加底纹、不加下划线、不加第二枚符号**（§9 为"同一个符号两种意思"修过两次：当前页那枚下划线、目录"当前章"那枚左竖线）。
+   两档各给各的值（`--ink-visited` 亮 #131B15 / 暗 #CED3CB），都是各自 `--ink` 那枚三元组里只把 L 拉了一档：
+   外部参照 knhash/jekyllBear 的 #2D5016→#1E3A11（8.58→11.68）同样只靠明度差、不换色相，正合 §1.1。
+   ⚠️ "那一行"今天实际深下去的只有标题：`.folio`（`--ink-3`）、`.row-ex`／`.row-side`（`--ink-2`）各自带 color，
+   不吃继承。这是**读出来的事实**不是顺手漏的——把三枚都改是四枚 color 声明、三档新墨，而 §2.4 的地板账要逐枚重签。
+   ⚠️ 量法只有一条：`getComputedStyle()` 对 `:visited` 返回的是未访问值（本机 headless Edge 154 实测同一帧里
+   像素是哨兵色、computed 仍是 `rgb(35,43,37)`），所以"读 computed 证明它生效"原理上走不通 ⇒ 像素档，
+   见 `tools/visited-probe.mjs`（含那条"访问必须由渲染进程 click() 发起，CDP `Page.navigate` 记下的访问不进
+   visited 资格集"的失效边界）。悬停／`:focus-visible`／按下三档一枚属性都没动，归巢（§8.7）也不受影响。
+   撤法就一行：撤掉下面那条声明，回到"读过与没读过同色"。 */
+a.row:visited{ color:var(--ink-visited); }
 /* 摘要常驻自己的两行位置，只切透明度：悬停不许重排（§8.8 属性口径） */
 .row-ex{
   margin-top:8px; font-size:15px; line-height:1.7; color:var(--ink-2); min-height:3.4em;
