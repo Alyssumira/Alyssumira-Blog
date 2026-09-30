@@ -79,7 +79,7 @@
      --jobs=<n>            并发浏览器数（默认 4；每档每槽位一枚一次性 profile，共 2×jobs 枚，跑完删）
      --keep-profile        跑完不删临时 profile（调试用，会打印路径）
      --strict-site         占位域名从警告变红
-     --static-only         只跑不碰浏览器的五段（1b 结构／1c 不列入／1d 死锚点两侧对账／1e 订阅宣告／1f head 时间戳与卡面 alt），
+     --static-only         只跑不碰浏览器的六段（1b 结构／1c 不列入／1d 死锚点两侧对账／1e 订阅宣告／1f head 时间戳与卡面 alt／1g 三族索引的可见入口），
                            浏览器两档当众报"没跑"（`card/anchors` 当天本机 msedge 起不来才加的退路；
                            日常 `npm run gate` 不引用它，别把它读成绿）
 */
@@ -99,6 +99,10 @@ import { resolveBrowser, browserCandidates, spawnBrowser } from './browser-bin.m
 /* 第十七轮 `card/aliases`：旧地址那一族的归一化读法也吃 shipped 的那一份（页面与门禁不会两套） */
 import { aliasesOf } from '../src/lib/taxonomy.js';
 import { isDraft, isUnlisted, sortPosts, categoryOf, tagGroups, bySize, groupBy } from '../src/lib/taxonomy.js';
+/* 第十七轮之后 F2（`card/f2entries`）：入口那一行要判"系列这一族非空不非空"，
+   而系列那一族的分组函数住在 `src/lib/series.js`（它只是 `taxonomy.js` 那份 `groupMany` 的一个特例，
+   同样不 import 'astro:content'，所以 node 侧直接吃得动）。⚠️ 不在本文件里再写一遍分组。 */
+import { seriesGroups } from '../src/lib/series.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -113,7 +117,7 @@ const JOBS = Math.max(1, Number(opt('jobs') || 4));
 const STRICT_SITE = flag('--strict-site');
 /* ⚠️ `--static-only` 是给"本机起不了 headless 浏览器"那一条环境退路（2026-09-30 `card/anchors` 当天撞上：
    msedge 无论 `--dump-dom` 还是 `--screenshot` 都**当场 exit 0、零 stdout、零 stderr**，连 about:blank 都不出图，
-   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的五段（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据），
+   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的六段（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据／1g 三族入口），
    并且**当众打印"运行时 DOM 那一档没跑"**——它不是一条绿，是一次部分交付。
    `npm run gate` 一个字都没引用它；日常门禁仍然是两档 × 全站。 */
 const STATIC_ONLY = flag('--static-only');
@@ -264,7 +268,7 @@ for (const name of postFiles) {
   if (!parsed) { problems.push(`${slug}：front matter 不成形，这一格的可见性判据读不出它是草稿还是已发布（宁缺不假绿）`); continue; }
   const tax = readTaxonomy(parsed.fmText);
   if (tax.errors.length) { problems.push(`${slug}：front matter 的四枚新键读不过预检（${tax.errors[0]}）——--check 那一格本该先拦下`); continue; }
-  corpus.push({ id: slug, name, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, aliases: tax.aliases, date: new Date(parsed.fm.date) }, dateRaw: unquote(parsed.fm.date ?? '') });
+  corpus.push({ id: slug, name, body: raw, data: { category: tax.category, tags: tax.tags, series: tax.series, seriesOrder: tax.seriesOrder, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, aliases: tax.aliases, date: new Date(parsed.fm.date) }, dateRaw: unquote(parsed.fm.date ?? '') });
 }
 /* 三份名单，各对一个"页面那侧的谁"，一枚都不许多出来（第十五轮 `card/unlisted` 起了中间那枚）：
    · `routable` ⇄ `publishedPosts()`（只滤草稿）——**这些页必须在 dist/ 里存在**，包括不列入的那几枚；
@@ -1061,6 +1065,128 @@ const markSpansOf = html => {
     + `${[...machineTxt.keys()].length} 份机器侧产物（${[...machineTxt.keys()].join(' / ')}）各 0 次、全站 ${textArts.length} 份文本产物里 <a href> 0 处指向 ✓`);
 }
 
+/* ---------- 1g. 三族索引的可见入口对账：目录页那一行 `.essay-browse` ⇄ 非空家族数（F2 `card/f2entries`）----------
+   这一格钉的是**读者那一侧的路**：`/categories/`、`/tags/`、`/series/` 三页早就在盘上，可今天全站产物里指向它们的
+   可见锚只有 2 枚（`dist/tags/index.html` 与 `dist/series/index.html` 的空态句各指一次 `/categories/`），
+   首页／`/essays/`／关于／notes／详情页 0 枚 ⇒ 读者除了猜 URL 到不了它们。F2 把入口接在 `/essays/` 名单之后
+   那一行（规格在规范 §9 那一格），这一格就是那一行的牙。
+   ⚠️ 为什么它是**产物级**而不是源码级：这一族要防的两种坏法都只在盘上看得见——
+      ① "家族为空却仍画出一枚锚"（§12 那条死锚点／假语境的直接形状，源码里 filter 写得再漂亮也可能画错），
+      ② "家族非空却少画一枚"（入口枚数不再等于家族数，读者以为这一族不存在）。
+      两者都不改任何一枚 `data-*` 属性、不炸 build，`npm run check` 那八项原理上看不见。
+   ⚠️ 落在**不碰浏览器**那一段（与 1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据同层）：
+      判据只需盘上字节，§16 那条分层（读 `dist/` 的排在 build 之后）照用。
+   断言三件，逐份目录页产物（`dist/essays/index.html` ＋ 盘上真有的每一页 `/essays/page/<n>/`）：
+     ① 那一行的**锚点集合必须逐枚等于"非空家族"那三枚在册地址**——一枚在册家族少画 ⇒ 红（朝窄），
+        一枚空家族被画出来 ⇒ 红（朝宽），同址重复、冒出册外的 href、写成绝对地址，同样各红一条；
+     ② 宿主不在场时**只有"三族全空"这一档才算合法**：家族非空而整行没画 ⇒ 红（"该有而没有"是这一族最坏的假完成），
+        三族全空而整行一个字节都没有 ⇒ 零红（今天这一态，§12"没填就不出现"的字节级读法）；
+     ③ 那一行的落点只许在目录页：`dist/` 里任何一份**非目录页**产物读出 `.essay-browse` 宿主 ⇒ 红
+        （入口长在第二处就是第二处真值，规格签的是"页内接通、只住在 `/essays/` 名单之后"）。
+   ⚠️ 零对象不许静默（本仓反复点名的那副假绿长相："没匹配到"与"全过"长得一样）：今天盘上是**零载体**（三族全空），
+      这一格必须**当众打印"在册 0 枚"并且不红**——它凭什么不是空转？凭下面那两态内置 fixture：
+      全空那一态验"零枚是合法的"，注入非空那一态验"枚数恰好等于家族数"，两态都跑同一条 `judgeBrowse`，
+      所以尺子瞎的时候 needle 先红，而不是盘上那一跑悄悄绿。
+   ⚠️ 期望侧不许由页面自己申报（§16 那条"拿 Layout 的宣告去对 Layout 的宣告"）：哪一族非空是这里拿
+      front matter ＋ shipped 的 `groupBy(categoryOf)`／`tagGroups()`／`seriesGroups()` 现算的——
+      与 `/categories/`、`/tags/`、`/series/` 三页自己用的同一份函数、同一条 filter（`isDraft` ＋ `isUnlisted`，
+      即 `visiblePosts()` 的口径），不在本文件里重写第二遍。 */
+{
+  const FAMS = [
+    { at: '/categories/', label: '分类', groups: groupBy(visible, categoryOf) },
+    { at: '/tags/', label: '标签', groups: tagGroups(visible) },
+    { at: '/series/', label: '系列', groups: seriesGroups(visible) },
+  ];
+  const ROUTES = FAMS.map(f => f.at);
+  const want = FAMS.filter(f => f.groups.length).map(f => f.at);
+
+  /* 三把收集器。⚠️ 缺宿主交回 null（不是空数组）——"读不到"与"读到零枚"必须是两种可读出的形状（口径照 1d／1e）。 */
+  const browseHostOf = html => {
+    const m = /<nav\b[^>]*class="[^"]*\bessay-browse\b[^"]*"[^>]*>([\s\S]*?)<\/nav>/i.exec(html);
+    return m ? m[1] : null;
+  };
+  const anchorsOf = host => [...host.matchAll(/<a\b[^>]*?href=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/gi)].map(m => m[1] ?? m[2] ?? m[3] ?? '');
+  const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+  /* 判决是**纯函数**（anchors ⇄ 在册期望），为了让上面那两态 fixture 能跑同一条代码，而不是另写一份宽松版 */
+  const judgeBrowse = (anchors, expect) => {
+    const reds = [];
+    let checks = 1;                                          // ① 宿主在场／整块不出现，本身就是一判
+    if (anchors === null) {
+      if (expect.length) reds.push(`目录页产物里读不出 class="essay-browse" 那一行，而在册的非空家族是 ${expect.length} 枚（${expect.join(' ')}）⇒ 入口整块没画：读者只剩"猜 URL"这一条路，而 build 与 check 八项全都不会红`);
+      else checks += ROUTES.length;                          // 三族全空 ⇒ 整行不落字节，这一档是合法态（§12），逐族各记一判
+      return { reds, checks };
+    }
+    if (!anchors.length) reds.push(`那一行出现了、里面一枚锚都没有 ⇒ §12 禁"预留一个只会显示空缺的位置"：这一行读起来就是一块坏了的版面`);
+    for (const at of expect) {
+      checks++;
+      const n = anchors.filter(h => h === at).length;
+      if (n === 0) reds.push(`家族 ${at} 非空，那一行里却没有它 ⇒ 入口枚数不再等于家族数，读者以为这一族不存在（页面上读到的是 ${anchors.length ? anchors.join(' ') : '零枚锚'}）`);
+      else if (n > 1) reds.push(`家族 ${at} 在那一行里出现 ${n} 次 ⇒ 同一族两枚入口，迟早一枚真一枚旧`);
+    }
+    for (const h of anchors) {
+      checks++;
+      if (SCHEME.test(h) || h.startsWith('//')) { reds.push(`那一行的 href 是绝对地址 "${h}" ⇒ 站内入口只许相对写法，域名的唯一真值住在 astro.config.mjs（§13a）`); continue; }
+      if (ROUTES.includes(h) && !expect.includes(h)) { reds.push(`那一行画了指向 ${h} 的锚，而这一族**一枚成员都没有** ⇒ §12 的死锚点／假语境：入口许诺了一个空抽屉`); continue; }
+      if (!ROUTES.includes(h)) reds.push(`那一行冒出册外的锚 "${h}" ⇒ 这一族只认 /categories/、/tags/、/series/ 三枚在册地址，第四枚要先有人在这一行签字`);
+    }
+    return { reds, checks };
+  };
+
+  /* ---- 内置自证：两态 fixture（全空 ⇄ 注入非空），盘上一枚载体都没有也照跑 ---- */
+  const broken = [];
+  let tried = 0;
+  const probe = (ok, msg) => { tried++; if (!ok) broken.push(msg); };
+  const row = (...ats) => `<nav class="essay-browse" aria-label="x">browse — 按 ${ats.map((a, i) => `${i ? ' · ' : ''}<a href="${a}">${a}</a>`).join('')} 读</nav>`;
+  const all3 = ROUTES;
+  /* 态①：家族全空 ⇒ 整行不出现是合法的，画出一枚都必须红 */
+  probe(browseHostOf('<main><p class="tax-empty">只有空态那句话</p></main>') === null, '收集器在缺宿主时交回了非 null ⇒ "读不到"会被当成"读到零枚"放过');
+  probe(judgeBrowse(browseHostOf('<main><p>只有空态那句话</p></main>'), []).reds.length === 0, '三族全空那一态（整行不落一个字节）被误报 ⇒ 今天的产物会恒红，而恒红的门禁会让人绕着它走');
+  probe(judgeBrowse(anchorsOf(browseHostOf(row(all3[0]))), []).reds.length >= 1, '"家族全空却仍画一枚锚"没被判成红 ⇒ ② 那一支没有牙，§12 那条假语境会从这一行长回来');
+  probe(judgeBrowse(anchorsOf(browseHostOf(row())), []).reds.length >= 1, '那一行出现而一枚锚都没有没被判成红 ⇒ "预留一个只会显示空缺的位置"会被放过');
+  /* 态②：注入一版非空家族名单 ⇒ 入口枚数恰好等于家族数（两侧都要有牙） */
+  probe(browseHostOf(row(...all3)) !== null && anchorsOf(browseHostOf(row(...all3))).join(' ') === all3.join(' '), '收集器从三枚在册锚的标准行里读不回那三枚 ⇒ 尺子已经不吃 <a href> 了');
+  probe(anchorsOf(`<nav class="essay-browse"><a href='/tags/'>标签</a></nav>`).join('') === '/tags/', "单引号写法的 href 读不到 ⇒ 判据把「注入侧恰好是双引号」当成了前提");
+  probe(judgeBrowse(anchorsOf(browseHostOf(row(...all3))), all3).reds.length === 0, '好形状（三族非空 ⇄ 三枚锚）被误报 ⇒ 判据朝窄侧失灵，将来填上分类那天会假红');
+  probe(judgeBrowse(anchorsOf(browseHostOf(row(...all3.slice(0, 2)))), all3).reds.length >= 1, '非空那一态里少画一枚锚没被判成红 ⇒ "入口枚数＝家族数"只剩一半');
+  probe(judgeBrowse(anchorsOf(browseHostOf(row(...all3, all3[0]))), all3).reds.some(x => /出现 2 次/.test(x)), '同一枚家族地址画了两遍没被判成红 ⇒ 重复入口会静顶掉在册那一枚');
+  /* 朝宽那一支的内置版：把非空 fixture 里**抹掉一个家族的成员**（期望从三枚缩到两枚、页面照旧三枚）⇒ 必须红 */
+  probe(judgeBrowse(anchorsOf(browseHostOf(row(...all3))), all3.slice(0, 2)).reds.some(x => new RegExp(`画了指向 ${all3[2]}`).test(x)), '抹掉一枚家族成员之后那一行仍画着它，没被判成红 ⇒ "指向空家族的锚"这一支没有牙');
+  probe(judgeBrowse(anchorsOf(browseHostOf(row(...all3.map(a => `https://mistwood.example.com${a}`)))), all3).reds.filter(x => /绝对地址/.test(x)).length === 3, '三枚绝对地址没各判一枚红 ⇒ 域名会从这一行长出第二处真值（§13a）');
+  probe(judgeBrowse(anchorsOf(browseHostOf('<nav class="essay-browse"><a href="/essays/">文章</a></nav>')), []).reds.some(x => /册外/.test(x)), '那一行冒出一枚册外地址没被判成红 ⇒ 判据宽到什么都不管');
+  probe(judgeBrowse([], all3).reds.length >= 1, '那一行存在而零枚锚（非空家族在册）没被判成红 ⇒ 空壳行会被放过');
+  for (const b of broken) problems.push(`1g 三族入口 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"逐页全过"从此不可信`);
+
+  /* ---- 盘上判决：逐份目录页产物 ＋ 落点归属 ---- */
+  const pages = CAT.map(([n, f]) => [n === 1 ? 'dist/essays/index.html' : `dist/essays/page/${n}/index.html`, f]);
+  let judged = 0, units = 0, anchorTotal = 0, hostTotal = 0;
+  for (const [rel, file] of pages) {
+    if (!existsSync(file)) { problems.push(`1g 三族入口：${rel} 不在盘上 ⇒ 这一格没有对象（目录页产物读不到，"零枚入口"不许算过）`); continue; }
+    const html = stripComments(readFileSync(file, 'utf8'));   // 注释里写"入口"两个字不算一枚锚：口径照 1b／1c／1d／1e
+    const host = browseHostOf(html);
+    judged++;
+    if (host !== null) hostTotal++;
+    const anchors = host === null ? null : anchorsOf(host);
+    if (anchors !== null) anchorTotal += anchors.length;
+    const { reds, checks } = judgeBrowse(anchors, want);
+    units += checks;
+    for (const red of reds) problems.push(`1g 三族入口 ${rel}：${red}`);
+  }
+  if (!judged) problems.push('1g 三族入口：一份目录页产物都没进到窗 ⇒ 这一格空转（不许算过）');
+  /* 落点归属：`.essay-browse` 只许长在目录页那一族里（第二处宿主＝第二处真值） */
+  const catalogue = new Set(pages.map(([, f]) => f));
+  const strays = [];
+  for (const { file, url } of PAGES) if (!catalogue.has(file) && browseHostOf(stripComments(readFileSync(file, 'utf8'))) !== null) strays.push(url);
+  units += PAGES.length;
+  for (const u of strays) problems.push(`1g 三族入口 ${u}：非目录页的产物里出现了 class="essay-browse" 那一行 ⇒ 入口有了第二处落点（规格 §9 签的是"页内接通、只住在 /essays/ 名单之后"，要扩到别页得先改那一格）`);
+
+  notes.push(`1g 三族入口 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}`
+    + `（两态都跑：① 家族全空 ⇒ 整行零字节合法、画一枚锚／画一行空壳各必红；② 注入 ${all3.length} 枚非空家族 ⇒ 枚数恰好等于家族数，少一枚、多一遍、抹掉一枚成员、绝对地址、册外地址各必红）`);
+  notes.push(`1g 三族入口：在册三族 ${FAMS.map(f => `${f.label} ${f.groups.length} 枚`).join(' · ')} ⇒ **非空家族 ${want.length} 枚**（在册地址 ${want.join(' ') || '一枚都没有'}）；`
+    + `进窗 ${judged}/${PAGES.length} 份产物（目录页 ${judged} 份 ＋ 全站 ${PAGES.length} 份查落点），`
+    + `盘上读到 class="essay-browse" 宿主 **${hostTotal} 处**、行内锚点 **${anchorTotal} 枚**${want.length === 0 ? ' ⇒ 在册 0 枚：三族今天全空着，整行一个字节都不落（这是 §12"没填就不出现"的合法态，不是没跑——上面那两态 needle 就是它不是空转的凭据）' : ''}；`
+    + `落点归属：非目录页宿主 ${strays.length} 处；盘上判决 ${units} 条 ＋ 内置自证 ${tried} 条 ＝ **${units + tried} 条断言**`);
+}
+
 /* ---------- 2. 浏览器 ---------- */
 /* "这轮用哪一枚"的判定只有站内一处：`tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）。
    ⚠️ 原来这一段是 `EDGE_CANDIDATES.find(existsSync)`——本机 msedge 交回 rc=0/0 字节那枚死法它挡不住：
@@ -1327,7 +1453,7 @@ async function runPhase(kind, profiles) {
 /* 每槽位一枚一次性 profile：N 个并发浏览器不能共用 user-data-dir（会互相抢锁） */
 if (STATIC_ONLY) {
   console.log('\n  ⚠️ --static-only：**浏览器两档一次都没跑**（内联隔离档 / 完整档 / 五枚属性 / 运行时 DOM 那一格目录⇄刻度 / phase 对账全部未断言）。');
-  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的五段（1b 结构对账、1c 不列入、1d 死锚点两侧对账、1e 订阅宣告对账、1f head 时间戳与卡面 alt 对账）跑完了。');
+  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的六段（1b 结构对账、1c 不列入、1d 死锚点两侧对账、1e 订阅宣告对账、1f head 时间戳与卡面 alt 对账、1g 三族索引的可见入口对账）跑完了。');
   console.log('     日常门禁 `npm run gate` 不带这一枚开关；它存在的理由见上面定义处那条环境记录。');
 } else {
   await runPhase('isolate', Array.from({ length: JOBS }, (_, i) => newProfile(`iso${i}`)));
@@ -1420,6 +1546,6 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(STATIC_ONLY
-  ? `\n✓ 不碰浏览器的那五段跑完且全过（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
+  ? `\n✓ 不碰浏览器的那六段跑完且全过（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据／1g 三族入口）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
   : `\n✓ 运行时五枚属性全部落地：${KEYS.join(' / ')}（内联脚本在跑，打包脚本也在跑）`);
 process.exit(0);
