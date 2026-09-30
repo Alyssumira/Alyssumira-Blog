@@ -164,14 +164,35 @@ if (remoteHead && !localSet.has(remoteHead) && !REST.includes('--force')) {
   if (!remoteTree) throw new Error(`拿不到远端 ${BRANCH} 头 ${remoteHead.slice(0, 7)} 的树 sha，认亲这一步没法做` +
     `（不是历史线的问题，是这次 GET 没交出 tree 字段）`);
   const twin = commits.filter(c => git('rev-parse', `${c}^{tree}`).trim() === remoteTree);
-  if (twin.length !== 1) {
+  /* 孪生不止一枚时，先问"它们彼此是不是串在同一条线上"。会撞出这一格的成因是**空 merge**：
+     `git merge --no-ff <分支>` 合一条内容上已经领先的分支，那枚 merge commit 的树与它的第一父逐字节相同
+     ⇒ 同一棵树在同一条直线上出现两次（2026-09-30 推 card/topact 之后实测：`dd3a6a1` 与 `87715ec` 同树
+     `4a21ab9`，而远端头 `1fb3ed1` 正是 `87715ec` 摊平后的那枚）。这种情况下"远端收过的最新内容"
+     有唯一诚实的答案＝**串上最新的那枚**：它父链上每一枚都已推过，从它下一枚起是纯快进，一枚已发布提交都不改写。
+     ⚠️ 反过来说，如果两枚同树提交互不为祖先（真的分了两条线），树就答不了"远端是哪一个"——
+     猜错等于把别人那条线覆盖掉，照旧拒绝，并且把这条判据的名字留在错信息里，别让人顺手加 `--force`。 */
+  const isAncestor = (a, b) => { try { git('merge-base', '--is-ancestor', a, b); return true; } catch { return false; } };
+  let pick = twin[0];
+  if (twin.length > 1) {
+    const byAge = twin.slice().sort((x, y) => commits.indexOf(x) - commits.indexOf(y));
+    for (let i = 1; i < byAge.length; i++) {
+      if (!isAncestor(byAge[i - 1], byAge[i])) {
+        throw new Error(`远端 ${BRANCH} 头 ${remoteHead.slice(0, 7)}（树 ${remoteTree.slice(0, 7)}）在本地有 ${twin.length} 枚同树提交，` +
+          `而 ${byAge[i - 1].slice(0, 7)} 与 ${byAge[i].slice(0, 7)} 互不为祖先 ⇒ 那是真的两条历史线（先确认没推错仓库、` +
+          `或本地被别的检出改写过）。"同树即同内容"在这一步只能判串、不能选线，所以拒绝。` +
+          `确实要用本地历史接管请加 --force——那会改写已经发布出去的历史`);
+      }
+    }
+    pick = byAge[byAge.length - 1];
+    console.log(`  同树孪生 ${twin.length} 枚串在同一条线上（空 merge 的第一父与 merge commit 同树）⇒ 取最新那枚续推`);
+  } else if (twin.length === 0) {
     throw new Error(`远端 ${BRANCH} 头 ${remoteHead.slice(0, 7)}（树 ${remoteTree.slice(0, 7)}）既不在本地 ${commits.length} 个提交里，` +
-      `也没有唯一的同树孪生（找到 ${twin.length} 个）——那是另一条历史线（先确认没推错仓库）。` +
+      `也没有任何一枚同树孪生（找到 0 个）——那是另一条历史线（先确认没推错仓库）。` +
       `确实要用本地历史接管请加 --force`);
   }
-  resumeFrom = commits.indexOf(twin[0]) + 1;
+  resumeFrom = commits.indexOf(pick) + 1;
   seedParent = remoteHead;
-  console.log(`  按树认亲：远端头 ${remoteHead.slice(0, 7)} 的树 == 本地 ${twin[0].slice(0, 7)} 的树（${remoteTree.slice(0, 7)}）` +
+  console.log(`  按树认亲：远端头 ${remoteHead.slice(0, 7)} 的树 == 本地 ${pick.slice(0, 7)} 的树（${remoteTree.slice(0, 7)}）` +
     ` ⇒ 从其后续推 ${commits.length - resumeFrom} 枚，不改写已发布历史`);
 }
 
