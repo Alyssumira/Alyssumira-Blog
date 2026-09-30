@@ -652,7 +652,10 @@ const markSpansOf = html => {
   for (const b of broken) problems.push(`1e 订阅宣告 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"逐页全过"从此不可信`);
 
   /* ---- 盘上判决：逐页四件 ＋ 两枚文件级 ---- */
-  let pagesIn = 0, units = 0, altTotal = 0, rssSeen = 0, atomSeen = 0;
+  let pagesIn = 0, units = 0, altTotal = 0;
+  /* 逐枚在册 feed 各覆盖几页。⚠️ 这里不许出现写死的 MIME：M-C 那枚变异实测到的假红就是它带出来的——
+     把"atom 宣告了几页"钉进覆盖面那一问，注册表改成一枚的合法态就会必红（正是上面那格 needle 要躲的同一条）。 */
+  const cover = FEEDS.map(() => 0);
   const announced = [];
   for (const { file, url } of PAGES) {
     const html = stripComments(readFileSync(file, 'utf8'));   /* 注释里的地址访客与阅读器都读不到：口径照 1b／1c／1d */
@@ -664,8 +667,7 @@ const markSpansOf = html => {
     for (const red of judgeFeeds(alts, FEEDS)) problems.push(`1e 订阅宣告 ${url}：${red}`);
     units += alts.length;                                     /* ④ 每一枚 rel="alternate" 的站内 href */
     for (const d of danglingOf(url, alts)) problems.push(`1e 死宣告：${d} —— 那一枚 rel="alternate" 指向的文件不在 ${DIST} 里 ⇒ 阅读器照宣告去取取回 404`);
-    if (alts.some(t => String(attrOf(t, 'type') || '').toLowerCase() === 'application/rss+xml')) rssSeen++;
-    if (alts.some(t => String(attrOf(t, 'type') || '').toLowerCase() === 'application/atom+xml')) atomSeen++;
+    FEEDS.forEach((f, i) => { if (alts.some(t => String(attrOf(t, 'type') || '').toLowerCase() === f.mime)) cover[i]++; });
   }
   for (const f of FEEDS) {
     units++;
@@ -677,12 +679,12 @@ const markSpansOf = html => {
   /* 零对象与"读到了几个数"当众交账（§16 那条"全绿也要看得见量到了哪几个数"） */
   if (!PAGES.length) problems.push(`1e 订阅宣告：dist/ 里一份 HTML 都没有 ⇒ 这一格没吃到东西（不许算过）`);
   else if (!pagesIn) problems.push(`1e 订阅宣告：${PAGES.length} 份 HTML 一份都没读进窗 ⇒ 判据空转（不许算过）`);
-  else if (!altTotal) problems.push(`1e 订阅宣告：${pagesIn} 份 HTML 的 <head> 里 rel="alternate" 读到 0 枚 ⇒ 两枚 feed 一枚都没宣告，这一格不许按"零条红"算过`);
-  else if (rssSeen !== pagesIn || atomSeen !== pagesIn) problems.push(`1e 订阅宣告：进窗 ${pagesIn} 页，逐页回读里 rss 有宣告的 ${rssSeen} 页、atom 有宣告的 ${atomSeen} 页 ⇒ 两枚的覆盖面不齐（上面逐页点名过是哪几页）`);
+  else if (!altTotal) problems.push(`1e 订阅宣告：${pagesIn} 份 HTML 的 <head> 里 rel="alternate" 读到 0 枚 ⇒ 在册那 ${FEEDS.length} 枚 feed 一枚都没宣告，这一格不许按"零条红"算过`);
+  for (let i = 0; i < FEEDS.length; i++) if (pagesIn && cover[i] !== pagesIn) problems.push(`1e 订阅宣告：进窗 ${pagesIn} 页，${FEEDS[i].mime}（在册地址 ${FEEDS[i].at}）有宣告的只有 ${cover[i]} 页 ⇒ 覆盖面不齐，逐页那一格上面已点名是哪几页缺`);
   notes.push(`1e 订阅宣告 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}${skipped ? `，另有 ${skipped} 格今天没有对象（注册表少于两枚，上面逐格点名）` : ''}`
     + `（收集器：三种引号形状／缺 <head> 交回 null／非 alternate 不收；判决：齐全零红、"合法单 feed 态对单 feed 注册表零红 ⇄ 对两 feed 注册表恰红一条"那一对、`
     + `重复／册外／绝对／地址不符／title 两个名字／title 缺 各一枚红的反向格；死宣告：在盘上零枚／不在盘上一枚／空串一枚）`);
-  notes.push(`1e 订阅宣告：${pagesIn}/${PAGES.length} 份 HTML 进入，共读到 rel="alternate" **${altTotal} 枚**（rss 宣告 ${rssSeen} 页、atom 宣告 ${atomSeen} 页，在册 ${FEEDS.length} 枚 feed 各恰一枚）；`
+  notes.push(`1e 订阅宣告：${pagesIn}/${PAGES.length} 份 HTML 进入，共读到 rel="alternate" **${altTotal} 枚**（${FEEDS.map((f, i) => `${f.at} 宣告 ${cover[i]} 页`).join('、')}，在册 ${FEEDS.length} 枚各恰一枚）；`
     + `feed 文档 ${announced.length}/${FEEDS.length} 枚在盘上（${announced.join(' / ') || '零枚'}）；盘上判决 ${units} 条 ＋ 内置自证 ${tried} 条 ＝ **${units + tried} 条断言**`);
 }
 
