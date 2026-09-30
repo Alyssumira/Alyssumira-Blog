@@ -1,0 +1,25 @@
+---
+/* `/essays/page/<n>/` ＝ 目录的第 n 页（n ≥ 2；第 1 页是 `/essays/` 本身，见 `../index.astro`）。
+   ⚠️ 相对路径往上**三**层（`src/pages/essays/page/` → `src/`）：抄 `../index.astro` 那两层的写法会撞到
+      `src/pages/lib/…` 那种不存在的路径，Vite 报 `UNRESOLVED_IMPORT`——同一个坑记在
+      `src/pages/essays/[slug]/index.md.js` 头上那一段（它比这一格早一轮踩到）。
+   ⚠️ 命名空间那一段 `page` 是**保留字**：任何一枚稿件的 id 的第一段都不许等于它，
+      否则详情页会落进这一族的地址里（成因与实测在 §15 那一格，机器牙在 `tools/new-post.mjs --check`）。
+   模板同样不在这里——与第 1 页同一份 `EssayIndex.astro`，两页读同一把尺子。 */
+import EssayIndex from '../../../components/EssayIndex.astro';
+import { visiblePosts } from '../../../lib/posts.js';
+import { essaysPerPage, pageRanges } from '../../../lib/pagination.js';
+
+export async function getStaticPaths(){
+  /* 名单仍然只向 `visiblePosts()` 要（`tools/taxonomy-check.mjs` 的 ①② 两格钉着"读 posts 的唯一入口"，
+     分页不许在这里长出第三份"有哪些稿子"）。这里只回答第二问：**这些枚数切成几页、哪几页要建出来**。
+     `slice(1)` 就是那一句"第 1 页不建两遍"；只有一页时（今天这一态：三篇 ÷ 每页 3 行）交回**空数组**
+     ⇒ `/essays/page/**` 一枚产物都不生成。这是"这一条路不存在"，不是"生成一张空目录再把它藏起来"
+     （§12 那条"关掉之后不留活壳"：能访问却没有一行的页＝一枚读者点进去读不出东西的活锚点）。 */
+  const posts = await visiblePosts();
+  const ranges = pageRanges(posts.length, essaysPerPage());
+  return ranges.slice(1).map(r => ({ params: { n: String(r.page) }, props: { page: r.page, posts } }));
+}
+const { page, posts } = Astro.props;
+---
+<EssayIndex page={page} posts={posts} />

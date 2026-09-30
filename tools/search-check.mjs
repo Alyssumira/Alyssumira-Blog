@@ -1,7 +1,8 @@
 /* search-check.mjs —— 站内搜索那一格的行为门禁（第十一轮 `card/search`；`npm run gate` 里 build **之后**的第一项）
    用法  npm run build && node tools/search-check.mjs
          node tools/search-check.mjs --dist=<目录>   （换产物目录；指向空目录 ⇒ 红）
-         node tools/search-check.mjs --edge=<路径>   （换浏览器可执行文件；找不到 ⇒ 红，不降级不跳过）
+         node tools/search-check.mjs --browser=<路径> （指定浏览器；旧名 --edge= 一样认，也可设环境变量 MISTWOOD_BROWSER。
+                                    用哪一枚本来由 tools/browser-bin.mjs 现场探，**探不到靶 ⇒ 红，不降级不跳过**）
          node tools/search-check.mjs --only=node     （只跑不碰浏览器的那四格 ①②③④）
          node tools/search-check.mjs --only=browser  （只跑浏览器那三格 ⑤⑥⑦）
          node tools/search-check.mjs --widths=300,320,340,360,720,1440   （逐档视口；少于三档 ⇒ 红）
@@ -78,15 +79,15 @@
    ⚠️ 面板与胶囊几何那几档不用 `--window-size` 设视口（本机 Edge 有最小窗宽，实测 320 档回来是 504），
       用的是**同源 iframe**：见下面 FRAME_DRIVER 那段注释。
 */
-import { spawn } from 'node:child_process';
+
 import { createServer } from 'node:http';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
-
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
+import { resolveBrowser, browserCandidates, spawnBrowser } from './browser-bin.mjs';
 import { isDraft, isUnlisted, sortPosts } from '../src/lib/taxonomy.js';
 import { docTokens, queryTerms, searchDoc, INDEX_VERSION } from '../src/lib/search.js';
 
@@ -584,7 +585,7 @@ function dumpDom(url, profile, width, wantDrive = true){
       '--no-first-run', '--no-default-browser-check', `--window-size=${width},900`,
       '--virtual-time-budget=40000', '--dump-dom'];
     let child;
-    try { child = spawn(EDGE, [...flags, url], { cwd: dirname(EDGE), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    try { child = spawnBrowser(EDGE, [...flags, url], { cwd: dirname(EDGE), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
     catch (e){ return res({ fail: 'spawn ' + EDGE + ' 抛了：' + e.message }); }
     let stdout = '', stderr = '', killed = false, done = false;
     child.stdout.on('data', d => { stdout += d; });
@@ -618,13 +619,17 @@ function cleanup(profiles){
   }
 }
 
-const EDGE_CANDIDATES = [
-  opt('edge'),
-  process.env['PROGRAMFILES'] && join(process.env['PROGRAMFILES'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-  process.env['PROGRAMFILES(X86)'] && join(process.env['PROGRAMFILES(X86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-  process.env['LOCALAPPDATA'] && join(process.env['LOCALAPPDATA'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-].filter(Boolean);
-const EDGE = opt('edge') ? resolve(opt('edge')) : EDGE_CANDIDATES.find(p => p && existsSync(p));
+/* 浏览器"这轮用哪一枚"的判定**不在这里**——站内唯一一处是 `tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）。
+   口径没变，只是把"可用"的定义从"文件在盘上"换成"**探得到靶**"：交回的 DOM 里必须有只有 JS 跑过才存在的标记。
+   全不通 ⇒ `resolveBrowser` 交回 `null` ⇒ 下面第 ⑤⑥⑦ 格按"没跑"记红（不降级、不跳过）。
+   ⚠️ 过去这两把尺子各自复制一份 `EDGE_CANDIDATES` + `existsSync`，本机 msedge 交回 rc=0/0 字节时
+   它照样报"找到了浏览器"，三格拿到空串却在空转——那正是"量具失去靶"与"门禁看不见自己失去靶"的差。
+   `--only=node` 那一档不碰浏览器，也就不必花探针的三秒去探一枚用不上的引擎。 */
+const browserSkips = [];
+const BROWSER = ONLY === 'node' ? null
+  : await resolveBrowser({ flag: opt('browser') || opt('edge'), label: 'search-check', log: s => browserSkips.push(s.trim()) });
+const EDGE = BROWSER && BROWSER.bin;
+const EDGE_CANDIDATES = browserCandidates(opt('browser') || opt('edge')).map(c => c.bin);
 
 async function drive(){
   const file = join(DIST, 'index.html');
@@ -706,8 +711,8 @@ async function drive(){
 if (ONLY !== 'node'){
   if (!PROBE){
     problems.push('浏览器那三格没跑：探针词没挑出来（语料那一格已经点名了）—— 不降级、不跳过，这一格没跑就不许把"搜索可用"报成已验到');
-  } else if (!EDGE || !existsSync(EDGE)){
-    problems.push(`浏览器那三格没跑：找不到 msedge（试过 ${EDGE_CANDIDATES.join(' / ')}）—— 不降级、不跳过；这一格没跑就不许把"搜索可用"报成已验到`);
+  } else if (!EDGE){
+    problems.push(`浏览器那三格没跑：六档候选没有一枚探得到靶（试过 ${EDGE_CANDIDATES.join(' / ')}；逐枚为什么不通见上面那几行"跳过"）—— 不降级、不跳过；这一格没跑就不许把"搜索可用"报成已验到`);
   } else {
     let res = null;
     try { res = await drive(); } catch (e){ problems.push(`浏览器格停在半路：${e.message || e}`); }
@@ -941,7 +946,9 @@ console.log('── search-check（站内搜索：产物形状 + shipped 刀口 
 console.log(`  产物  ${DIST}` + (existsSync(INDEX_PATH) ? ` —— search.json ${(statSync(INDEX_PATH).size / 1024).toFixed(1)} KB / ${product ? product.docs.length : '?'} 篇文档` : ' —— 读不到 dist/search.json'));
 console.log(`  稿件  源码 ${CORPUS.length} 篇 · 可见 ${VISIBLE.length} 篇 · 草稿 ${DRAFTS.length} 篇`);
 console.log(`  探针  ${PROBE ? `「${PROBE.word}」→ 只落在 ${PROBE.slug} 的正文里（全站 ${PROBE.total} 处、标题与摘要都不含它）` : '（没挑出来 ⇒ 命门那几格没有对象，已记为红）'}；反例「${ABSENT || '（拼不出来）'}」`);
-console.log(`  浏览器 ${EDGE || '（没找到 ⇒ ⑤⑥⑦ 没跑）'}`);
+console.log(`  浏览器 ${EDGE || (ONLY === 'node' ? '（--only=node 这一趟不碰浏览器，所以一枚都没探）' : '（一枚候选都没探过靶 ⇒ ⑤⑥⑦ 没跑）')}`);
+if (BROWSER) console.log(`        为什么是它：${BROWSER.note}`);
+for (const s of browserSkips) console.log(`        ${s}`);
 if (notes.length){ console.log('  读数：'); for (const x of notes) console.log(`    ${x}`); }
 /* ⚠️ 最后一枚总闸：一枚断言都没跑成就等于"检查没跑"，退出码 0 是假绿（§14 第 14 格立的那条规矩：
    注册表为空⇒红、一格都没抓到⇒红并打印"判据正在空转"）。`cell` 已经逐格拦 asserted=0，

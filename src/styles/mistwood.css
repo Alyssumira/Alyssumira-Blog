@@ -726,21 +726,6 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 }
 .col-visit::before{ content:""; display:inline-block; width:5px; height:5px; margin-right:8px; border-radius:50%; background:var(--moss); vertical-align:2px; }
 
-/* ============ 关于页：一生格子（`card/lifegrid`——机制在册、渲染欠载体） ============ */
-/* ⚠️ 今天这几条规则在产物里**一个对象都没有**：`src/data/site.js` 那枚 BIRTH_DATE 是空串 ⇒
-   about.astro 那一枚三元交回 null ⇒ `dist/about/index.html` 里连 `.life-grid` 这个盒子都不存在
-   （那一格由 tools/lifegrid-check.mjs ① 当众数，不是"大概没画"）。
-   它们留在这儿是为了数据到位那天不再新立一档，四枚零：**零新色板令牌**（封口线 --line、
-   格子的墨 --moss 走 color-mix，写法与 :539 `.chip:hover` 同族；枯草金不进这一块——它今天在这一屏用了 0 次，
-   明天也不该被一格格子占掉：格子的语气是"读数"，不是"这一屏的主角"）、**零新圆角**（格子就该是方的，
-   gap-check 那根 12 种／30 枚的圆角梯子一枚不为它动）、**零新模糊 / 零新时长档**（一处动处处静，§1.2）。
-   ⚠️ **零新垂直间距槽位**：这里只写 column-gap 与 border，margin / padding / row-gap 一个字不写——
-   行与行之间那 1px 由 .life-cell 的下边框打出来，它是画的笔画而不是留白（gap-check 的 VPROPS 不认 border，
-   142 枚那本账因此不为这块翻页）。 */
-.life-grid{ border-top:1px solid var(--line); }
-.life-year{ display:grid; grid-template-columns:repeat(52,minmax(0,1fr)); column-gap:2px; }
-.life-cell{ aspect-ratio:1/1; background:color-mix(in srgb,var(--moss) 42%,transparent); border-bottom:1px solid var(--bg-base); }
-
 /* ============ 移动端 ============ */
 @media (max-width:720px){
   .nav{ gap:14px; padding:9px 14px; }

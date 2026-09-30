@@ -108,9 +108,5 @@ export function siteFacts(posts){
     tended: commits && first ? { first, last } : null,
     built: stamp(now),
     arc: yearArc(now),
-    /* 同一枚 `now` 原样交回（`card/lifegrid`）：关于页"一生格子"那一块算的是"到构建这一刻走过多少格"，
-       它必须和上面"构建于"那一行说的是同一刻——§16 那条"一页只许有一个构建时刻"管的就是这一族。
-       ⚠️ 这里只是把**已经求过的那一次**递出去，没有第二次取时钟（这段文件里带空括号的那个构造仍然只有一处）。 */
-    now,
   };
 }

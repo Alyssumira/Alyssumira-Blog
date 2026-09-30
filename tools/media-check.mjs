@@ -301,7 +301,11 @@ cell('④', '本卡吃的两份真值与页面同源（绊线：页面换渲染�
   assert.ok(/render(?:Md|Article)\s*\(\s*post\.body\s*\)/.test(detail),
     '④ 详情页不再吃 renderMd/renderArticle(post.body) —— ② 那格收的产物真值与页面上的不是同一份，整格判据的来源要换（见文件头为什么走 renderMd 这条路）');
   let n = 2;
-  for (const f of ['src/pages/essays/index.astro', 'src/components/PostRow.astro']){
+  /* ⚠️ 列表页那一枚在本轮 `card/pagination` 换了宿主：目录行的模板从 `src/pages/essays/index.astro`
+     搬进 `src/components/EssayIndex.astro`（第 1 页与 `/essays/page/<n>/` 两处用同一份，见 §15 那一格）。
+     这一格的绊线管的正是"页面换渲染方式 ⇒ 本卡必须跟着改"，所以这里跟着换名——不改的话 ③ 那格判的
+     cover 落点会指到一份不再画 `<img>` 的文件上（那是"拿一把读不到的尺子当验收"，§12 记过）。 */
+  for (const f of ['src/components/EssayIndex.astro', 'src/components/PostRow.astro']){
     const src = read(f);
     assert.ok(/\.cover\s*\?/.test(src), `④ ${f} 里 cover 那一枚三元不在了 —— ③ 那格判的落点变了`);
     assert.ok(/src=\{root\((?:p|post)\.data\.cover\)\}/.test(src), `④ ${f} 的 cover 不再经 root() 进 <img src> —— 本卡给 cover 用的那把尺子（root 之后再查盘）与页面不同源`);
