@@ -1032,7 +1032,7 @@ const markSpansOf = html => {
   }
 
   /* ---- 四件断言，逐枚点名 ---- */
-  notes.push(`不列入对账：按 front matter 现算出 **${unlisted.length} 枚** unlisted（名单：${unlisted.map(p => p.id).join('、') || '空 ⇒ 今天没有对象，四件断言由上面三枚 needle 当众验过；routable ${routable.length} 篇的页面全部回读过'}）`);
+  notes.push(`不列入对账：按 front matter 现算出 **${unlisted.length} 枚** unlisted（名单：${unlisted.map(p => p.id).join('、') || `空 ⇒ 今天没有对象，四件断言由上面三枚 needle 当众验过；routable ${routable.length} 篇的页面全部回读过`}）`);
   const clean = [];
   for (const p of unlisted) {
     const page = join(DIST, 'essays', p.id, 'index.html');
