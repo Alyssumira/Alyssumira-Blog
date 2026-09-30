@@ -2,6 +2,8 @@
    用法  npm run build && node tools/runtime-check.mjs
          npm run gate   （= check && build && 本脚本，规范 §16 登记的落点）
          node tools/runtime-check.mjs --strict-site    （把占位域名的警告升成红）
+         node tools/runtime-check.mjs --browser=<路径> （指定浏览器；旧名 --edge= 一样认，也可设环境变量 MISTWOOD_BROWSER。
+                                    用哪一枚本来由 tools/browser-bin.mjs 现场探，探不到靶 ⇒ 红，不降级不跳过）
 
    要堵的洞（规范 §16 那条待办的原文）：`Layout.astro` 里两段 `<script is:inline>` 之一被写成
    "语法完全合法但整段不执行"（`})();` → `});`，IIFE 变成定义出来再丢弃的函数表达式），
@@ -55,8 +57,10 @@
       "名单点名的产物不在盘上就红"的断言——窗口宽窄与"读没读到"是两件事，都得有格子看着。
 
    ── 取 DOM 的路线结论（写死在这里，下次不必再试）─────────────────────────────
-   路线 A 通：`msedge --headless=new --user-data-dir=<一次性目录> --virtual-time-budget=6000 --dump-dom <url>`，
+   路线 A 通：Chromium 系浏览器 `--headless=new --user-data-dir=<一次性目录> --virtual-time-budget=6000 --dump-dom <url>`，
    stdout 就是脚本执行后的 outerHTML。没退到路线 B（CDP + Node 24 全局 WebSocket）——B 一次都没用上，属未验到。
+   ⚠️ **用的是哪一枚不在本脚本里定**（2026-09-30 `card/browserbin`）：`tools/browser-bin.mjs` 现场选定，
+   判据是"探得到靶"而不是"文件在盘上"——msedge 交回 rc=0/0 字节那枚死法就是被 existsSync 放过去的。
    没用 `file:///`：那底下 localStorage/sessionStorage 常被禁，且 `base:'/'` 的资源引用会断。
    服务用本脚本自带的 `http://127.0.0.1:<随机端口>`（显式绑 127.0.0.1），绕开 §16 ① 那个
    "dev/preview 只听 [::1]，127.0.0.1 直接 ERR_CONNECTION_REFUSED" 的坑——不依赖 astro preview 的绑定习惯。
@@ -87,6 +91,7 @@ import { tmpdir } from 'node:os';
    `posts.js` 反而拿不了——那一层只做"取集合 + 滤草稿 + 排序"，规则本身在这份里）。
    front matter 的读法同 `new-post.mjs --check` 那一份：两处各写一个 split 迟早对"什么算草稿"读成两种。 */
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
+import { resolveBrowser, browserCandidates } from './browser-bin.mjs';
 import { isDraft, isUnlisted, sortPosts, categoryOf, tagGroups, bySize, groupBy } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -474,14 +479,16 @@ if (!HEADS.size) problems.push('目录⇄刻度对账没跑：可见稿件是 0 
 }
 
 /* ---------- 2. 浏览器 ---------- */
-const EDGE_CANDIDATES = [
-  opt('edge'),
-  process.env['PROGRAMFILES'] && join(process.env['PROGRAMFILES'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-  process.env['PROGRAMFILES(X86)'] && join(process.env['PROGRAMFILES(X86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-  process.env['LOCALAPPDATA'] && join(process.env['LOCALAPPDATA'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-].filter(Boolean);
-const EDGE = opt('edge') ? resolve(opt('edge')) : EDGE_CANDIDATES.find(p => existsSync(p));
-if (!EDGE || !existsSync(EDGE)) die(`找不到浏览器可执行文件（试过：${EDGE_CANDIDATES.join(' / ')}）`, '  换浏览器传 --edge=<路径>；这一条不降级、不跳过');
+/* "这轮用哪一枚"的判定只有站内一处：`tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）。
+   ⚠️ 原来这一段是 `EDGE_CANDIDATES.find(existsSync)`——本机 msedge 交回 rc=0/0 字节那枚死法它挡不住：
+   文件在盘上就报"找到了浏览器"，而后面上面每一档 dump 拿到的是空串。现在"可用"的定义是**探得到靶**
+   （交回的 DOM 里带着只有 JS 跑过才存在的 `#probe→PROBE_OK`），探不到就是没有浏览器 ⇒ 照旧 die，不降级不跳过。 */
+const browserSkips = [];
+const BROWSER = await resolveBrowser({ flag: opt('browser') || opt('edge'), label: 'runtime-check', log: s => browserSkips.push(s.trim()) });
+const EDGE = BROWSER && BROWSER.bin;
+const EDGE_CANDIDATES = browserCandidates(opt('browser') || opt('edge')).map(c => c.bin);
+if (!EDGE) die(`没有一枚浏览器探得到靶（试过：${EDGE_CANDIDATES.join(' / ')}）\n${browserSkips.map(s => '    ' + s).join('\n')}`,
+  '  换浏览器传 --browser=<路径>（旧名 --edge= 也认）或设环境变量 MISTWOOD_BROWSER；这一条不降级、不跳过');
 
 /* ---------- 3. 一次性 profile（绝不碰用户真实 Edge 配置）---------- */
 function newProfile(tag) {
@@ -621,6 +628,8 @@ const tail = (s, n = 400) => (s || '').replace(/\s+/g, ' ').trim().slice(-n);
    同一阶段内并发是安全的：每个槽位一套自己的一次性 profile，不抢 user-data-dir 的锁。 */
 console.log(`  产物  ${DIST} —— ${PAGES.length} 份 HTML × 2 档 = ${PAGES.length * 2} 次浏览器`);
 console.log(`  浏览器 ${EDGE}`);
+console.log(`        为什么是它：${BROWSER.note}`);
+for (const s of browserSkips) console.log(`        ${s}`);
 console.log(`  服务  ${BASE}（一次性 profile ${JOBS * 2} 枚，跑完删）`);
 console.log('');
 
