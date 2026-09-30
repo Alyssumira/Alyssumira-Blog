@@ -2,6 +2,7 @@
    *em* 与 **strong** 与 ***粗斜*** / `code` / 围栏代码块 ```lang / |a|b| 表格 / [文字](链接) /
    ![alt](src "图注") / [^id] 脚注 / ^[文字] 边注
    解析器从旧版 assets/mistwood.js 原样搬来，规范里的"不超纲"就靠它 */
+import { intrinsicAttrs } from './image-dims.js';
 function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -28,9 +29,24 @@ const IMG_ONE  = new RegExp('^!\\[([^\\]]*)\\]\\(' + U + TITLE + '\\)$');
 const IMG_LINK = new RegExp('^\\[!\\[([^\\]]*)\\]\\(' + U + TITLE + '\\)\\]\\(' + U + '\\)$');
 const LINK_RE  = new RegExp('\\[([^\\]]+)\\]\\(' + U + TITLE + '\\)', 'g');
 
+/* 正文里那一枚 `<img>` 发什么属性（`card/imgpipe`，2026-09-30）。一枚一枚交代，因为这仓对"顺手加"敏感：
+   · `width` / `height`——**构建期从真文件头读**（`src/lib/image-dims.js`，零依赖）。落点是 `essay.css:377`
+     那条 `.post-body figure.shot img{ display:block; width:100%; height:auto }`：`height:auto` 在没有固有尺寸的
+     img 上取图前量不出高 ⇒ 解码完成那一瞬间布局盒从 0 长到几百 px，那是 CLS 的教科书形状。有了这两枚，UA 样式表
+     的 `aspect-ratio: attr(w)/attr(h)` 让盒子在取图之前就对。**读不到就不发**（远端／盘上没有／格式认不出），
+     绝不猜数——错数比缺档贵：缺数只是那一格没修，错数会让盒子先按错的长、解码后再跳一次。
+   · `decoding="async"`——只跟着 `loading="lazy"` 发，不跟着首屏那两张照片发。三条理由：
+       ① 内容位（正文图／封面／图鉴截图）今天与将来都是 `loading="lazy"`，而 **Blink 对 lazy 图的 `decoding`
+          默认值本来就是 `async`**（规范上 `auto` 在延迟载入时按 async 解）⇒ 这一枚是把浏览器已经在做的事**写下来**，
+          不是让它改做另一件事；
+       ② 它改的是"解码在不在主线程上等一帧"，不改布局盒、不改 §8.4 那条散雾链——`.in` 那一步挂在 `load` 事件上
+          （`src/scripts/site.js`），`decoding` 不动 `load` 的时机；
+       ③ 首屏那两张 `bg-*.jpg` **不加**：它们是 eager 载入的，那里 `auto` 解到的是"sync"一侧，改成 async 会
+          把"第一帧有影"推迟到解码之后，而 §8.2 那张时间轴（照片 1.2s 起、2.2s 走完、3.4s 收口）是按现在的解码
+          时机签过字的——要动它得连那串数一起复量，不在这一卡的格子里。 */
 function imgEl(alt, s){
   const u = imgSrc(s);
-  return u ? `<img src="${u}" alt="${attr(alt)}" loading="lazy">` : '';
+  return u ? `<img src="${u}" alt="${attr(alt)}"${intrinsicAttrs(u)} loading="lazy" decoding="async">` : '';
 }
 function figure(alt, s, cap){
   const el = imgEl(alt, s);
@@ -220,32 +236,6 @@ function splitBlocks(md){
   return out;
 }
 
-/* ---- 章的 id：构建期就落在正文里（`card/anchors`，§15 详情页那一格 / §19.3 那格陷阱的同族）----
-   规则一句话可复算：**id = safe( 行首记号之后的整串原文 )**，`safe`（:52）就是脚注 id 一直在用的
-   那一份函数（Unicode 字母/数字/连字符留下、其余换 `-`、首尾不留、限长 32），这里不新开第二份规范化。
-   ⚠️ 原料是**原文**而不是渲染结果：`inlineMd` 的输出带着 `&amp;` 与 `<em>` 这类壳，拿它当原料就会把
-      标记名混进地址（`## 用 *斜体*` → 渲染串里会数出 `em`）。可见文字仍走 `inlineMd`。
-   ⚠️ 重名（同一篇里两枚同名标题）⇒ 第一枚拿裸值，第二枚起加 `-2`、`-3`…（`headTaken` 按章序推进，
-      所以后缀是一枚**确定性行为**，不是"谁先谁后看运气"；集合里查过了才放行，产物内绝不出现两枚同值 id）。
-   ⚠️ 归一化之后是空串（`## ！？` 那种纯标点章）⇒ 退 `sec-<章序>`，**不许发空 id**：空串是一枚点不开的
-      活锚（§12 死锚点），而 `id=""` 也会让第二枚空串撞车。 */
-const headsOut = [];
-const headTaken = new Set();
-function headId(raw, idx){
-  const base = safe(raw) || ('sec-' + idx);
-  let id = base, n = 2;
-  while (headTaken.has(id)) id = base + '-' + (n++);   /* 后缀一路试到没被占过的那枚 ⇒ 唯一性由集合保证 */
-  headTaken.add(id);
-  return id;
-}
-/* 一枚标题只在这里成形一次：正文那个标签、目录那一行的字、刻度那一排的位置，全吃同一次调用的产物 */
-function headBlock(level, raw){
-  const id = headId(raw, headsOut.length);
-  const inner = inlineMd(raw);
-  headsOut.push({ level, id, text: inner.replace(/<[^>]+>/g, '') });
-  return `<h${level} id="${id}">${inner}</h${level}>`;
-}
-
 function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引用 / 分隔线 / 代码围栏 / 表格 / 图片行（整段是图、图包在链接里也算） */
   /* 行尾不许是输入的一部分：下面整份解析器以 '\n' 为唯一行分隔（splitBlocks 切块、split('\n') 拆引用），
      而 `core.autocrlf=true` 的机器上 `git clone` 会把稿件落成 CRLF —— 那时 '\r\n\r\n' 里两个 '\n' 不相连，
@@ -253,7 +243,6 @@ function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引�
      归一成 LF，渲染器漏了：检查归一、渲染不归一 ⇒ 门禁绿得恰恰因为它赦免了同一件事。 */
   const md = String(md0).replace(/\r\n/g, '\n');
   fnDefs.clear(); fnOrder.length = 0; anchored.clear(); sn.n = 0; allowRefs = true;
-  headsOut.length = 0; headTaken.clear();   /* 章的 id 与去重集合是**一篇一份**：不清就会把上一篇的后缀账带进来 */
   /* 两趟：脚注定义习惯写在文末，可引用在开头——先收完定义再渲染，否则第一处引用会当成缺号 */
   const blocks = [];
   for (const raw of splitBlocks(md)){
@@ -265,8 +254,8 @@ function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引�
   const html = blocks.map(t => {    if (t.startsWith('```')) { const code = codeMd(t); if (code) return code; }
     const tbl = tableMd(t);
     if (tbl) return tbl;
-    if (t.startsWith('### ')) return headBlock(3, t.slice(4));
-    if (t.startsWith('## ')) return headBlock(2, t.slice(3));
+    if (t.startsWith('### ')) return '<h3>' + inlineMd(t.slice(4)) + '</h3>';
+    if (t.startsWith('## ')) return '<h2>' + inlineMd(t.slice(3)) + '</h2>';
     if (/^(?:-{3,}|\*{3,})$/.test(t)) return '<hr>';
     const lines = t.split('\n');
     if (allMatch(lines, /^[-*][ \t]+/)) return listMd(t, false);
@@ -286,15 +275,6 @@ function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引�
   return all;
 }
 
-/* 详情页要的读法：正文与那一页的章**同一次调用交回来**。
-   ⚠️ 为什么不叫 `renderMd` 之后再问一枚 `heads()` 全局：那样"渲染"与"取章"是两步，中间插进第二篇的
-   渲染就会读到别人的账（模块级状态本来就是为脚注那套"一处渲染全程"留的，见 :64 那段说明）。
-   一步交回两样，页面上就没有"拿错那一篇的目录"这条路；目录、刻度、正文那一排 id 因此同源。 */
-function renderArticle(md0){
-  const html = renderMd(md0);
-  return { html, heads: headsOut.map(h => ({ level: h.level, id: h.id, text: h.text })) };
-}
-
 /* 日期在 front-matter 里是 ISO，站上按等宽点分格式显示 */
 function fmtDate(d){
   return [d.getUTCFullYear(), String(d.getUTCMonth() + 1).padStart(2, '0'), String(d.getUTCDate()).padStart(2, '0')].join('.');
@@ -310,4 +290,4 @@ function fmtDate(d){
    长出一枚看着像真链接、点开 404 的活锚，比 `#` 更隐蔽。front matter 这两枚键要的是"**要么能用、要么没有**"，
    所以在这里多导出第二枚函数，而不是让页面或 `tools/` 各写一份协议判据。正文那条路（`link()` / `href()`）
    一个字没动——改的只有导出表这一行与它上面这段说明。 */
-export { renderMd, renderArticle, inlineMd, fmtDate, root, safe, splitBlocks, href, strictHref };
+export { renderMd, inlineMd, fmtDate, root, safe, splitBlocks, href, strictHref };
