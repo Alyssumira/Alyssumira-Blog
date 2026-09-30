@@ -7,6 +7,12 @@ import Seo from '../components/Seo.astro';
 import { ROOT } from '../lib/stats.js';
 import { NAV } from '../lib/nav.js';
 import { fonts } from '../data/site.js';
+/* 「写于 / 改于」那两枚日历日在全站只有一把尺子（§13a 结构化数据那一格）：`Seo.astro` 的 JSON-LD
+   `datePublished` / `dateModified` 吃的就是下面这两枚函数，head 里那两枚 `article:*` meta 现在也吃它们。
+   ⚠️ 这里不许出现第二种 `getUTC*` 拼法、也不许 `revised ?? date` 那种回落——§13a:1092 把 `dateModified`
+      登记成"这一格里唯一不许回落的字段"，head 那两枚 meta 与它读的是同一枚字段，回落一次就是同一件事
+      在两处各说一套（页面上那行「改于」走的是 `whenLine()` → 同一个 `revisedOn`，三枚消费者一把尺子）。 */
+import { publishISO, revisedOn } from '../lib/revised.js';
 
 /* revised / date 只有详情页（src/pages/essays/[slug].astro 那个 <Layout> 标签）会传：其余五页没有 ⇒
    Seo 那一格整字段不写，不许拿别的日期顶上（§13a） */
@@ -47,6 +53,37 @@ const ogImage = new URL(ogCard || cardFor(Astro.url.pathname) || SITE_CARD, Astr
 /* 站名从字面量提成变量：og:site_name 与 JSON-LD 的 WebSite.name 吃同一枚值（§13a）。
    ⚠️ 只折了这两处消费——下面那条 rss 的 title、各页页题尾巴上的 ' · mistwood' 还各自写着，散在本卡不许碰的文件里 */
 const SITE_NAME = 'mistwood';
+/* `article:published_time` / `article:modified_time`（§13a 身份件那一格）：两枚值就是上面那条注释点名的
+   那两枚函数的返回值——**不重算、不换格式、不回落**。
+   `publishISO()` 交回空串（这一页没有一枚合法的日历日）与 `revisedOn()` 交回 `undefined`
+   （git 问不到改动型提交，或改动那天不晚于发布那天）两种情形都落成**这一行根本不写**，
+   而不是写一枚空 content、也不是拿发布日期顶上：§13a:1092 那句「`revised ?? date` 是最危险的假语境」
+   管的正是这一族——机器读成"这篇后来改过"，而盘上从来没有那次改动。少一项不是错，多一项才是。
+   ⚠️ 今天三篇稿子都没有改动型提交（`git log --diff-filter=M -- src/content/posts` 实测 0 行），
+      所以 `article:modified_time` 在**每一份产物上都不存在**——那是正确的读数，不是漏了一行。
+   ⚠️ 两枚都只在 `og:type` 为 `article` 的那几页出现：这一族说的是"这一篇文章的时间"，
+      首页／目录页／404 领一枚就是假语境；这道门同时让"非文章页一枚都不许有"那一问在结构上成立。
+      判据在 `tools/runtime-check.mjs` 的 **1f 段**：它对着 front matter 的 `date` 与 `git log` **独立**复算
+      一遍期望值（不复用这两枚函数，否则尺子走的就是被测物自己——§13a:1092 那格立的口径），
+      再与 head 那两枚 meta、JSON-LD 那两枚字段三方对账。 */
+const artPub = type === 'article' ? publishISO(date) : '';
+const artMod = type === 'article' ? (revisedOn(date, revised) || '') : '';
+/* `og:image:alt`：alt 要说的是"这张图上写着什么"，而这张图上写的就是**两句站里本来就有的字面量**
+   （§13a:1076 那一格：纯排版方案、没有用照片）。两档卡的第二行不同，alt 也跟着分两档，不许一句话糊过去：
+     · 逐篇卡（`/og/<slug>.png`）＝ eyebrow 那行站名身份 ＋ 这一篇的题名（出图时注进文案槽的就是 title，
+       `tools/og-check.mjs` ④ 那一格逐枚对账"清单题面 ⇄ 当前 front matter"）；
+     · 站点级那张（`/og.png`）＝ 同一行站名身份 ＋ **首页 H1 那句**（`tools/og-cards.mjs` 给站点级那张传的
+       题面是 null ⇒ 槽保持模板默认）。这一档 cover 的是首页／关于／notes／things／三族目录／404 那几页，
+       它们的页题**根本不在卡面上**——给 `/notes/` 写"卡面写着这一页的题名「碎碎念 · mistwood」"就是谎话：
+       alt 描述的是图的内容，不是这张图的用途。
+   ⚠️ 题名吃页题（与 `<title>` / `og:title` / JSON-LD `headline` 同一枚值，因此也带着 ' · mistwood' 尾巴）——
+      理由与 §13a 那格 `headline` 那笔账一字不差：同一篇稿子两份题名迟早对不上，宁可带尾巴，不多一处出处。
+   ⚠️ 站点级那一档**故意不把那句 H1 抄进这份文件**：它在 `src/pages/index.astro` 的 H1 与
+      `tools/og-card.html` 的文案槽默认值里已经各有一份，抄进来就是第三处字面量（§13a"一处真值"）。
+   ⚠️ 判档用 `ogImage.pathname === SITE_CARD`，吃的是上面那枚常量，不在这里重抄第三遍 `/og.png`。 */
+const ogImageAlt = ogImage.pathname === SITE_CARD
+  ? `${SITE_NAME} 的社交卡（纯排版、没有照片）：卡面写着站名与首页那句标题`
+  : `${SITE_NAME} 的社交卡（纯排版、没有照片）：卡面写着站名与这一篇的题名 ${title}`;
 /* 导航表本体在 `src/lib/nav.js`（第六轮 `card/navcrumb` 搬出去的）：这一枚壳画它，`Seo.astro` 的
    JSON-LD 面包屑与详情页那行可见面包屑吃同一份。这里不再写字面量——写第二份就是给"哪一栏叫什么"
    立两处真值（§13a 那格的原话是"抄的那份改了没人知道"，本轮只是把同一个理由管到屏幕上那条链）。
@@ -83,8 +120,15 @@ if (fonts.some(f => !f.self)) throw new Error(`fonts 清单里这些族没有 se
 <meta property="og:title" content={title}>
 <meta property="og:description" content={desc}>
 <meta property="og:image" content={ogImage.href}>
+<meta property="og:image:alt" content={ogImageAlt}>
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+{/* 文章的时间戳（§13a 身份件那一格）：两枚值来自 `src/lib/revised.js` 里 JSON-LD 已经在用的那两枚函数，
+    拿不到 ⇒ 这一行不写（`artPub` / `artMod` 是空串，条件节点整个短路，一个字节都不落进产物）。
+    ⚠️ 这一段是 Astro 的模板注释、不是 HTML 注释——后者会原样跟着每一页进 dist/，
+       "改前改后逐字节对账"那把尺子当场破（口径与上面那枚 Atom 宣告那一段同一条）。 */}
+{artPub && <meta property="article:published_time" content={artPub}>}
+{artMod && <meta property="article:modified_time" content={artMod}>}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content={title}>
 <meta name="twitter:description" content={desc}>
