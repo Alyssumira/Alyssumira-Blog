@@ -1,99 +1,12 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import SearchEntry from '../../components/SearchEntry.astro';
-import { fmtDate, root } from '../../lib/markdown.js';
+/* `/essays/` ＝ 目录的**第 1 页**（本轮 `card/pagination`）。
+   模板不在这里：整份目录的排版（密度尺／按年分节／门牌／翻页那一行）只有一份实现，
+   住在 `src/components/EssayIndex.astro`，由这一页与 `src/pages/essays/page/[n].astro` 各画一页——
+   ⚠️ 两处各写一份尺子就是"每页一把随页数漂移的假尺"的成因，所以这里连 `visiblePosts()` 都不调。
+   第 1 页的地址**不带**页码（`/essays/`，不是 `/essays/page/1/`）：旧地址一个字节都不动，
+   而 `/essays/page/<n>/` 只在真的翻页时才存在（今天三篇装在一页里 ⇒ 那一族一枚都不生成）。 */
+import EssayIndex from '../../components/EssayIndex.astro';
 import { visiblePosts } from '../../lib/posts.js';
-import { readMinutes } from '../../lib/stats.js';
-
-/* 草稿不在这一页（也不在详情页、订阅源、关于页那几个数里）——filter 只住在 lib/posts.js 那一份。
-   顺序：置顶在最前，其余按日期倒序；下面的"按年分节"与 folio 都吃这个数组的顺序，
-   ⚠️ 所以置顶那篇会在它自己那一年的最前面、门牌仍旧连续（folio 只跟着渲染顺序加，不参与排序）。 */
 const posts = await visiblePosts();
-const pad = n => String(n).padStart(2, '0');
-
-/* 阅读时长的算法在 lib/stats.js：列表页与关于页的"总计"必须是同一把尺子，不能各算各的 */
-
-/* 密度尺：最近 12 个月每月几篇。空月份也画刻度，一条刻度尺比三根柱子诚实。
-   ⚠️ 2026-09-28 从 132×20 放大（美化建议 §2.2）：原尺寸实测读不出"哪几个月写过"，那就只是装饰档里一个看不清的点缀。
-   ⚠️ 2026-09-29 尺身从 SVG 换成**全宽 HTML**：拉宽 viewBox 会等比放大整张画（柱、字、轴线一起长），机制与三档实测在 §15 那一格。
-   柱高仍旧**归一到峰值**（原口径，§15 已登记"给条子留一口气"），不改成按篇数绝对计——
-   今天三篇全在 2026.09 那一格里（i=11，c=3 ⇒ h=36），其余 11 格各是一枚 3px 的空月刻度：绝对与相对画出来是同一根柱，改了也不多说一个字。 */
-const now = new Date();
-const months = Array.from({ length: 12 }, (_, i) => {
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11 + i, 1));
-  return { y: d.getUTCFullYear(), m: d.getUTCMonth() };
-});
-const perMonth = months.map(({ y, m }) => posts.filter(p => p.data.date.getUTCFullYear() === y && p.data.date.getUTCMonth() === m).length);
-const peak = Math.max(1, ...perMonth);
-const wrote = perMonth.filter(c => c).length;
-const stamp = ({ y, m }) => `${y}.${pad(m + 1)}`;
-const span = `${stamp(months[0])} → ${stamp(months[11])}`;
-
-/* 按年分节；年份只写一次，行内就剩 MM.DD（Rachel Andrew 那套去噪法） */
-const byYear = [];
-for (const p of posts) {
-  const y = String(p.data.date.getUTCFullYear());
-  let g = byYear.find(b => b.y === y);
-  if (!g) byYear.push(g = { y, items: [] });
-  g.items.push(p);
-}
-let folio = 0;
 ---
-<Layout title="文章 · mistwood" desc="经得起重读的东西。" here="essays">
-  <main class="wrap">
-    <header class="page-head reveal">
-      <h1 class="page-title">文章</h1>
-      {/* 扉页那一行现在要能承一块玻璃面板 ⇒ tag 从 `<span>` 换成 `<div>`（内容模型合法、`display:block`
-          由 `.page-head .sec-label` 那条既有声明给，版面逐位不变）；理由全文在 SearchEntry.astro 头上。 */}
-      <div class="sec-label">essays — <b>{pad(posts.length)}</b> →<SearchEntry /></div>
-      <span class="density-wrap">
-        {/* 尺身是 HTML 不是 SVG：`.density` 的宽度换成 100% 在 SVG 上不是"换个分母"，是整张画等比放大（10px 标签随视口漂、带高按 5:1 长到 224px），理由与三档实测读数在 §15 那一格。横向映射 x=i*26+5（300 用户单位内）→ left=i/11*100%（全宽内）；柱宽 4、柱高 6+(c/peak)*30、空月 3、带高 60、轴在 y=46、标签 10px mono .06em 一个都没改。 */}
-        <span class="density" aria-hidden="true">
-          {perMonth.map((c, i) => {
-            const h = c ? 6 + (c / peak) * 30 : 3;            /* 空月也留一根 3px 的刻度：尺子不能缺齿 */
-            const lab = i % 3 === 0 || i === 11;              /* 每三个月一个月份刻度 + 当月必标 */
-            const brch = i === 0 || months[i - 1].y !== months[i].y;   /* 带年的只有两格：窗口起点 i=0，与窗口里的年份边界（今天 i=3＝2026.01） */
-            const pos = `left:calc(${i} / 11 * 100%)`;        /* 柱心落位、translateX(-50) 居中 ⇒ 首尾各探出 2px 是刻意的：轴线必须与 .essay-index 同宽 */
-            return (
-              <>
-                <span class:list={['tick', { nil: !c, now: i === 11 }]} style={`${pos};height:${h}px`}></span>
-                {/* 首尾两枚标签换成贴栏缘（head=左缘对齐、tail=右缘对齐，样式在 mistwood.css 的 .d-lab.head/.d-lab.tail）：
-                    标签是文字，居中会让它探出栏左缘、切断全站那条左对齐线；柱仍居中，因为柱心是数据位置。key 顺序 head/tail 排在 now 前面是刻意的——产物里那枚 class 串要读成 `d-lab tail now`。 */}
-                {lab && <span class:list={['d-lab', { head: i === 0, tail: i === perMonth.length - 1, now: i === 11 }]} style={pos}>{brch ? <><span class="full">{stamp(months[i])}</span><span class="short">{pad(months[i].m + 1)}</span></> : pad(months[i].m + 1)}</span>}
-              </>
-            );
-          })}
-        </span>
-        <span class="density-cap">近 12 个月 · {span}（{wrote} 个月有更新，共 {posts.length} 篇）</span>   {/* 尺身 aria-hidden ⇒ 那条 aria 串逐字符搬进这句看得见的图例（仓库没有 sr-only 那一族，也不为它新写一条藏法的类） */}
-      </span>
-    </header>
-
-    {byYear.map(g => (
-      <section class="year-block reveal">
-        <h2 class="year-mark">{g.y}</h2>
-        <ol class="essay-index">
-          {g.items.map(p => {
-            const n = ++folio;
-            const d = p.data.date;
-            return (
-              <li>
-                <a class="row" href={`/essays/${p.id}/`} data-slug={p.id}>
-                  <span class="folio">{pad(n)}</span>
-                  {p.data.cover ? <span class="cover"><img src={root(p.data.cover)} alt="" loading="lazy"></span> : null}
-                  <span class="row-main">
-                    <h3>{p.data.title}</h3>
-                    <p class="row-ex">{p.data.excerpt}</p>
-                  </span>
-                  <span class="row-side">
-                    <time>{fmtDate(d).slice(5)}</time>
-                    <span class="row-min">{readMinutes(p.body)} min</span>
-                  </span>
-                </a>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-    ))}
-  </main>
-</Layout>
+<EssayIndex page={1} posts={posts} />

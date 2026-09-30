@@ -32,7 +32,8 @@
        `scripts/quarantine-bad-posts.mjs:27-48` 要手写 `stripCode()` 剥三遍才做对的事，渲染器已经做对了；
      · 段里夹的图、图包在链接里的图、整段是一枚图，三种形状都已经被 `renderMd` 收成 `<img>`；
      · `data:` 与 `javascript:` 这类协议由 `imgSrc()` 直接画成空 src（一枚 `<img>` 都不产），本卡无从查起；
-     · 详情页吃的就是 `renderMd(post.body)`（`src/pages/essays/[slug].astro:94 bodyHtml`），与这里同一个入参。
+     · 详情页吃的就是 `renderMd` 那一层（`card/anchors` 起页面写的是 `renderArticle(post.body)`，
+       `src/pages/essays/[slug].astro:95`——它是 `renderMd` 的一层壳，同一入参同一趟，只多交回章清单），与这里同一个入参。
    代价照实登记：产物里没有行号。所以**判断只来自产物，行号只用于点名是哪一行**（拿同一枚路径字面量回
    源码行里找，找不到也照样红，只是那一行少一个坐标）。自造第三套 markdown 正则——禁止，本卡没有。
 
@@ -288,15 +289,23 @@ cell('③', 'cover 非空 ⇒ 必须指到盘上真文件（空着／没写这�
    之后才进 <img src>。前提哪天变了，这两格就成了假真值，所以在这里钉住它——
    红了不是洁癖，是逼下一轮同时改本卡的判据来源（文件头那段为什么选 renderMd）。
    同一枚 hazards 也在 .astro 那三份的注释剥离上：谁往代码里写一串两星号接斜杠的 glob 字面量，
-   这一格会假红——那时该修的是剥离器，不是把这格删掉。 */
+   这一格会假红——那时该修的是剥离器，不是把这格删掉。
+   ⚠️ **这一格在 `card/anchors` 那天真红过一次**（不是假红）：详情页为了让目录与正文的章 id 同源，
+   改吃 `renderArticle(post.body)`（`markdown.js` 里它就是 `renderMd` 的一层壳：同一入参、同一趟渲染，
+   只多交回那一篇的章清单）。绊线按设计说话 ⇒ 这里把 needle 扩成 `render(Md|Article)`，
+   ② 那格自己仍走 `renderMd`（它收的是 `<img>`，与章清单无关）。改的是 needle 的形状，没有放宽判据。 */
 cell('④', '本卡吃的两份真值与页面同源（绊线：页面换渲染方式 ⇒ 本卡必须跟着改）', () => {
   const code = s => s.replace(/<!--[\s\S]*?-->/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
   const read = f => code(readFileSync(join(ROOT, f), 'utf8').replace(/\r\n/g, '\n'));   /* 注释里写一句不算数：看的是代码 */
   const detail = read('src/pages/essays/[slug].astro');
-  assert.ok(/renderMd\s*\(\s*post\.body\s*\)/.test(detail),
-    '④ 详情页不再吃 renderMd(post.body) —— ② 那格收的产物真值与页面上的不是同一份，整格判据的来源要换（见文件头为什么走 renderMd 这条路）');
+  assert.ok(/render(?:Md|Article)\s*\(\s*post\.body\s*\)/.test(detail),
+    '④ 详情页不再吃 renderMd/renderArticle(post.body) —— ② 那格收的产物真值与页面上的不是同一份，整格判据的来源要换（见文件头为什么走 renderMd 这条路）');
   let n = 2;
-  for (const f of ['src/pages/essays/index.astro', 'src/components/PostRow.astro']){
+  /* ⚠️ 列表页那一枚在本轮 `card/pagination` 换了宿主：目录行的模板从 `src/pages/essays/index.astro`
+     搬进 `src/components/EssayIndex.astro`（第 1 页与 `/essays/page/<n>/` 两处用同一份，见 §15 那一格）。
+     这一格的绊线管的正是"页面换渲染方式 ⇒ 本卡必须跟着改"，所以这里跟着换名——不改的话 ③ 那格判的
+     cover 落点会指到一份不再画 `<img>` 的文件上（那是"拿一把读不到的尺子当验收"，§12 记过）。 */
+  for (const f of ['src/components/EssayIndex.astro', 'src/components/PostRow.astro']){
     const src = read(f);
     assert.ok(/\.cover\s*\?/.test(src), `④ ${f} 里 cover 那一枚三元不在了 —— ③ 那格判的落点变了`);
     assert.ok(/src=\{root\((?:p|post)\.data\.cover\)\}/.test(src), `④ ${f} 的 cover 不再经 root() 进 <img src> —— 本卡给 cover 用的那把尺子（root 之后再查盘）与页面不同源`);

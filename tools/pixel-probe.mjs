@@ -34,13 +34,12 @@
    不读 `innerWidth`（那要 CDP）。`--force-device-scale-factor=1` + `--hide-scrollbars` 下 PNG 像素宽
    应当 == 请求的 `--window-size` 宽。本脚本解 IHDR 自己核，**不符就停下来报告，不许继续算数**。
 */
-
+import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { join, dirname, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { inflateSync, deflateSync } from 'node:zlib';
-import { resolveBrowser, browserCandidates, spawnBrowser } from './browser-bin.mjs';
 
 /* ============================ 0. CLI ============================ */
 const argv = process.argv.slice(2);
@@ -53,14 +52,14 @@ const ROOT = resolve(dirname(new URL(import.meta.url).pathname.slice(1)), '..');
 const DIST = resolve(opt('dist') || join(ROOT, 'dist'));
 if (!existsSync(join(DIST, 'index.html'))) die(`没有产物 ${join(DIST, 'index.html')}`, '  先 `npm run build`；本脚本不读源码、只读 dist/');
 
-/* 用哪一枚浏览器不在这里判——站内唯一一处是 `tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）：
-   判据是**探得到靶**（交回的 DOM 里带着只有 JS 跑过才存在的标记），不是"文件在盘上"。 */
-const browserSkips = [];
-const BROWSER = await resolveBrowser({ flag: opt('browser') || opt('edge'), label: 'pixel-probe', log: s => browserSkips.push(s.trim()) });
-const EDGE = BROWSER && BROWSER.bin;
-const EDGE_CANDIDATES = browserCandidates(opt('browser') || opt('edge')).map(c => c.bin);
-if (!EDGE) die(`没有一枚浏览器探得到靶（试过：${EDGE_CANDIDATES.join(' / ')}）\n${browserSkips.map(s => '  ' + s).join('\n')}`,
-  '  换浏览器传 --browser=<路径>（旧名 --edge= 也认）或设环境变量 MISTWOOD_BROWSER；这条不降级、不跳过');
+const EDGE_CANDIDATES = [
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  process.env['PROGRAMFILES'] && join(process.env['PROGRAMFILES'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['PROGRAMFILES(X86)'] && join(process.env['PROGRAMFILES(X86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['LOCALAPPDATA'] && join(process.env['LOCALAPPDATA'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+];
+const EDGE = opt('edge') ? resolve(opt('edge')) : EDGE_CANDIDATES.find(p => p && existsSync(p));
+if (!EDGE || !existsSync(EDGE)) die(`找不到 msedge（试过 ${EDGE_CANDIDATES.join(' / ')}）`, '  换浏览器传 --edge=<路径>；这条不降级、不跳过');
 
 /* 拍摄矩阵：2 视口 × 2 主题 × 3 帧，另加"同构建同参数重拍一次"当噪声底。
    ⚠️ 第二趟只重拍 plain+hidden（噪声底要回答的是**报出去的那两张帧**稳不稳，nohalo 不参与出数）。 */
@@ -392,7 +391,7 @@ async function startServer() {
 function runEdge(args, profile) {
   return new Promise(res => {
     let child;
-    try { child = spawnBrowser(EDGE, args, { cwd: dirname(EDGE), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    try { child = spawn(EDGE, args, { cwd: dirname(EDGE), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
     catch (e) { return res({ fail: `spawn 抛了：${e.message}` }); }
     let stderr = '', done = false;
     child.stderr.on('data', d => { stderr = (stderr + d.toString('utf8')).slice(-2000); });
@@ -607,8 +606,6 @@ async function main() {
   if (!only) await capture(outDir);
   else console.log(`只分析目录 ${outDir}（不再出图）`);
   console.log(`\n口径：浏览器 ${EDGE}`);
-  console.log(`        为什么是它：${BROWSER.note}`);
-  for (const s of browserSkips) console.log(`        ${s}`);
   console.log(`  flags：--headless=new --force-device-scale-factor=1 --hide-scrollbars --disable-gpu --force-prefers-reduced-motion --virtual-time-budget=6000`);
   console.log(`  掩膜参照 --ink：亮 ${INKS.light} / 暗 ${INKS.dark}（现读自 src/styles/base.css）`);
   const table = [];
