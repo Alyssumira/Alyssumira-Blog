@@ -79,12 +79,13 @@
      --jobs=<n>            并发浏览器数（默认 4；每档每槽位一枚一次性 profile，共 2×jobs 枚，跑完删）
      --keep-profile        跑完不删临时 profile（调试用，会打印路径）
      --strict-site         占位域名从警告变红
-     --static-only         只跑不碰浏览器的四段（1b 结构／1c 不列入／1d 死锚点两侧对账／1e 订阅宣告），
+     --static-only         只跑不碰浏览器的五段（1b 结构／1c 不列入／1d 死锚点两侧对账／1e 订阅宣告／1f head 时间戳与卡面 alt），
                            浏览器两档当众报"没跑"（`card/anchors` 当天本机 msedge 起不来才加的退路；
                            日常 `npm run gate` 不引用它，别把它读成绿）
 */
 
 import { createServer } from 'node:http';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -93,7 +94,7 @@ import { tmpdir } from 'node:os';
    `src/lib/taxonomy.js` 不 import 'astro:content'，所以 node 侧能直接拿它跑（带 astro:content 的
    `posts.js` 反而拿不了——那一层只做"取集合 + 滤草稿 + 排序"，规则本身在这份里）。
    front matter 的读法同 `new-post.mjs --check` 那一份：两处各写一个 split 迟早对"什么算草稿"读成两种。 */
-import { splitFm, readTaxonomy } from './frontmatter.mjs';
+import { splitFm, readTaxonomy, unquote } from './frontmatter.mjs';
 import { resolveBrowser, browserCandidates, spawnBrowser } from './browser-bin.mjs';
 /* 第十七轮 `card/aliases`：旧地址那一族的归一化读法也吃 shipped 的那一份（页面与门禁不会两套） */
 import { aliasesOf } from '../src/lib/taxonomy.js';
@@ -112,7 +113,7 @@ const JOBS = Math.max(1, Number(opt('jobs') || 4));
 const STRICT_SITE = flag('--strict-site');
 /* ⚠️ `--static-only` 是给"本机起不了 headless 浏览器"那一条环境退路（2026-09-30 `card/anchors` 当天撞上：
    msedge 无论 `--dump-dom` 还是 `--screenshot` 都**当场 exit 0、零 stdout、零 stderr**，连 about:blank 都不出图，
-   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的四段（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告），
+   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的五段（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据），
    并且**当众打印"运行时 DOM 那一档没跑"**——它不是一条绿，是一次部分交付。
    `npm run gate` 一个字都没引用它；日常门禁仍然是两档 × 全站。 */
 const STATIC_ONLY = flag('--static-only');
@@ -263,7 +264,7 @@ for (const name of postFiles) {
   if (!parsed) { problems.push(`${slug}：front matter 不成形，这一格的可见性判据读不出它是草稿还是已发布（宁缺不假绿）`); continue; }
   const tax = readTaxonomy(parsed.fmText);
   if (tax.errors.length) { problems.push(`${slug}：front matter 的四枚新键读不过预检（${tax.errors[0]}）——--check 那一格本该先拦下`); continue; }
-  corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, aliases: tax.aliases, date: new Date(parsed.fm.date) } });
+  corpus.push({ id: slug, name, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, aliases: tax.aliases, date: new Date(parsed.fm.date) }, dateRaw: unquote(parsed.fm.date ?? '') });
 }
 /* 三份名单，各对一个"页面那侧的谁"，一枚都不许多出来（第十五轮 `card/unlisted` 起了中间那枚）：
    · `routable` ⇄ `publishedPosts()`（只滤草稿）——**这些页必须在 dist/ 里存在**，包括不列入的那几枚；
@@ -688,6 +689,235 @@ const markSpansOf = html => {
     + `feed 文档 ${announced.length}/${FEEDS.length} 枚在盘上（${announced.join(' / ') || '零枚'}）；盘上判决 ${units} 条 ＋ 内置自证 ${tried} 条 ＝ **${units + tried} 条断言**`);
 }
 
+/* ---------- 1f. head 时间戳与卡面 alt 对账：article:* ⇄ JSON-LD ⇄ 源码侧独立复算（`card/metaitems`）----------
+   这一格盯的是 `<head>` 里那三行新加的元数据，它们和 1e 那一族一样属于"机器读的那一面"：坏法 build 与 `check`
+   原理上看不见（写错一枚日期、把文章时间戳落到首页上，页面一个像素都不变）。它回答三个问题：
+     ① 这一页的 `article:published_time` 与 JSON-LD 的 `datePublished` 是不是**同一枚值**？（两条发射链：
+        `Layout.astro` 那行 meta 与 `Seo.astro` 那枚字段——它们各自调 `src/lib/revised.js` 的同一枚函数，
+        所以"分叉"只在有人改成第二种拼法、或只补了一侧时才会出现，正是本格要拦的那一族）
+     ② 非文章页（`og:type` 不是 `article` 的那 9 份）里这两枚**一枚都不许出现**。
+     ③ `article:modified_time` 只许出现在**这一页的 JSON-LD 也有 `dateModified`** 的地方，且两处同值。
+   ⚠️ 期望侧**不由被测对象自己出**（§16 那条"拿 Layout 的宣告去对 Layout 的宣告，两处一起漏就一起绿"）：
+      · 发布日从 front matter 的 `date` 字面量独立复算（`splitFm` ＋ `unquote` 那份工具侧唯一读法），
+        字面量本来就是 `YYYY-MM-DD` 时直接用它，写成带时刻的形式才按 UTC 拼日历日——**不 import `publishISO()`**，
+        否则尺子走的就是被测物自己（§13a:1092 那格量具立的同一条口径）。
+      · 改动日由本格**自己**问一次 `git log -1 --diff-filter=M --format=%cd --date=short -- <稿件>`，
+        再套一遍"改于晚于发布日才算改"的规则（也是现写的，不 import `revisedOn()`）。
+      · 于是"三篇都没有改动型提交 ⇒ 全站 0 枚 `article:modified_time`"这一句是**对账**出来的，不是照抄产物。
+   ⚠️ 零枚不许静默：进窗份数、文章页数、两枚时间戳各自的枚数、`og:image` 与 `og:image:alt` 各几枚，每跑都当众印；
+      `article:modified_time` **今天 0 枚是合法态**（§13a:1092），所以这一格不要求它大于零——它要求的是
+      "枚数被印出来"且"每一枚都能对上 git 里真有的那一次改动"。反过来若一份 HTML 都没进窗、或文章页一枚
+      时间戳都没领到 ⇒ 红（"扫了但没匹配到"与"扫了且全过"不许长同一副样子）。
+   ⚠️ 内置自证（口径照 1c 的三枚 needle、1d/1e 的两枚 fixture）：先拿手写 fixture 自证这五支判据都还有牙，
+      其中关键的一对是**朝窄**"三篇都没有改动型提交那一态必须零红" ⇄ **朝宽**"同一份形状对着『git 里问得到
+      那一次改动』的期望必须恰红一条"——这一对钉的是"这一格不是『modified 必须为零』"，否则将来真出现一次
+      合法改动的那天它会假红。
+   ⚠️ 落在**不碰浏览器**那一段（与 1b／1c／1d／1e 同层）：判据只需盘上字节，读 `dist/` 所以排在 build 之后（§16）。 */
+{
+  const CAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
+  const headOf = html => { const h = /<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(html); return h ? h[1] : null; };
+  /* 三种引号形状都读得出来——判据不许把"注入侧恰好是双引号"当前提（口径照 1e 的 attrOf） */
+  const attr = (tag, name) => {
+    const m = new RegExp(`(?:^|\\s)${name}=(?:"([^"]*)"|'([^']*)'|(\\S+))`, 'i').exec(tag);
+    return m ? (m[1] ?? m[2] ?? m[3] ?? '') : null;
+  };
+  const propOf = (head, prop) => [...head.matchAll(/<meta\b[^>]*/gi)].map(x => x[0])
+    .filter(t => String(attr(t, 'property') || '').toLowerCase() === prop.toLowerCase())
+    .map(t => attr(t, 'content'));
+  /* JSON-LD 那一侧：交回 null＝没有那块脚本，'bad'＝解析不回来，交回对象＝BlogPosting 那两枚日期
+     （没有 BlogPosting 节点时两枚都是 null，这一格只问日期、节点构成归 Seo 自己那格与 1b） */
+  const ldOf = html => {
+    const m = /<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/i.exec(html);
+    if (!m) return null;
+    let j;
+    try { j = JSON.parse(m[1]); } catch { return 'bad'; }
+    const g = Array.isArray(j && j['@graph']) ? j['@graph'] : [j];
+    const n = g.find(x => x && (x['@type'] === 'BlogPosting' || (Array.isArray(x['@type']) && x['@type'].includes('BlogPosting'))));
+    return {
+      published: n && typeof n.datePublished === 'string' ? n.datePublished : null,
+      modified: n && typeof n.dateModified === 'string' ? n.dateModified : null,
+    };
+  };
+  /* 一页读出来的事实，喂给判决函数（判决是**纯函数**，为了让上面那对 fixture 能用同一份代码跑） */
+  const factsOf = (html, url) => {
+    const head = headOf(html);
+    if (head === null) return null;
+    const t = propOf(head, 'og:type');
+    const img = propOf(head, 'og:image');
+    const alt = propOf(head, 'og:image:alt');
+    return {
+      url,
+      type: t.length ? String(t[0] || '') : '',
+      typeCount: t.length,
+      pub: propOf(head, 'article:published_time'),
+      mod: propOf(head, 'article:modified_time'),
+      img: img.length ? String(img[0] || '') : '',
+      imgCount: img.length,
+      altCount: alt.length,
+      alt: alt.length ? String(alt[0] == null ? '' : alt[0]) : null,
+      ld: ldOf(html),
+    };
+  };
+  const q = v => (v === null || v === undefined ? '∅（这一行不存在）' : `"${v}"`);
+  /* ---- 判决：f（产物侧事实）＋ exp（源码侧独立复算的期望）⇄ 红话数组 ----
+     exp = { article: false }                        非文章页：两枚时间戳与 JSON-LD 那两枚日期都不许在
+         | { article: true, found: false }           文章页却在 src/content/posts 里找不到稿件：判据没有对象
+         | { article: true, found: true, pub, modKnown, mod } */
+  const judgeHead = (f, exp) => {
+    const out = [];
+    if (f.typeCount > 1) out.push(`og:type 在这一页读到 ${f.typeCount} 枚 ⇒ 这一页到底是不是文章，抓取器要先猜`);
+    if (f.imgCount > 1) out.push(`og:image 在这一页读到 ${f.imgCount} 枚 ⇒ 转发出去用哪一张？（§13a 那格的立场是一枚）`);
+    if (f.altCount > 1) out.push(`og:image:alt 在这一页读到 ${f.altCount} 枚 ⇒ 同一张图两句描述`);
+    if (f.pub.length > 1) out.push(`article:published_time 在这一页读到 ${f.pub.length} 枚 ⇒ 同一件事两行时间戳，迟早一枚真一枚旧`);
+    if (f.mod.length > 1) out.push(`article:modified_time 在这一页读到 ${f.mod.length} 枚 ⇒ 同上`);
+    /* alt 那一问对每一页都成立（1e 的覆盖面口径：有面就得有话说） */
+    if (f.imgCount === 0 && f.altCount > 0) out.push(`产物里有 ${f.altCount} 枚 og:image:alt 却没有 og:image ⇒ alt 描述着一枚不存在的面`);
+    if (f.imgCount > 0 && f.altCount === 0) out.push(`og:image 是 ${q(f.img)} 而这一页没有 og:image:alt ⇒ 读不到图的访客与抓取器拿到一句空白`);
+    if (f.altCount === 1 && String(f.alt).trim() === '') out.push(`og:image:alt 是空串 ⇒ 有那枚属性、没有那句话（` + 'href="" 那一族的近亲：看着有、读出来什么都没有）');
+    if (!exp.article) {
+      if (f.pub.length) out.push(`这一页的 og:type 是 ${q(f.type)}（不是 article），产物里却写着 article:published_time=${q(f.pub[0])} ⇒ 首页／目录页／404 领一枚文章时间戳就是假语境`);
+      if (f.mod.length) out.push(`这一页的 og:type 是 ${q(f.type)}（不是 article），产物里却写着 article:modified_time=${q(f.mod[0])} ⇒ 这一篇的"后来改过"从来没有发生过（§13a:1092）`);
+      if (f.ld && f.ld !== 'bad' && (f.ld.published || f.ld.modified)) out.push(`og:type 是 ${q(f.type)}，JSON-LD 那侧却带着 datePublished=${q(f.ld.published)} / dateModified=${q(f.ld.modified)} ⇒ head 与机器两处同时长回文章字段`);
+      return out;
+    }
+    if (!exp.found) { out.push(`这一页声明 og:type=article，可在 src/content/posts 里对不上任何一枚该建页面的稿件 ⇒ 时间戳的期望值无从算起（判据没有对象，不许当成"没有红"）`); return out; }
+    if (f.ld === null) out.push(`这一页没有 <script type="application/ld+json"> 那块 ⇒ 时间戳对账少了第二侧（Seo 不在 head 里了？Layout 的壳动了）`);
+    else if (f.ld === 'bad') out.push(`这一页的 JSON-LD 解析不回来 ⇒ datePublished / dateModified 那一问没有对象（"合法的 JSON"都要先成立，§13a 那一格）`);
+    const ldPub = f.ld && f.ld !== 'bad' ? f.ld.published : null;
+    const ldMod = f.ld && f.ld !== 'bad' ? f.ld.modified : null;
+    /* ① 发布日：三侧（front matter 独立复算 ⇄ head ⇄ JSON-LD）要么同值要么同时不存在 */
+    if (exp.pub) {
+      if (f.pub.length !== 1) out.push(`article:published_time 读到 ${f.pub.length} 枚，而 front matter 的 date 独立复算是 ${exp.pub} ⇒ 这一页没把发布日递给抓取器（或者递了两遍）`);
+      else if (f.pub[0] !== exp.pub) out.push(`head 与源码侧分叉：article:published_time=${q(f.pub[0])}，front matter 的 date 独立复算是 ${exp.pub} ⇒ 两把尺子各量一个日子`);
+      if (f.ld && f.ld !== 'bad' && ldPub !== exp.pub) out.push(`JSON-LD 与源码侧分叉：datePublished=${q(ldPub)}，front matter 的 date 独立复算是 ${exp.pub}`);
+    } else {
+      if (f.pub.length) out.push(`front matter 的 date（现值 ${q(exp.dateRaw)}）读不出一枚合法日历日，产物却写着 article:published_time=${q(f.pub[0])} ⇒ 拿不到的东西不许出现在页面上（§12 假语境那一族）`);
+      if (f.ld && f.ld !== 'bad' && ldPub) out.push(`同一枚问题在 JSON-LD 那侧也写着 datePublished=${q(ldPub)}，可 front matter 的 date 读不出日历日`);
+    }
+    if (f.ld && f.ld !== 'bad' && (f.pub.length > 0) !== !!ldPub) out.push(`同一页两枚说法：head 的 article:published_time ${f.pub.length ? `=${q(f.pub[0])}` : '不存在'} ⇄ JSON-LD 的 datePublished ${ldPub ? `=${q(ldPub)}` : '不存在'} ⇒ 两条发射链只补了一侧`);
+    else if (f.ld && f.ld !== 'bad' && f.pub.length && ldPub && f.pub[0] !== ldPub) out.push(`同一页两枚日期：article:published_time=${q(f.pub[0])} ⇄ datePublished=${q(ldPub)} ⇒ 发布日在抓取器眼里成了两枚`);
+    /* ② 改动日：head ⇄ JSON-LD 永远要对齐；git 问得到的那一侧只在问得到时才比对（问不到当众报，不静默） */
+    if ((f.mod.length > 0) !== !!ldMod) out.push(`同一页两枚说法：head 的 article:modified_time ${f.mod.length ? `=${q(f.mod[0])}` : '不存在'} ⇄ JSON-LD 的 dateModified ${ldMod ? `=${q(ldMod)}` : '不存在'} ⇒ 只补了一侧（§13a:1092 那一格管的就是这一枚字段不许回落）`);
+    else if (f.mod.length && ldMod && f.mod[0] !== ldMod) out.push(`同一页两枚改动日：article:modified_time=${q(f.mod[0])} ⇄ dateModified=${q(ldMod)} ⇒ 页面上那行「改于」与机器读的日期各说一套`);
+    if (exp.modKnown) {
+      if (exp.mod) {
+        if (f.mod.length !== 1) out.push(`git 里问得到这一次改动（${exp.mod}），产物里 article:modified_time 却读到 ${f.mod.length} 枚 ⇒ 页面上有「改于」而 head 没宣告（或宣告了两遍）`);
+        else if (f.mod[0] !== exp.mod) out.push(`head 与 git 分叉：article:modified_time=${q(f.mod[0])}，而 git 里最后一次改动型提交是 ${exp.mod}`);
+      } else if (f.mod.length) {
+        out.push(`article:modified_time=${q(f.mod[0])}，可 git 里对这个文件**没有一枚改动型提交**（--diff-filter=M 实测空）⇒ 这就是 \`revised ?? date\` 那一族假语境：机器会读成"这篇后来改过"，而盘上从来没有那次改动（§13a:1092）`);
+      }
+    }
+    return out;
+  };
+
+  /* ---- 源码侧独立复算：每篇该建页面的稿件一枚期望（草稿不建页面，不列入的照样建） ---- */
+  const REPO = join(ROOT, '.git');
+  const gitState = existsSync(REPO) ? 'repo' : 'no-repo';
+  let gitFailed = 0;
+  const gitRev = rel => {
+    if (gitState !== 'repo') return { ok: false, out: '', why: 'no-repo' };
+    try {
+      const out = execFileSync('git', ['log', '-1', '--diff-filter=M', '--format=%cd', '--date=short', '--', rel],
+        { cwd: ROOT, encoding: 'utf8', windowsHide: true, maxBuffer: 1 << 20 }).trim();
+      return { ok: true, out };
+    } catch (e) { gitFailed++; return { ok: false, out: '', why: String(e && e.message ? e.message : e).split('\n')[0] }; }
+  };
+  const expectBySlug = new Map();
+  for (const p of routable) {
+    const raw = p.dateRaw || '';
+    /* 日历日口径在这一格**自己写一遍**（不 import publishISO）：字面量已是 YYYY-MM-DD 就直接用它，
+       带时刻的那种写法按 UTC 取那一天——这正是 revised.js 头上那条"全站按 getUTC* 读"的读数 */
+    let pub = null;
+    if (CAL_DATE.test(raw)) pub = raw;
+    else { const d = new Date(raw); if (!Number.isNaN(d.getTime())) pub = [d.getUTCFullYear(), String(d.getUTCMonth() + 1).padStart(2, '0'), String(d.getUTCDate()).padStart(2, '0')].join('-'); }
+    const rel = `src/content/posts/${p.name}`;
+    const g = gitRev(rel);
+    const rev = g.ok && CAL_DATE.test(g.out) ? g.out : null;
+    /* "同日或更早不算改"那条规则也在这里现写一遍：改于必须**晚于**发布日，否则这一行不宣告 */
+    expectBySlug.set(p.id, { article: true, found: true, pub, dateRaw: raw, modKnown: g.ok, mod: g.ok ? (rev && pub && rev > pub ? rev : null) : null, rel, why: g.why || '' });
+  }
+
+  /* ---- 内置自证：产物一枚都不读也照跑（盘上形状变了，收集器瞎了会照样打印"零条红"） ---- */
+  const FX_ON = '2026-09-01';
+  const fx = (over = {}) => ({ url: '/essays/x/', type: 'article', typeCount: 1, pub: [FX_ON], mod: [], img: '/og/x.png', imgCount: 1, alt: 'mistwood 的社交卡（纯排版、没有照片）：卡面写着站名与这一篇的题名 甲 · mistwood', altCount: 1, ld: { published: FX_ON, modified: null }, ...over });
+  const ex = (over = {}) => ({ article: true, found: true, pub: FX_ON, dateRaw: FX_ON, modKnown: true, mod: null, ...over });
+  const exWeb = { article: false };
+  let tried = 0; const broken = [];
+  const probe = (ok, msg) => { tried++; if (!ok) broken.push(msg); };
+  const reds = (f, e) => judgeHead(f, e);
+  const wraps = (...tags) => `<html><head>${tags.join('')}</head><body></body></html>`;
+  const metaTag = (prop, val, q = '"') => `<meta property=${q}${prop}${q} content=${q}${val}${q}>`;
+  /* 收集器四形：双引号／单引号／不带引号／缺 <head> 宿主交回 null（不是零枚） */
+  probe(propOf(headOf(wraps(metaTag('article:published_time', FX_ON))), 'article:published_time').join() === FX_ON, '收集器从一枚标准双引号 meta 里读不到 article:published_time ⇒ 它已经不吃 <meta property> 了');
+  probe(propOf(headOf(wraps(metaTag('article:published_time', FX_ON, "'"))), 'article:published_time').join() === FX_ON, '单引号写法读不到 ⇒ 判据把"注入侧恰好是双引号"当成了前提');
+  probe(propOf(headOf(wraps('<meta property=article:published_time content=' + FX_ON + '>')), 'article:published_time').join() === FX_ON, '不带引号的写法读不到 ⇒ 同一件事换种写法就静默放过');
+  probe(headOf('<p>这里没有 head</p>') === null, '缺 <head> 宿主时收集器交回了非 null ⇒ "读不到"会被当成"读到零枚"放过');
+  probe(propOf(headOf(wraps('<meta name="robots" content="noindex">')), 'og:type').length === 0, '<meta name=...> 被当成 <meta property=...> 收进来了 ⇒ 枚数会虚高');
+  probe(JSON.stringify(ldOf(wraps('<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite"},{"@type":"BlogPosting","datePublished":"2026-09-01"}]}</script>'))) === '{"published":"2026-09-01","modified":null}', 'ld+json 收集器读不出 BlogPosting 的 datePublished ⇒ 第二侧其实没有对象');
+  probe(ldOf(wraps('<p>没有结构化数据</p>')) === null, '没有 ld+json 那块时收集器交回了非 null ⇒ "第二侧不在场"会被当成"第二侧同意"');
+  probe(ldOf(wraps('<script type="application/ld+json">{坏掉的 JSON,</script>')) === 'bad', '坏掉的 JSON-LD 没被判成 bad ⇒ 解析不回来会被静默读成"两枚日期都不存在"');
+  /* 判决五支的牙，外加那对"合法零枚 ⇄ 该有一枚"的两侧 */
+  probe(reds(fx(), ex()).length === 0, '好形状（有发布日、git 问不到改动型提交）被误报 ⇒ 判据朝窄侧失灵，三篇现状会被当成坏了');
+  probe(reds(fx({ pub: [], mod: [], ld: { published: null, modified: null } }), ex()).length > 0, '文章页把两枚时间戳整个抹掉没被判成红 ⇒ 缺字段会静默通过');
+  probe(reds(fx({ pub: ['2026-09-02'] }), ex()).some(x => /head 与源码侧分叉/.test(x)), 'article:published_time 与 front matter 复算不符没被判成红 ⇒ 日期可以各说一套');
+  probe(reds(fx({ ld: { published: '2026-09-02', modified: null } }), ex()).some(x => /JSON-LD 与源码侧分叉|同一页两枚日期/.test(x)), 'JSON-LD 的 datePublished 与 head 那行分叉没被判成红 ⇒ ① 那一问根本没有牙');
+  probe(reds(fx({ pub: [FX_ON, FX_ON] }), ex()).some(x => /读到 2 枚/.test(x)), '重复一枚 article:published_time 没被判成红 ⇒ 后写的那行会悄悄顶掉前一枚');
+  probe(reds(fx({ mod: ['2026-09-05'], ld: { published: FX_ON, modified: '2026-09-05' } }), ex()).some(x => /没有一枚改动型提交/.test(x)), 'git 问不到改动、产物却长着 article:modified_time 没被判成红 ⇒ `revised ?? date` 那一族假语境正好从这一行长回来');
+  probe(reds(fx({ mod: ['2026-09-05'], ld: { published: FX_ON, modified: '2026-09-05' } }), ex({ mod: '2026-09-05' })).length === 0, '合法的一次改动（git 问得到、两处同值）被判成红 ⇒ 这一格其实是"modified 必须为零"的假判据，真出现改动那天必假红');
+  probe(reds(fx({ mod: ['2026-09-05'], ld: { published: FX_ON, modified: '2026-09-05' } }), ex({ mod: '2026-09-06' })).some(x => /git 分叉/.test(x)), 'article:modified_time 与 git 里那一次改动不同值没被判成红 ⇒ 改动日可以随便写');
+  probe(reds(fx(), ex({ mod: '2026-09-05' })).some(x => /git 里问得到这一次改动/.test(x)), 'git 问得到改动、产物却一枚都不写没被判成红 ⇒ "该有而没有"那一侧没有牙');
+  probe(reds(fx({ mod: ['2026-09-05'] }), ex({ modKnown: false })).some(x => /同一页两枚说法/.test(x)), 'git 问不到（no-repo 那档）时 head 有 modified 而 JSON-LD 没有，没被判成红 ⇒ 两枚说法分叉只在有 git 的机器上才拦得住');
+  probe(reds(fx({ type: 'website', url: '/index.html', pub: [FX_ON], ld: { published: FX_ON, modified: null } }), exWeb).some(x => /不是 article/.test(x)), '非文章页写着 article:published_time 没被判成红 ⇒ ② 那一问没有对象');
+  probe(reds(fx({ type: 'website', url: '/index.html', pub: [FX_ON], mod: ['2026-09-02'] }), exWeb).length >= 2, '非文章页两枚时间戳同时在，红的条数少于 2 ⇒ 两枚各有一支的口径没落地');
+  probe(reds(fx({ type: 'website', url: '/index.html', pub: [], mod: [], ld: { published: null, modified: null } }), exWeb).length === 0, '非文章页的合法形状（时间戳一枚都没有）被误报 ⇒ 首页那 9 份会集体假红');
+  probe(reds(fx({ pub: [], ld: { published: null, modified: null } }), { article: true, found: true, pub: null, dateRaw: '', modKnown: true, mod: null }).length === 0, 'front matter 的 date 读不出日历日 ⇒ 两枚都不写的那一页被误报（拿不到就不写正是合法态）');
+  probe(reds(fx({ pub: [FX_ON] }), { article: true, found: true, pub: null, dateRaw: '', modKnown: true, mod: null }).some(x => /读不出一枚合法日历日/.test(x)), 'date 读不出日历日、产物却写着时间戳没被判成红 ⇒ 空值会铸出一枚假日子（z.coerce.date() 那一族的形状）');
+  probe(reds(fx(), { article: true, found: false }).some(x => /对不上任何一枚该建页面的稿件/.test(x)), '文章页找不到稿件对应关系时静默通过 ⇒ 期望值不存在会被读成"期望不存在这枚字段"');
+  probe(reds(fx({ alt: '', altCount: 1 }), ex()).some(x => /alt 是空串/.test(x)), 'og:image:alt 是空串没被判成红 ⇒ 有属性没句子也照样绿');
+  probe(reds(fx({ alt: null, altCount: 0 }), ex()).some(x => /没有 og:image:alt/.test(x)), '有 og:image 而无 og:image:alt 没被判成红 ⇒ 读不到图的那一侧拿到一句空白');
+  probe(reds(fx({ img: '', imgCount: 0 }), ex()).some(x => /不存在的面/.test(x)), '没有 og:image 却留着 alt 没被判成红 ⇒ alt 描述着一枚不存在的面也不会红');
+  probe(reds(fx({ alt: '  ', altCount: 1 }), ex()).some(x => /alt 是空串/.test(x)), '只有一枚空格的 alt 没被判成红 ⇒ trim 那一问没有落地');
+  for (const b of broken) problems.push(`1f head 时间戳 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"逐页全过"从此不可信`);
+
+  /* ---- 盘上判决：逐页 ---- */
+  let pagesIn = 0, artPages = 0, pubTotal = 0, modTotal = 0, imgTotal = 0, altTotal = 0, units = 0, unknownGit = 0;
+  const matched = new Set();
+  const modSeen = [];
+  for (const { file, url } of PAGES) {
+    const html = stripComments(readFileSync(file, 'utf8'));   /* 注释里的 meta 访客读不到：口径照 1b／1c／1d／1e */
+    const f = factsOf(html, url);
+    if (f === null) { problems.push(`1f head 时间戳 ${url}：产物里读不出 <head>…</head> ⇒ 这一页的元数据判据没有对象（"读不到"从来不算过）`); continue; }
+    pagesIn++; units += 8;
+    const slug = /^\/essays\/([^/]+)\/$/.exec(url);
+    const isArt = f.type === 'article';
+    let exp;
+    if (!isArt) exp = exWeb;
+    else if (!slug) exp = { article: true, found: false };
+    else { const e = expectBySlug.get(decodeURIComponent(slug[1])); exp = e || { article: true, found: false }; if (e) { artPages++; matched.add(e.rel); if (!e.modKnown) unknownGit++; } }
+    for (const red of judgeHead(f, exp)) problems.push(`1f head 元数据 ${url}：${red}`);
+    pubTotal += f.pub.length; modTotal += f.mod.length;
+    for (const v of f.mod) modSeen.push(`${url} → ${v}`);
+    imgTotal += f.imgCount; altTotal += f.altCount;
+  }
+  /* 覆盖面反向那一问：每一枚该建页面的稿件都得有自己的文章页读到时间戳（1e 那格 cover 的对称形状） */
+  const unmatched = [...expectBySlug.entries()].filter(([s]) => !matched.has(`src/content/posts/${s}.md`)).map(([s]) => s);
+  /* 零对象与"读到了几个数"当众交账 */
+  if (!PAGES.length) problems.push('1f head 时间戳：dist/ 里一份 HTML 都没有 ⇒ 这一格没吃到东西（不许算过）');
+  else if (!pagesIn) problems.push(`1f head 时间戳：${PAGES.length} 份 HTML 一份都没读进窗 ⇒ 判据空转（不许算过）`);
+  else if (!artPages) problems.push('1f head 时间戳：进窗的产物里一枚 og:type=article 都没有 ⇒ 三篇详情页没了或者那一枚 prop 换了名字，这一格没吃到对象');
+  else if (!pubTotal) problems.push(`1f head 时间戳：${artPages} 页文章页里 article:published_time 读到 0 枚 ⇒ 这一格按"零条红"算过就是假绿`);
+  if (unmatched.length && pagesIn) problems.push(`1f head 时间戳：${expectBySlug.size} 篇该建页面的稿件里，有 ${unmatched.length} 篇的详情页没被这一格读到（${unmatched.join(' / ')}）⇒ 覆盖面不齐，逐页那一格上面已点名是哪些页`);
+  if (imgTotal !== altTotal) problems.push(`1f head 时间戳：全站 og:image ${imgTotal} 枚 ⇄ og:image:alt ${altTotal} 枚，两边不同枚 ⇒ 有的页有面没话（逐页那一格已点名）`);
+  notes.push(`1f head 时间戳 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}`
+    + `（收集器：三种引号形状／缺 <head> 交回 null／name≠property／ld+json 三态在场-缺-坏；判决：好形状零红、"git 问不到 ⇒ 一枚都不许写" ⇄ "git 问得到 ⇒ 两处必须同值"那一对、`
+    + `缺字段／两把尺子分叉／重复枚数／非文章页带时间戳／alt 空串／有面没话／有话没面 各一枚红的反向格）`);
+  notes.push(`1f head 元数据：${pagesIn}/${PAGES.length} 份 HTML 进入，其中文章页 **${artPages} 枚**；`
+    + `article:published_time **${pubTotal} 枚**、article:modified_time **${modTotal} 枚**（今天零枚是合法态：git 里对这些稿件没有一枚改动型提交，`
+    + `写了就是 §13a:1092 那句"revised ?? date 是最危险的假语境"）${modSeen.length ? `；实际写到的是：${modSeen.join(' / ')}` : ''}；`
+    + `og:image ${imgTotal} 枚 ⇄ og:image:alt ${altTotal} 枚；源码侧期望 ${expectBySlug.size} 篇独立复算（git 侧：${gitState}${unknownGit ? `、${unknownGit} 篇问不到 ⇒ 那几页只判 head⇄JSON-LD 一致` : ''}${gitFailed ? `、失败 ${gitFailed} 次` : ''}）；`
+    + `盘上判决 ${units} 条 ＋ 内置自证 ${tried} 条 ＝ **${units + tried} 条断言**`);
+}
+
 /* ---------- 1c. 不列入（unlisted）的产物级对账——本卡的心脏 ----------
    这一格只回答一句在源码上原理问不出来的话：**全站没有一处指向它**（第十五轮 `card/unlisted`）。
    ⚠️ 分层规矩（§16 签过）：读产物的判据必须在 build 之后 ⇒ 这一格在 runtime-check（`gate` 里），
@@ -1097,7 +1327,7 @@ async function runPhase(kind, profiles) {
 /* 每槽位一枚一次性 profile：N 个并发浏览器不能共用 user-data-dir（会互相抢锁） */
 if (STATIC_ONLY) {
   console.log('\n  ⚠️ --static-only：**浏览器两档一次都没跑**（内联隔离档 / 完整档 / 五枚属性 / 运行时 DOM 那一格目录⇄刻度 / phase 对账全部未断言）。');
-  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的四段（1b 结构对账、1c 不列入、1d 死锚点两侧对账、1e 订阅宣告对账）跑完了。');
+  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的五段（1b 结构对账、1c 不列入、1d 死锚点两侧对账、1e 订阅宣告对账、1f head 时间戳与卡面 alt 对账）跑完了。');
   console.log('     日常门禁 `npm run gate` 不带这一枚开关；它存在的理由见上面定义处那条环境记录。');
 } else {
   await runPhase('isolate', Array.from({ length: JOBS }, (_, i) => newProfile(`iso${i}`)));
@@ -1190,6 +1420,6 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(STATIC_ONLY
-  ? `\n✓ 不碰浏览器的那四段跑完且全过（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
+  ? `\n✓ 不碰浏览器的那五段跑完且全过（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
   : `\n✓ 运行时五枚属性全部落地：${KEYS.join(' / ')}（内联脚本在跑，打包脚本也在跑）`);
 process.exit(0);
