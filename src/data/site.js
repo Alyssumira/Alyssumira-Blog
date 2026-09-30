@@ -38,6 +38,18 @@ export const FONT_FILE_HOST = fontFileHost;
    （about.astro:10）。等哪一轮把那枚 const 折进这份文件，sameAs 再挂——别在这里先开第二处真值。 */
 export const AUTHOR = 'Alyssumira';
 
+/* 出生日（`card/lifegrid`，关于页"一生格子"那一格的唯一载体）：**没有默认值**——空串就是没登记。
+   ⚠️ 为什么这里不许躺着一枚占位日期：那一页要画的每一格都由「出生日 ＋ 构建日」两枚输入复算出来
+      （`src/lib/lifegrid.js`），起点是编的，整片格子就是一幅假地图——与 §12:1000「编一个访问量」同族，
+      只不过这次被编的是作者自己的年纪。
+   ⚠️ 读不到 ⇒ 关于页那一块**一格都不画**，连"第 0 年"都不出现（口径照 §12:1000 那条"载入次数读不到时整行不出现"，
+      不许退回 0 那种假值）。空态那句话写在 `src/pages/about.astro`，今天页面上看到的就是它。
+   写法：`YYYY-MM-DD` 或 `YYYY.MM.DD`，只到日（站里所有日期都是这一族写法）；
+   不合法的日历日（`2026-02-30`）与还没到的那一天都按"没登记"处理，判据在 `parseBirth()`。
+   ⚠️ 也不走环境变量：这一枚进的是**内容**，让产物取决于构建机的 env 等于给同一份源码两种长相
+      （`FONT_HOST` 那枚开关管的是镜像地址，不是站里要说出口的话——别把这一行往那个方向改）。 */
+export const BIRTH_DATE = '';
+
 export const fonts = [
   { name: 'Fraunces',      q: 'Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400', self: true },
   { name: 'Noto Serif SC', q: 'Noto+Serif+SC:wght@400;600;700', self: true },
