@@ -2,6 +2,7 @@
    *em* 与 **strong** 与 ***粗斜*** / `code` / 围栏代码块 ```lang / |a|b| 表格 / [文字](链接) /
    ![alt](src "图注") / [^id] 脚注 / ^[文字] 边注
    解析器从旧版 assets/mistwood.js 原样搬来，规范里的"不超纲"就靠它 */
+import { intrinsicAttrs } from './image-dims.js';
 function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -28,9 +29,24 @@ const IMG_ONE  = new RegExp('^!\\[([^\\]]*)\\]\\(' + U + TITLE + '\\)$');
 const IMG_LINK = new RegExp('^\\[!\\[([^\\]]*)\\]\\(' + U + TITLE + '\\)\\]\\(' + U + '\\)$');
 const LINK_RE  = new RegExp('\\[([^\\]]+)\\]\\(' + U + TITLE + '\\)', 'g');
 
+/* 正文里那一枚 `<img>` 发什么属性（`card/imgpipe`，2026-09-30）。一枚一枚交代，因为这仓对"顺手加"敏感：
+   · `width` / `height`——**构建期从真文件头读**（`src/lib/image-dims.js`，零依赖）。落点是 `essay.css:377`
+     那条 `.post-body figure.shot img{ display:block; width:100%; height:auto }`：`height:auto` 在没有固有尺寸的
+     img 上取图前量不出高 ⇒ 解码完成那一瞬间布局盒从 0 长到几百 px，那是 CLS 的教科书形状。有了这两枚，UA 样式表
+     的 `aspect-ratio: attr(w)/attr(h)` 让盒子在取图之前就对。**读不到就不发**（远端／盘上没有／格式认不出），
+     绝不猜数——错数比缺档贵：缺数只是那一格没修，错数会让盒子先按错的长、解码后再跳一次。
+   · `decoding="async"`——只跟着 `loading="lazy"` 发，不跟着首屏那两张照片发。三条理由：
+       ① 内容位（正文图／封面／图鉴截图）今天与将来都是 `loading="lazy"`，而 **Blink 对 lazy 图的 `decoding`
+          默认值本来就是 `async`**（规范上 `auto` 在延迟载入时按 async 解）⇒ 这一枚是把浏览器已经在做的事**写下来**，
+          不是让它改做另一件事；
+       ② 它改的是"解码在不在主线程上等一帧"，不改布局盒、不改 §8.4 那条散雾链——`.in` 那一步挂在 `load` 事件上
+          （`src/scripts/site.js`），`decoding` 不动 `load` 的时机；
+       ③ 首屏那两张 `bg-*.jpg` **不加**：它们是 eager 载入的，那里 `auto` 解到的是"sync"一侧，改成 async 会
+          把"第一帧有影"推迟到解码之后，而 §8.2 那张时间轴（照片 1.2s 起、2.2s 走完、3.4s 收口）是按现在的解码
+          时机签过字的——要动它得连那串数一起复量，不在这一卡的格子里。 */
 function imgEl(alt, s){
   const u = imgSrc(s);
-  return u ? `<img src="${u}" alt="${attr(alt)}" loading="lazy">` : '';
+  return u ? `<img src="${u}" alt="${attr(alt)}"${intrinsicAttrs(u)} loading="lazy" decoding="async">` : '';
 }
 function figure(alt, s, cap){
   const el = imgEl(alt, s);

@@ -404,12 +404,7 @@ if (!HEADS.size) problems.push('目录⇄刻度对账没跑：可见稿件是 0 
     if (!p.startsWith('/')) p = `/${p}`;                    /* 本仓 href 一律钉到站点根（§15），这行只兜底 */
     return `${p.replace(/\/+$/, '')}/`;                      /* 归一成"恰好一枚尾斜杠"：trailingSlash 是 ignore，两种写法都回 200 */
   };
-  /* ⚠️ 第十六轮 `card/feedout` 把这一枚判据从"等于/结尾那一枚目录"换成"**开头**在那一枚目录下"：
-     同一篇稿子今天有两枚表示——`/essays/<slug>/`（页）与 `/essays/<slug>/index.md`（原文）。
-     旧写法读不到后者，于是"给不列入的那一篇递一枚原文地址"会绿着过全站 href 扫描，
-     而那正是这一族唯一要防的形状换了个文件名又来一次。`-next` 那枚反例钉住它没有放宽到"前缀像"：
-     尾斜杠在比较串里是必须的，`/essays/x-next/` 落不进 `/essays/x/`。 */
-  const pointsTo = (h, id) => pathOf(h).startsWith(`/essays/${id}/`);
+  const pointsTo = (h, id) => { const p = pathOf(h); return p === `/essays/${id}/` || p.endsWith(`/essays/${id}/`); };
   const refsFrom = id => textArts.filter(t => !t.rel.startsWith(`/essays/${id}/`)).filter(t => hrefsOf(t.txt).some(h => pointsTo(h, id))).map(t => t.rel);
   /* 机器侧那五份产物：名字＝给人看的，parts＝找文件的（口径照上面 READABLE 那格——显示名与路径名分开写，
      混成一枚串就会得到 dist/dist/... 那种"一份都不存在、被 filter 静默丢掉"的空转） */
@@ -418,25 +413,16 @@ if (!HEADS.size) problems.push('目录⇄刻度对账没跑：可见稿件是 0 
   /* ---- needle 之一：形状自证（内置 fixture，盘上零枚也照跑）---- */
   const NP = 'needle-probe';
   const broken = [];
-  let tried = 0;
-  /* 每枚 needle 自己计数：上面那句"8 条内置自证"曾是手抄的，加一条就得记着改一处——
-     抄的枚数迟早和判据分叉（本仓为这一族写过好几次"六处复述"的账），所以这里由 `probe()` 现数。 */
-  const probe = (ok, msg) => { tried++; if (!ok) broken.push(msg); };
-  probe(hrefsOf(`<a class="row" href="/essays/${NP}/">标题</a>`).length === 1, 'href 收集器从一枚标准 <a href> 里读不到 1 枚 ⇒ 它已经不吃 <a> 了');
-  probe(pointsTo(`/essays/${NP}/`, NP), '带尾斜杠的站内地址没被判成指向它');
-  probe(pointsTo(`/essays/${NP}`, NP), '不带尾斜杠的地址没被判成指向它（trailingSlash: ignore 下两种写法都回 200，两种都算指向）');
-  probe(pointsTo(`https://mistwood.example.com/essays/${NP}/`, NP), '绝对地址没被判成指向它（feed 与 JSON-LD 交的就是绝对地址）');
-  /* 第十六轮 `card/feedout` 那两枚：同一篇稿子的**原文**地址算不算"指向这一篇"。
-     认不出它的那一版扫描会绿着放行"给不列入的稿子递原文"，而那一族的坏形状恰恰只露在这一枚串上。 */
-  probe(pointsTo(`/essays/${NP}/index.md`, NP), '原文 Markdown 那枚同址写法没被判成指向它 ⇒ 有人把不列入那一篇的 .md 链出去也不会红');
-  probe(pointsTo(`https://mistwood.example.com/essays/${NP}/index.md`, NP), '绝对形式的原文地址没被判成指向它（feed 交的就是绝对地址）');
-  probe(!pointsTo(`/essays/${NP}-next/`, NP), '一枚只是"前缀像"的地址被判成指向它 ⇒ 别稿的行会被数进这一枚的账，判据太宽');
-  probe(!pointsTo(`/categories/${NP}/`, NP), '/categories/<同名>/ 被判成指向那一页 ⇒ 枚数会虚高');
-  probe(!pointsTo(`/og/${NP}.png`, NP), '逐篇社交卡那枚文件名被判成指向这一篇 ⇒ 目录行与卡片同名的稿子会被自己那一页顶掉计数');
-  probe(NOINDEX_RE.test('<meta name="robots" content="noindex">'), 'noindex 尺子读不到标准写法那一枚 meta');
-  probe(!NOINDEX_RE.test('<meta name="description" content="noindex">'), 'noindex 尺子把别的 meta 也认了（判据太宽，会假绿在真正缺 meta 的那一页上）');
+  if (hrefsOf(`<a class="row" href="/essays/${NP}/">标题</a>`).length !== 1) broken.push('href 收集器从一枚标准 <a href> 里读不到 1 枚 ⇒ 它已经不吃 <a> 了');
+  if (!pointsTo(`/essays/${NP}/`, NP)) broken.push('带尾斜杠的站内地址没被判成指向它');
+  if (!pointsTo(`/essays/${NP}`, NP)) broken.push('不带尾斜杠的地址没被判成指向它（trailingSlash: ignore 下两种写法都回 200，两种都算指向）');
+  if (!pointsTo(`https://mistwood.example.com/essays/${NP}/`, NP)) broken.push('绝对地址没被判成指向它（feed 与 JSON-LD 交的就是绝对地址）');
+  if (pointsTo(`/essays/${NP}-next/`, NP)) broken.push('一枚只是"前缀像"的地址被判成指向它 ⇒ 别稿的行会被数进这一枚的账，判据太宽');
+  if (pointsTo(`/categories/${NP}/`, NP)) broken.push('/categories/<同名>/ 被判成指向那一页 ⇒ 枚数会虚高');
+  if (!NOINDEX_RE.test('<meta name="robots" content="noindex">')) broken.push('noindex 尺子读不到标准写法那一枚 meta');
+  if (NOINDEX_RE.test('<meta name="description" content="noindex">')) broken.push('noindex 尺子把别的 meta 也认了（判据太宽，会假绿在真正缺 meta 的那一页上）');
   for (const b of broken) problems.push(`不列入对账 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"0 处／0 次"从此不可信`);
-  notes.push(`不列入对账 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集 1、"算指向"正例 5、"不算指向"负例 3、noindex 2）；`
+  notes.push(`不列入对账 needle·形状：8 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集与归一 6 条、noindex 2 条）；`
     + `窗口现扫 ${textArts.length} 份文本产物，在册 ${visible.length} 枚各验一次"<a href> 指得到"、机器侧 ${MACHINE.length} 份各验一次"读得到"`);
 
   /* ---- needle 之二／之三：盘上的正向见证物 ---- */

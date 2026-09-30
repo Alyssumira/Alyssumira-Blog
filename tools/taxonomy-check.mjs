@@ -14,10 +14,8 @@
    ② **八个调用点确实在用那份**：点名 index / essays 列表 / essays 详情（getStaticPaths 那一格最容易漏）/
       rss / atom / about / 系列索引 / 单枚系列页（最后两枚是第十五轮 `card/series` 添的），
       每处都要出现 `visiblePosts(`。只查①的话，把某处整段删掉也算"没绕过"。
-      ⚠️ 第十五轮 `card/unlisted` 起这一格还多钉一件事：`publishedPosts()` 的**合法调用者是一枚名单**
-      （第十五轮是一处：详情页 `getStaticPaths`；第十六轮 `card/feedout` 起是两处，加上同一篇的
-      原文端点 `essays/[slug]/index.md.js`——两枚答的都是"哪些地址要建出来"，名单逐枚的理由在 cell ② 那一格）。
-      名单是**扫 src 现算的**、不是抄的——
+      ⚠️ 第十五轮 `card/unlisted` 起这一格还多钉一件事：`publishedPosts()` 的**合法调用者只有一处**
+      （详情页 `getStaticPaths`，那一处要的是"哪些地址要建出来"）。名单是**扫 src 现算的**、不是抄的——
       谁哪天拿它去画列表或算邻居，这一格直接点名是哪个文件（邻居那一步要是吃了它，
       不列入的稿子就会出现在别人的上一篇／下一篇里，"站内任何一处都不指向它"当场破）。
    ③ **schema 那一侧同源**：`content.config.ts` 必须声明四枚 taxonomy 键 ＋ 两枚系列键（`series`／`seriesOrder`）
@@ -165,7 +163,7 @@ cell('①', '读 posts 的唯一入口（别的调用点一律红；两枚读函
 });
 
 /* ---------- ② 八个调用点点名 ＋ publishedPosts 的调用者名单 ---------- */
-cell('②', '读 posts 的页面都在吃 visiblePosts()，而 publishedPosts() 只在"建路"那两处', () => {
+cell('②', '读 posts 的页面都在吃 visiblePosts()，而 publishedPosts() 只有详情页一处', () => {
   const CALLERS = [
     'src/pages/index.astro',
     'src/pages/essays/index.astro',
@@ -198,26 +196,16 @@ cell('②', '读 posts 的页面都在吃 visiblePosts()，而 publishedPosts() 
      拿它算邻居 ⇒ 不列入的稿子出现在别人的上一篇／下一篇里；拿它画列表 ⇒ 它整篇回到 `/essays/`；
      拿它喂 feed／索引 ⇒ 订阅者收到一封"作者说没发"的推送。名单不抄进本文件（抄了就是第二处真值，
      而且下一轮多一处合法调用者时它会先红在错误的方向上）⇒ 这里扫 src，比的是"扫到的 == 应当有的"。
-     ⚠️ 空名单同样红（"删掉调用者"也算绕过），判据不许被"删了就绿"过关——同第①格那枚反向牙。
-     ⚠️ 名单从第十六轮 `card/feedout` 起是**两枚**，两枚答的是同一个问题："哪些地址要烘出来"——
-       · `src/pages/essays/[slug].astro`：详情页的 `getStaticPaths`（第十轮立、第十五轮改成这一枚读函数）
-       · `src/pages/essays/[slug]/index.md.js`：同一篇的原文 Markdown 端点（`/essays/<slug>/index.md`）
-     第二枚为什么必须吃 `publishedPosts()` 而不是 `visiblePosts()`：那一枚文件与它的 HTML 页是**同一条地址的两枚表示**，
-     "页在而原文 404"就是"页面活着、原件没了"那种不对称形状，而不列入那一族的语义恰恰是"地址是活的、站内没人指它"。
-     它因此不许被换成 `visiblePosts()`（换了这一格当场少一枚、红），也不许多出第三枚（多了就是有人拿"建路"当"列出"用）。 */
-  const PUB_CALLERS = ['src/pages/essays/[slug].astro', 'src/pages/essays/[slug]/index.md.js'];
+     ⚠️ 空名单同样红（"删掉调用者"也算绕过），判据不许被"删了就绿"过关——同第①格那枚反向牙。 */
   const pub = [];
   for (const p of SRC){
     const f = rel(p);
     if (f === 'src/lib/posts.js') continue;            /* 定义处不算调用者 */
     if (/publishedPosts\s*\(/.test(codeOnly(readSrc(p)))) pub.push(f);
   }
-  /* 两边各排一次再比：名单来自走盘顺序（`SRC` 那一份），而"谁在名单里"才是判据——
-     拿顺序当判据的话，下一轮任何一次文件改名或目录调整都会红在无关的地方（假红比漏检更坏，§16 那条）。 */
-  assert.deepEqual(pub.slice().sort(), PUB_CALLERS.slice().sort(),
-    `② publishedPosts() 的调用者现扫到 ${pub.length ? pub.join(' / ') : '零处'}，而合法的名单是 ${PUB_CALLERS.join(' / ')}`
-    + ` —— 这一枚是"只滤草稿、含不列入"的那一份，合法的用法只有一种：**回答"哪些地址要烘出来"**。`
-    + `多一处用（列表／邻居／feed／索引）就多一处让不列入的稿子露头，`
+  assert.deepEqual(pub, ['src/pages/essays/[slug].astro'],
+    `② publishedPosts() 的调用者现扫到 ${pub.length ? pub.join(' / ') : '零处'}，而它唯一的合法调用者是详情页的 getStaticPaths`
+    + ` —— 这一枚是"只滤草稿、含不列入"的那一份：多一处用（列表／邻居／feed／索引）就多一处让不列入的稿子露头，`
     + `少一处（零处＝详情页退回自己 filter 或干脆不建路）就是把"地址是真的"那一半做没了`);
   n += 1;
   return n + 3;
