@@ -1,4 +1,4 @@
-import { renderMd, inlineMd, safe, root, splitBlocks } from '../src/lib/markdown.js';
+import { renderMd, renderArticle, inlineMd, safe, root, splitBlocks } from '../src/lib/markdown.js';
 import assert from 'node:assert/strict';
 
 /* ---- 路径规整：详情页在 /essays/<slug>/，相对路径必须钉到站点根 ---- */
@@ -48,8 +48,14 @@ assert.ok(/<a href="https:\/\/example\.com\/fog" target="_blank" rel="noopener n
 assert.ok(/<a href="\/essays\/slow-frontend\/"[^>]*>站内<\/a>/.test(html), 'root-relative link stays put, no target');
 assert.ok(html.indexOf('![') === -1, 'no raw markdown survives');
 assert.ok(/<p>也可以一段里塞两张：/.test(html), 'inline text keeps its paragraph');
-assert.equal((html.match(/<h2>/g) || []).length, 2, 'two sections');
-assert.ok(!/id="/.test(html.match(/<h2>[^<]*<\/h2>/g).join('')), 'h2 ids are added by the toc script, not the parser');
+assert.equal((html.match(/<h2 id="/g) || []).length, 2, 'two sections');
+/* ⚠️ 这一格是 `card/anchors` **改掉**的旧断言，不是放宽：原句是
+   `assert.ok(!/id="/.test(…<h2>[^<]*</h2>…), 'h2 ids are added by the toc script, not the parser')`
+   —— 它钉的正是"id 归运行期脚本"那一件**机制缺件**（无 JS / 脚本没跑 ⇒ 深链跳不到、目录整块不存在，
+   §19.3 那格同族）。今天渲染器自己发 id，所以断言换成"两枚 id 都在、且取值就是那两章的规范化结果"。
+   逐篇现值表与算法登记在规范 §15 详情页那一格。 */
+assert.ok(/<h2 id="起雾的时候">起雾的时候<\/h2>/.test(html), 'H2 id = safe(原文)，CJK 原样留着');
+assert.ok(/<h2 id="下一节">下一节<\/h2>/.test(html), 'second section gets its own readable id');
 
 console.log('markdown OK  figures=3  h2=2  links=' + (html.match(/<a /g) || []).length);
 console.log(html.replace(/></g, '>\n<'));
@@ -84,7 +90,7 @@ const md2 = [
 const h2 = renderMd(md2);
 assert.ok(/<ul><li>苔<\/li><li>雾<\/li><li>风<\/li><\/ul>/.test(h2), 'ul: both - and * markers, one <li> per line');
 assert.ok(/<ol start="3"><li>第三件<\/li><li>第四件<\/li><\/ol>/.test(h2), 'ol keeps the author\'s starting number');
-assert.ok(/<h3>三级标题<\/h3>/.test(h2), 'h3');
+assert.ok(/<h3 id="三级标题">三级标题<\/h3>/.test(h2), 'h3 也带 id（目录与刻度收的就是这一批）');
 assert.ok(/<hr>/.test(h2) && (h2.match(/<hr>/g) || []).length === 1, 'one divider');
 assert.ok(/<blockquote><p>[^<]*<\/p><footer>某本笔记<\/footer><\/blockquote>/.test(h2), 'quote lines join into one paragraph, attribution becomes <footer>');
 /* 编号按正文里第一次出现排，不按定义顺序；重复引用复用同一个号 */
@@ -275,4 +281,40 @@ assert.equal((htmlT.match(/"/g) || []).length % 2, 0, '带表格的产物引号�
 console.log('\nmarkdown 4 OK  fence-literal + fence-atomic-blankline + lang-attr-whitelist + bold-before-em + table-shape + alignment + crlf-parity');
 console.log(htmlF.replace(/></g, '>\n<'));
 console.log(htmlT.replace(/></g, '>\n<'));
+
+/* ---- 第五轮 `card/anchors`：章的 id 与那一页的章清单，由渲染器在构建期一次交回 ----
+   这一格钉的是**机制**：id 一旦归运行期脚本补，无 JS／脚本没跑到那一拍，`/essays/<slug>/#某节` 就跳不到、
+   目录整块不存在（§19.3 那格"起手态由 JS 落"的同族）。所以判据要能在**不看浏览器**的前提下说出：
+   渲染器发的 id 长什么样、重名怎么退、纯标点章怎么退、两篇之间的去重账不许互相污染。 */
+{
+  const dup = renderArticle('## 同名\n\n正文一。\n\n## 同名\n\n正文二。\n\n## ！？\n\n纯标点章。\n\n## 用 *斜体* 与 `code`\n');
+  /* 重名：第一枚拿裸值，第二枚带 `-2` —— 确定性行为，不是"谁先谁后看运气" */
+  assert.ok(/<h2 id="同名">同名<\/h2>/.test(dup.html) && /<h2 id="同名-2">同名<\/h2>/.test(dup.html), '同名标题第二枚拿 -2 后缀');
+  /* 归一化成空串（纯标点章）⇒ 退 sec-<章序>，绝不发 id=""：空串是一枚点不开的活锚（§12 死锚点） */
+  assert.ok(/<h2 id="sec-2">/.test(dup.html), '纯标点章退 sec-章序，不发空 id');
+  /* 原料是**原文**不是渲染结果：星号与反引号被规范化成连字符，`em`/`code` 这两个标记名不许进地址 */
+  assert.ok(/<h2 id="用--斜体--与--code">/.test(dup.html), '带行内标记的标题：id 走原文规范化，不含标记名');
+  /* 渲染结果的壳不许漏进 id：判据用**字符集**而不是"含不含 code 这个词"——
+     上面那枚 fixture 的地址里 `code` 是作者自己写的字，拿词当needle 会假红（第一版就在这里红过一次）。 */
+  for (const h of dup.heads) assert.ok(!/[<>&/;"=]/.test(h.id), `id 里出现了壳或引号：${h.id}`);
+  /* id 的字符集白名单：safe() 之后只剩 Unicode 字母/数字/连字符 ⇒ 属性值里原理上不会有引号 */
+  for (const h of dup.heads) assert.ok(/^[\p{L}\p{N}-]+$/u.test(h.id), `id 出了白名单：${h.id}`);
+  /* 清单与正文同源：级别、顺序、去壳后的字（目录那一行要印的字） */
+  assert.deepEqual(dup.heads.map(h => [h.level, h.id]), [[2, '同名'], [2, '同名-2'], [2, 'sec-2'], [2, '用--斜体--与--code']], '章清单的顺序就是正文里的先后，一枚不多一枚不少');
+  assert.deepEqual(dup.heads.map(h => h.text), ['同名', '同名', '！？', '用 斜体 与 code'], '目录用的字是渲染结果的去壳（与运行期 textContent 同读法）');
+  /* ⚠️ 去重集合是**一篇一份**：上一篇用过 `同名`，下一篇第一枚仍拿裸值——
+     状态没清就是"越构建越歪"，而且歪在第二篇上，第一篇的读数看着完全正常 */
+  assert.equal(renderArticle('## 同名\n\n另一篇。\n').heads[0].id, '同名', '第二篇不被上一篇的后缀账污染');
+  /* H3 与 H2 走同一枚函数、进同一份清单（目录与刻度吃的就是这一批） */
+  const mixed = renderArticle('## 甲\n\nx\n\n### 乙\n\ny\n');
+  assert.deepEqual(mixed.heads.map(h => [h.level, h.id]), [[2, '甲'], [3, '乙']], 'H3 收进同一份清单，带自己的级别');
+  assert.ok(/<h3 id="乙">/.test(mixed.html), 'H3 的 id 也在构建期落地');
+  /* 渲染器不许把同一枚 id 发两遍（产物里两枚同值 id ＝ 锚点跳到哪一枚算哪一枚） */
+  assert.equal((renderMd('## a\n\n## a\n\n## a\n').match(/<h2 id="/g) || []).length, 3, '三枚同名章都要成形');
+  assert.deepEqual([...new Set(renderArticle('## a\n\n## a\n\n## a\n').heads.map(h => h.id))].length, 3, '三枚 id 互不相同');
+  /* CRLF 那把尺子在这一族上同样成立：行尾不许改 id（规范化吃的是整串原文，不该有 \r 的影子） */
+  assert.equal(renderArticle('## 同名\n\n正文一。\n\n## 同名\n'.replace(/\n/g, '\r\n')).html,
+               renderArticle('## 同名\n\n正文一。\n\n## 同名\n').html, '带重名 id 的稿子 CRLF 与 LF 产物逐字节相同');
+  console.log('\nmarkdown 5 OK  heading-id-shape + duplicate-suffix + empty-normalisation-fallback + per-doc-reset + toc-list-same-source');
+}
 

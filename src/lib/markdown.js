@@ -220,6 +220,32 @@ function splitBlocks(md){
   return out;
 }
 
+/* ---- 章的 id：构建期就落在正文里（`card/anchors`，§15 详情页那一格 / §19.3 那格陷阱的同族）----
+   规则一句话可复算：**id = safe( 行首记号之后的整串原文 )**，`safe`（:52）就是脚注 id 一直在用的
+   那一份函数（Unicode 字母/数字/连字符留下、其余换 `-`、首尾不留、限长 32），这里不新开第二份规范化。
+   ⚠️ 原料是**原文**而不是渲染结果：`inlineMd` 的输出带着 `&amp;` 与 `<em>` 这类壳，拿它当原料就会把
+      标记名混进地址（`## 用 *斜体*` → 渲染串里会数出 `em`）。可见文字仍走 `inlineMd`。
+   ⚠️ 重名（同一篇里两枚同名标题）⇒ 第一枚拿裸值，第二枚起加 `-2`、`-3`…（`headTaken` 按章序推进，
+      所以后缀是一枚**确定性行为**，不是"谁先谁后看运气"；集合里查过了才放行，产物内绝不出现两枚同值 id）。
+   ⚠️ 归一化之后是空串（`## ！？` 那种纯标点章）⇒ 退 `sec-<章序>`，**不许发空 id**：空串是一枚点不开的
+      活锚（§12 死锚点），而 `id=""` 也会让第二枚空串撞车。 */
+const headsOut = [];
+const headTaken = new Set();
+function headId(raw, idx){
+  const base = safe(raw) || ('sec-' + idx);
+  let id = base, n = 2;
+  while (headTaken.has(id)) id = base + '-' + (n++);   /* 后缀一路试到没被占过的那枚 ⇒ 唯一性由集合保证 */
+  headTaken.add(id);
+  return id;
+}
+/* 一枚标题只在这里成形一次：正文那个标签、目录那一行的字、刻度那一排的位置，全吃同一次调用的产物 */
+function headBlock(level, raw){
+  const id = headId(raw, headsOut.length);
+  const inner = inlineMd(raw);
+  headsOut.push({ level, id, text: inner.replace(/<[^>]+>/g, '') });
+  return `<h${level} id="${id}">${inner}</h${level}>`;
+}
+
 function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引用 / 分隔线 / 代码围栏 / 表格 / 图片行（整段是图、图包在链接里也算） */
   /* 行尾不许是输入的一部分：下面整份解析器以 '\n' 为唯一行分隔（splitBlocks 切块、split('\n') 拆引用），
      而 `core.autocrlf=true` 的机器上 `git clone` 会把稿件落成 CRLF —— 那时 '\r\n\r\n' 里两个 '\n' 不相连，
@@ -227,6 +253,7 @@ function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引�
      归一成 LF，渲染器漏了：检查归一、渲染不归一 ⇒ 门禁绿得恰恰因为它赦免了同一件事。 */
   const md = String(md0).replace(/\r\n/g, '\n');
   fnDefs.clear(); fnOrder.length = 0; anchored.clear(); sn.n = 0; allowRefs = true;
+  headsOut.length = 0; headTaken.clear();   /* 章的 id 与去重集合是**一篇一份**：不清就会把上一篇的后缀账带进来 */
   /* 两趟：脚注定义习惯写在文末，可引用在开头——先收完定义再渲染，否则第一处引用会当成缺号 */
   const blocks = [];
   for (const raw of splitBlocks(md)){
@@ -238,8 +265,8 @@ function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引�
   const html = blocks.map(t => {    if (t.startsWith('```')) { const code = codeMd(t); if (code) return code; }
     const tbl = tableMd(t);
     if (tbl) return tbl;
-    if (t.startsWith('### ')) return '<h3>' + inlineMd(t.slice(4)) + '</h3>';
-    if (t.startsWith('## ')) return '<h2>' + inlineMd(t.slice(3)) + '</h2>';
+    if (t.startsWith('### ')) return headBlock(3, t.slice(4));
+    if (t.startsWith('## ')) return headBlock(2, t.slice(3));
     if (/^(?:-{3,}|\*{3,})$/.test(t)) return '<hr>';
     const lines = t.split('\n');
     if (allMatch(lines, /^[-*][ \t]+/)) return listMd(t, false);
@@ -259,6 +286,15 @@ function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引�
   return all;
 }
 
+/* 详情页要的读法：正文与那一页的章**同一次调用交回来**。
+   ⚠️ 为什么不叫 `renderMd` 之后再问一枚 `heads()` 全局：那样"渲染"与"取章"是两步，中间插进第二篇的
+   渲染就会读到别人的账（模块级状态本来就是为脚注那套"一处渲染全程"留的，见 :64 那段说明）。
+   一步交回两样，页面上就没有"拿错那一篇的目录"这条路；目录、刻度、正文那一排 id 因此同源。 */
+function renderArticle(md0){
+  const html = renderMd(md0);
+  return { html, heads: headsOut.map(h => ({ level: h.level, id: h.id, text: h.text })) };
+}
+
 /* 日期在 front-matter 里是 ISO，站上按等宽点分格式显示 */
 function fmtDate(d){
   return [d.getUTCFullYear(), String(d.getUTCMonth() + 1).padStart(2, '0'), String(d.getUTCDate()).padStart(2, '0')].join('.');
@@ -274,4 +310,4 @@ function fmtDate(d){
    长出一枚看着像真链接、点开 404 的活锚，比 `#` 更隐蔽。front matter 这两枚键要的是"**要么能用、要么没有**"，
    所以在这里多导出第二枚函数，而不是让页面或 `tools/` 各写一份协议判据。正文那条路（`link()` / `href()`）
    一个字没动——改的只有导出表这一行与它上面这段说明。 */
-export { renderMd, inlineMd, fmtDate, root, safe, splitBlocks, href, strictHref };
+export { renderMd, renderArticle, inlineMd, fmtDate, root, safe, splitBlocks, href, strictHref };
