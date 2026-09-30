@@ -2,9 +2,7 @@
    以前 URL 手写在工作流里、档案再抄一遍，加一个字体要改两处，迟早对不上。
    q 是 css2 的 family= 查询片段，逐字符照原 URL，别顺手"美化"——改了就是换字体。
    ⚠️ `self: true` ＝这一族不走 css2，改走站内自托管（表在 base.css，文件在 public/fonts/**，
-   清单与 SHA256 在册 tools/font-selfhost.manifest.json；CJK 两族是 2026-09-30 `card/cjk-subset` 打上这面旗的——
-   子集那两枚的清单与复验在 tools/font-subset.manifest.json / font-subset.mjs，规范 §3.3 与 §12「随滚动微调字重」格）。
-   拼 URL 只吃没有这面旗的条目；
+   清单与 SHA256 在册 tools/font-selfhost.manifest.json）。拼 URL 只吃没有这面旗的条目；
    条目本身留在清单里是因为关于页档案列的是**同一批字体**，不是"远程的那批"。 */
 export const FONT_HOST = process.env.FONT_HOST || 'https://fonts.loli.net';
 /* FONT_HOST 是构建期开关：给了环境变量就用它，没给就用上面这枚默认值（本机那条被证书拦住的路，§3 钉着）。
@@ -40,8 +38,8 @@ export const AUTHOR = 'Alyssumira';
 
 export const fonts = [
   { name: 'Fraunces',      q: 'Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400', self: true },
-  { name: 'Noto Serif SC', q: 'Noto+Serif+SC:wght@400;600;700', self: true },
-  { name: 'Noto Sans SC',  q: 'Noto+Sans+SC:wght@400;500', self: true },
+  { name: 'Noto Serif SC', q: 'Noto+Serif+SC:wght@400;600;700' },
+  { name: 'Noto Sans SC',  q: 'Noto+Sans+SC:wght@400;500' },
   { name: 'IBM Plex Mono', q: 'IBM+Plex+Mono:ital,wght@0,400;0,500;1,400', self: true },
 ];
 

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import Seo from '../components/Seo.astro';
 import { ROOT } from '../lib/stats.js';
 import { NAV } from '../lib/nav.js';
-import { fonts } from '../data/site.js';
+import { fonts, FONT_HOST, FONT_FILE_HOST } from '../data/site.js';
 
 /* revised / date 只有详情页（src/pages/essays/[slug].astro 那个 <Layout> 标签）会传：其余五页没有 ⇒
    Seo 那一格整字段不写，不许拿别的日期顶上（§13a） */
@@ -52,10 +52,11 @@ const SITE_NAME = 'mistwood';
    立两处真值（§13a 那格的原话是"抄的那份改了没人知道"，本轮只是把同一个理由管到屏幕上那条链）。
    ⚠️ 项数一枚没动：胶囊那一排仍旧是 5 链接 + 滑杆 + 主题 = 七项，§11 那笔 296.48／上限 300 的实测账
    由 `tools/search-check.mjs` 在 gate 里数着，本轮不给它添第八项。 */
-/* css2 URL 从今天起不拼了（2026-09-30 `card/cjk-subset`：四族全自托管——拉丁两族见 base.css「自托管」节与
-   tools/font-selfhost.*，CJK 两族是子集，见 tools/font-subset.*）。牙留着：fonts[] 里哪条丢了 `self` 旗，
-   在这版 Layout 里就变成"档案列了它、但任何页面都不会载入它"——当场抛，不静默缺一族。 */
-if (fonts.some(f => !f.self)) throw new Error(`fonts 清单里这些族没有 self 旗：${fonts.filter(f => !f.self).map(f => f.name).join(' / ')}——Layout 已不拼 css2 URL，它们不会在任何页面载入。要么把自托管补齐（表进 base.css、文件进 public/fonts/**、清单在册），要么把上一版 Layout 的 css2 拼装与 preconnect 原样恢复回来，二选一，别静默。`);
+/* css2 只拼没自托管旗的族（见 src/data/site.js 的 fonts 清单与 base.css 的自托管节）；
+   哪一天四族全解绑了，这一枚就该整行拆掉而不是发一个空查询——当场抛，不静默挂一枚坏 link */
+const remoteFonts = fonts.filter(f => !f.self);
+if (!remoteFonts.length) throw new Error('fonts 清单里没有远程族了，但 Layout 还在拼 css2 URL——全自托管那天应删掉这枚 <link>，而不是发空查询');
+const FONTS = `${FONT_HOST}/css2?${remoteFonts.map(f => 'family=' + f.q).join('&')}&display=swap`;
 ---
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" data-phase="day" data-tier={tier}>
@@ -92,6 +93,9 @@ if (fonts.some(f => !f.self)) throw new Error(`fonts 清单里这些族没有 se
 <!-- 结构化数据（§13a）：一份 JSON-LD，站点身份 + 详情页那一篇 + 面包屑。它是构建期落的静态 HTML，
      没有内联脚本、不碰首帧那五枚显示属性的判定（下面那段是全站唯一的内联写者，理由钉在 §16 第四类门禁） -->
 <Seo siteName={SITE_NAME} canonical={canonical} ogImage={ogImage} title={title} desc={desc} type={type} here={here} revised={revised} date={date} />
+<link rel="preconnect" href={FONT_HOST}>
+<link rel="preconnect" href={FONT_FILE_HOST} crossorigin>
+<link href={FONTS} rel="stylesheet">
 <link rel="alternate" type="application/rss+xml" title="mistwood" href="/rss.xml">
 <!-- 原生预取（零 JS）：把目标文档在悬停时就备好，跨页转场（§8.3）才不会因为新文档还没加载完
      而退化成瞬时导航。conservative = 有真实交互意图才预取，不会一进来就把五个页面全拉下来 -->
