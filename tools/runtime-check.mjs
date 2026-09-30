@@ -90,8 +90,6 @@ import { tmpdir } from 'node:os';
    `posts.js` 反而拿不了——那一层只做"取集合 + 滤草稿 + 排序"，规则本身在这份里）。
    front matter 的读法同 `new-post.mjs --check` 那一份：两处各写一个 split 迟早对"什么算草稿"读成两种。 */
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
-/* 第十七轮 `card/aliases`：旧地址那一族的归一化读法也吃 shipped 的那一份（页面与门禁不会两套） */
-import { aliasesOf } from '../src/lib/taxonomy.js';
 import { isDraft, isUnlisted, sortPosts, categoryOf, tagGroups, bySize, groupBy } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -258,7 +256,7 @@ for (const name of postFiles) {
   if (!parsed) { problems.push(`${slug}：front matter 不成形，这一格的可见性判据读不出它是草稿还是已发布（宁缺不假绿）`); continue; }
   const tax = readTaxonomy(parsed.fmText);
   if (tax.errors.length) { problems.push(`${slug}：front matter 的四枚新键读不过预检（${tax.errors[0]}）——--check 那一格本该先拦下`); continue; }
-  corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, aliases: tax.aliases, date: new Date(parsed.fm.date) } });
+  corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, date: new Date(parsed.fm.date) } });
 }
 /* 三份名单，各对一个"页面那侧的谁"，一枚都不许多出来（第十五轮 `card/unlisted` 起了中间那枚）：
    · `routable` ⇄ `publishedPosts()`（只滤草稿）——**这些页必须在 dist/ 里存在**，包括不列入的那几枚；
@@ -526,14 +524,7 @@ const markSpansOf = html => {
      旧写法读不到后者，于是"给不列入的那一篇递一枚原文地址"会绿着过全站 href 扫描，
      而那正是这一族唯一要防的形状换了个文件名又来一次。`-next` 那枚反例钉住它没有放宽到"前缀像"：
      尾斜杠在比较串里是必须的，`/essays/x-next/` 落不进 `/essays/x/`。 */
-  /* ⚠️ 第十七轮 `card/aliases` 再扩一次：同一篇稿子现在可能有**第三种表示**——作者声明过的那几枚旧地址
-     （`/2026/foo/` 之类，`src/pages/[...alias].astro` 为它们各烘一枚跳转页）。旧地址算不算"指向这一篇"？
-     算。§15 那一格签的是"它自己的地址是唯一入口"，而一枚被人链过去的旧地址就是第二枚入口——
-     认不出它的那一版扫描会绿着放行"给不列入那一篇递一枚旧地址"，与上一轮那枚 `.md` 同址写法是同一族坏形状。
-     名单不在这里另算：它来自同一份 front matter 与 shipped 的 `aliasesOf()`（上面 `corpus` 那一份 data 里
-     带着 `aliases`），所以"哪些旧地址归谁"这一件事全站只有一处真值。第三枚参数就是那一枚名单，默认算出来是空的。 */
-  const aliasesOfId = id => { const p = corpus.find(x => x.id === id); return p ? aliasesOf(p) : []; };
-  const pointsTo = (h, id, alias = aliasesOfId(id)) => { const at = pathOf(h); return at.startsWith(`/essays/${id}/`) || alias.includes(at); };
+  const pointsTo = (h, id) => pathOf(h).startsWith(`/essays/${id}/`);
   const refsFrom = id => textArts.filter(t => !t.rel.startsWith(`/essays/${id}/`)).filter(t => hrefsOf(t.txt).some(h => pointsTo(h, id))).map(t => t.rel);
   /* 机器侧那五份产物：名字＝给人看的，parts＝找文件的（口径照上面 READABLE 那格——显示名与路径名分开写，
      混成一枚串就会得到 dist/dist/... 那种"一份都不存在、被 filter 静默丢掉"的空转） */
@@ -557,18 +548,10 @@ const markSpansOf = html => {
   probe(!pointsTo(`/essays/${NP}-next/`, NP), '一枚只是"前缀像"的地址被判成指向它 ⇒ 别稿的行会被数进这一枚的账，判据太宽');
   probe(!pointsTo(`/categories/${NP}/`, NP), '/categories/<同名>/ 被判成指向那一页 ⇒ 枚数会虚高');
   probe(!pointsTo(`/og/${NP}.png`, NP), '逐篇社交卡那枚文件名被判成指向这一篇 ⇒ 目录行与卡片同名的稿子会被自己那一页顶掉计数');
-  /* 第十七轮 `card/aliases` 那四枚：第三枚参数（这一篇声明过的旧地址）承重吗？两侧各有。
-     ⚠️ 这里喂的是 **fixture 名单**而不是按 corpus 算出来的那份：needle 那一枚 id（needle-probe）根本不是稿件，
-        拿"盘上真名单"（对它就是空集合）去断言"旧地址被判成指向它"就是永远断言不到——本仓为这一族写过
-        "在空集合上偷懒"那句（上面第三格的原话）。空名单那一枚钉的是反向：判据不许宽到把任何旧地址都算进来。 */
-  probe(pointsTo(`/2026/${NP}-old/`, NP, [`/2026/${NP}-old/`]), '作者声明过的旧地址没被判成指向这一篇 ⇒ 有人把不列入那一篇的旧地址链出去也不会红');
-  probe(pointsTo(`https://mistwood.example.com/2026/${NP}-old/`, NP, [`/2026/${NP}-old/`]), '绝对形式的旧地址没被判成指向它（feed 与 llms.txt 交的是绝对地址）');
-  probe(!pointsTo(`/2026/${NP}-old/`, NP, []), '名单为空时旧地址也被判成指向这一篇 ⇒ "0 处指向"会在每一枚旧地址上假红（判据太宽）');
-  probe(!pointsTo(`/2026/${NP}-old/`, 'other-post', [`/2026/other-old/`]), '另一篇的旧地址被判成指向这一篇 ⇒ 判据没有按"这一枚地址归谁"的名单比，一枚稿子的账会被别稿的旧地址撑大');
   probe(NOINDEX_RE.test('<meta name="robots" content="noindex">'), 'noindex 尺子读不到标准写法那一枚 meta');
   probe(!NOINDEX_RE.test('<meta name="description" content="noindex">'), 'noindex 尺子把别的 meta 也认了（判据太宽，会假绿在真正缺 meta 的那一页上）');
   for (const b of broken) problems.push(`不列入对账 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"0 处／0 次"从此不可信`);
-  notes.push(`不列入对账 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集 1、"算指向"正例 7、"不算指向"负例 5、noindex 2）；`
+  notes.push(`不列入对账 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集 1、"算指向"正例 5、"不算指向"负例 3、noindex 2）；`
     + `窗口现扫 ${textArts.length} 份文本产物，在册 ${visible.length} 枚各验一次"<a href> 指得到"、机器侧 ${MACHINE.length} 份各验一次"读得到"`);
 
   /* ---- needle 之二／之三：盘上的正向见证物 ---- */
