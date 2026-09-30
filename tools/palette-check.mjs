@@ -214,8 +214,10 @@ function variants(per){
       if (b.ctx === '' && ('phase' in b.attrs || 'moon' in b.attrs)) out.push({ file, ...b });
   return out;
 }
-/* 档位来自 §2.4：正文级 ≥7、次要 ≥4.5，其余（三级/苔/枯草/月光）属大字或装饰档，不设地板 */
-const FLOOR = { '--ink': 7, '--moss-ink': 7, '--ink-2': 4.5 };
+/* 档位来自 §2.4：正文级 ≥7、次要 ≥4.5，其余（三级/苔/枯草/月光）属大字或装饰档，不设地板
+   ⚠️ `--ink-visited` 也钉在 ≥7：它是"读过的那一行"的正文级墨（24px/600 目录行标题按 §2.4 尺寸档本来只要 3:1，
+   这一档**主动按正文档签**，因为"深一档"如果被压到读不出来，那这一枚改动就只剩代码没有读者）。 */
+const FLOOR = { '--ink': 7, '--moss-ink': 7, '--ink-2': 4.5, '--ink-visited': 7 };
 const TIERS = [7, 4.5, 3];
 const PHASES = ['dawn', 'day', 'dusk', 'night'], MOONS = ['*', 'full'];
 
@@ -265,7 +267,7 @@ for (const [name, t] of themes){
     const worst = Math.min(a, b), floor = FLOOR[k];
     const ok = floor === undefined || worst >= floor;
     if (!ok) bad++;
-    console.log(`  ${k.padEnd(13)}${v}  ${c.L.toFixed(3)}  ${c.C.toFixed(3)}  ${c.H.toFixed(1).padStart(5)}  ${a.toFixed(2).padStart(6)}  ${b.toFixed(2).padStart(6)}  ${floor ? (ok ? '✓' : '✗ 应 ≥' + floor) : '—'}`);
+    console.log(`  ${k.padEnd(15)}${v}  ${c.L.toFixed(3)}  ${c.C.toFixed(3)}  ${c.H.toFixed(1).padStart(5)}  ${a.toFixed(2).padStart(6)}  ${b.toFixed(2).padStart(6)}  ${floor ? (ok ? '✓' : '✗ 应 ≥' + floor) : '—'}`);
   }
   const hues = Object.values(t).map(v => toOkLchSafe(v).H);
   console.log(`  色相散布 ${Math.min(...hues).toFixed(1)}°…${Math.max(...hues).toFixed(1)}（跨度 ${(Math.max(...hues) - Math.min(...hues)).toFixed(1)}°）——§1.1 说的是"不撞色"，不是"只有一个色相"，这里只报不判`);
@@ -280,10 +282,10 @@ function toOkLchSafe(hex){ try { return toOklch(hex) } catch (e) { return { L: 0
               ② §2 那批基础令牌必须确实在 base.css 里各声明一次 ⇒ 缺一枚就红，
                  否则"把色板全删掉"反而能让这一关变绿（越少越绿＝另一个形状的空转）。 */
 const BASE_SET = {
-  ':root': ['--bg-base', '--bg-top', '--ink', '--ink-2', '--ink-3', '--moss', '--moss-deep', '--moss-ink',
+  ':root': ['--bg-base', '--bg-top', '--ink', '--ink-visited', '--ink-2', '--ink-3', '--moss', '--moss-deep', '--moss-ink',
             '--straw', '--moon', '--line', '--glass', '--glass-border', '--mist', '--halo',
             '--shadow', '--shadow-contact', '--glass-edge'],
-  'html[data-theme="dark"]': ['--bg-base', '--bg-top', '--ink', '--ink-2', '--ink-3', '--moss', '--moss-deep',
+  'html[data-theme="dark"]': ['--bg-base', '--bg-top', '--ink', '--ink-visited', '--ink-2', '--ink-3', '--moss', '--moss-deep',
             '--moss-ink', '--line', '--glass', '--glass-border', '--mist', '--halo',
             '--shadow', '--shadow-contact', '--glass-edge'],
   'html[data-phase="dawn"][data-theme="light"]': ['--bg-top', '--shadow'],
@@ -293,11 +295,11 @@ const BASE_SET = {
 };
 /* ⚠️ 这枚登记值是 §17 那"三处同源"的第三处：规范句子（§2 那批基础令牌）/ 上面那份清单 /
    `src/styles/base.css` 的实际声明。三处一起动，动一处就红——所以清单不是注释，是判据。
-   42 = hex 22 + 值里含 rgba() 20（第九轮 `card/glass` 从 38 抬上来：`:root` 与 dark 各多一枚
-   `--shadow-contact` 与一枚 `--glass-edge`，共 +4）。
+   44 = hex 24 + 值里含 rgba() 20（第十轮 `card/visited-ink` 从 42 抬上来：`:root` 与 dark 各多一枚
+   `--ink-visited`，共 +2；rgba 那一族一枚没动）。
    下面两条牙：① 清单里的必须在 base.css 里（旧那条，防"删光就绿"）；
    ② base.css 里的必须都在清单里（第九轮新加，防"加完令牌忘了登记"——旧判据对多出来的一枚是瞎的）。 */
-const REGISTERED = 42;
+const REGISTERED = 44;
 let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingKeys = 0, needTotal = 0, orphans = 0;
 {
   const table = new Map();
@@ -337,7 +339,7 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
   if (needTotal !== REGISTERED){ console.log(`  ✗ 清单实际 ${needTotal} 枚、规范登记值 ${REGISTERED} 枚 —— §17 那句计数与这份判据对不上了（三处同源）`); drift++; }
   console.log('\n=== 一处真值（base.css ← mistwood.css / home.css / essay.css）===');
   console.log(`  ${drift ? '✗ 这一关没过' : '✓'} base.css 集中了 ${baseHex} 枚 hex + ${baseRgba} 枚含 rgba() 的色板令牌（面/影/纱）；` +
-    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 ${dupKeys} 处、基础板 ${needTotal - missingKeys}/${needTotal} 枚在位（登记值 ${REGISTERED}＝hex 22 + rgba 20）、未登记的反向多枚 ${orphans} 处`);
+    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 ${dupKeys} 处、基础板 ${needTotal - missingKeys}/${needTotal} 枚在位（登记值 ${REGISTERED}＝hex 24 + rgba 20）、未登记的反向多枚 ${orphans} 处`);
 }
 
 /* ---------- ①b 成对声明（`light-dark()` 一处写两档）与它的退路镜像 ----------
