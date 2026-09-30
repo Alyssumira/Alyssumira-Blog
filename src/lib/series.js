@@ -66,3 +66,32 @@ function sortGroup(g){
 export function seriesGroups(posts){
   return groupMany(posts, p => [seriesOf(p)], '系列').map(sortGroup);
 }
+
+/* 系列内的上一篇／下一篇（第十八轮 `card/reading2`，F5；形状照 `docs/美化建议.md` §11.3 那格预签：
+   "同 series 的稿子在详情页给'系列内上一篇 / 下一篇'，与按日期的全站上下篇**并存但分开**"）。
+   ⚠️ **顺序只从 `seriesGroups()` 拿**，这一枚函数不重新排序、也不补第二枚判据：整组都有 `seriesOrder`
+      就按它升序、缺一枚就整组退回按 `date`（文件头那条裁决），而 `/series/<slug>/` 那一页列的是
+      **同一枚数组**——所以详情页的"上一篇／下一篇"与系列页从上往下数的邻居**天然是同一件事**，
+      不是两处各排一遍再盼着它们对上（§15"顺序只住一处"；对账由 `tools/reading-check.mjs` 在产物上做，
+      它拿系列页那排 `.row` 的顺序反查详情页这两枚链接，两页打架就红）。
+   ⚠️ 与全站按日期的上下篇是**两枚不同的语义**，所以两块版面分开住：日期那一对在 `.post-nav`
+      （22px 衬线、`← prev`／`next →`），这一对在 `.post-tail` 里的一行 14px 说明（`in series ·`）。
+      合并成一处的代价是"同一个位置说两件事"——读者无从知道点下去会落到哪一串里。
+   ⚠️ 不印序数（没有「第 N 篇」）：`seriesOrder` 可以整组都没填，编一个 N 就是 §12 的假数字（文件头那条）。
+   ⚠️ 拿不到邻居的三种情形都退回"这一格不出现"，不是"出现一条空的"（§14 没填 ⇒ 不出现）：
+      ① 这一篇没填 series（或名字清不成 slug ⇒ 没有地址，§12 死锚点）；
+      ② 这一组只有一篇（它自己是全部）；
+      ③ 这一篇**不列入**：`visiblePosts()` 那份数组里没有它 ⇒ 它在任何一格里都排不出邻居——
+         与详情页 prev/next 那一格同一个口径（"不在目录里，也就没有邻居"）。
+   返回值只两枚：`prev`／`next`，没有就是 `undefined`；调用方按"有没有"决定画不画。 */
+export function seriesSiblings(posts, current){
+  const none = { prev: undefined, next: undefined };
+  if (!current || !Array.isArray(posts)) return none;
+  const slug = taxSlug(seriesOf(current));
+  if (!slug) return none;                                  /* 没填／没有地址：这一格整块不出现 */
+  const g = seriesGroups(posts).find(x => x.slug === slug);
+  if (!g) return none;                                     /* 分组里没有它（不列入的那一枚就是这一档） */
+  const i = g.posts.findIndex(p => p.id === current.id);
+  if (i < 0) return none;
+  return { prev: g.posts[i - 1], next: g.posts[i + 1] };
+}

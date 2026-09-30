@@ -4,7 +4,7 @@ import Layout from '../../layouts/Layout.astro';
 import { renderArticle, fmtDate, strictHref } from '../../lib/markdown.js';
 import { visiblePosts, publishedPosts } from '../../lib/posts.js';
 import { categoryOf, tagsOf, taxSlug, isUnlisted } from '../../lib/taxonomy.js';
-import { seriesOf } from '../../lib/series.js';
+import { seriesOf, seriesSiblings } from '../../lib/series.js';
 /* 相关阅读（第十八轮 `card/reading2`，F4）：判据全部住在 `src/lib/related.js` 那一份**纯**实现里
    （不 import 'astro:content'，所以 `tools/reading-check.mjs` 吃的是同一个函数），这一页只做两件事：
    把 `visiblePosts()` 那份数组交进去、把拿回的清单画成链接。规则（唯一的排序信号＝共享的真 token 枚数、
@@ -42,16 +42,25 @@ export async function getStaticPaths(){
      ⚠️ 不列入的那一篇自己也有一格：它的页面照常存在，而它指出去的那几枚全在 `listed` 里 ⇒
         这一格只出不进，"站内任何一处都不指向它"那一条一个字不破（`runtime-check` 的"不列入对账"钉的是"进"）。 */
   const rel = new Map(routable.map(p => [p.id, relatedPosts(listed, p)]));
+  /* 系列内的上一篇／下一篇（F5）：邻居只从 `src/lib/series.js` 的 `seriesGroups()` 那一枚顺序里取——
+     它与 `/series/<slug>/` 那一页列的是**同一枚数组**（整组都有 `seriesOrder` 就按它升序、缺一枚就整组
+     退回按 `date`），所以"这一串里的上一枚"在两页上必然是同一个答案；这里不再排第二遍（§15"顺序只住一处"）。
+     ⚠️ 对账在 `tools/reading-check.mjs`：它拿系列页产物里那排 `.row` 的地址顺序反查详情页这两枚链接，
+        两页哪天分叉，红的是那一格，不是这份注释。
+     ⚠️ 池子同样只准是 `listed`：拿 `publishedPosts()` 那枚"含不列入"的建路读函数去算邻居，
+        不列入的稿子就会坐进每一组的邻居位——与上面 prev/next、related 是同一枚牙。 */
+  const sn = new Map(routable.map(p => [p.id, seriesSiblings(listed, p)]));
   /* 「改于」向 git 要，不向 front matter 要（§15 详情页那一格）：一次并发问完，问不到的那篇退 undefined。
      ⚠️ 判据的来源是 post.filePath（glob loader 交的是"相对 config.root"的路径），不是从 slug 拼一串——
      拼出来的那串碰上子目录稿件就指到不相干的文件，宁可不显示也不许指错。 */
   const revised = await Promise.all(routable.map(p => lastRevisionDate(p.filePath)));
   return routable.map((p, i) => {
     const at = nb.get(p.id);
-    return { params: { slug: p.id }, props: { post: p, prev: at?.prev, next: at?.next, related: rel.get(p.id) ?? [], revised: revised[i].date } };
+    const s = sn.get(p.id);
+    return { params: { slug: p.id }, props: { post: p, prev: at?.prev, next: at?.next, related: rel.get(p.id) ?? [], seriesPrev: s?.prev, seriesNext: s?.next, revised: revised[i].date } };
   });
 }
-const { post, prev, next, related, revised } = Astro.props;
+const { post, prev, next, related, seriesPrev, seriesNext, revised } = Astro.props;
 /* 不列入（第十五轮 `card/unlisted`）：这一页对那一枚键只做两件事，**页面本身照常是它**——
    ① 给壳传 `noindex={isUnlisted(post)}`（条件那一行在 `src/layouts/Layout.astro`，§13a 记过的同一招），
    ② 拿不到邻居 ⇒ 下面那一整块 `.post-nav` 不出现（口径在上面 `getStaticPaths` 那一段）。
@@ -111,6 +120,20 @@ const seriesName = seriesOf(post), seriesSlug = taxSlug(seriesName);
    标签本身不是链接——它没有对应的页面（`/related/` 这种东西不存在，画出来就是 §12 的死锚点）。
    ⚠️ 站内地址，因此不挂 `target`，与上面 `tabAttrs` 那枚 `^https?:` 的条件天然不成立；这里不重写第二份协议判据。 */
 const relatedSegs = (related ?? []).map(r => ({ href: `/essays/${r.id}/`, text: r.data.title }));
+/* 系列内的上一篇／下一篇（F5）：两枚邻居由 getStaticPaths 里那一次 `seriesSiblings(listed, post)` 交出，
+   顺序与 `/series/<seriesSlug>/` 那一页从上往下数的是同一枚数组（理由与两种排序档在 `lib/series.js` 头上）。
+   ⚠️ 与全站按日期的上下篇**分开住**，因为它们是两件事：那一块（`.post-nav`）说的是"这个站里比我早一篇／
+      晚一篇"，这一行说的是"同一串里我的上一枚／下一枚"。合并成一块就会让同一个位置说两件事——
+      读者点下去之前不知道该落到哪一串里（`docs/美化建议.md` F5 那句"并存但分开"钉的就是这个）。
+      形状上也分开：那一块是 22px 衬线大字 ＋ `← prev`／`next →`，这一行是 `.post-when` 那 14px 说明 ＋
+      `.post-act` 那 12px 等宽链接（与许可行／系列行／相关行同源）⇒ 零新 CSS、零新垂直槽位。
+   ⚠️ **不印序数**（没有「第 N 篇」）：`seriesOrder` 可以整组都没填，编一个 N 就是 §12 的假数字（§15 那条）。
+   ⚠️ 三种拿不到邻居的情形（没填系列／这一组只有一篇／这一篇不列入）都整块不出现，不留一条空的（§14）。
+   ⚠️ 行里的字面只两样：拉丁标签 `in series` 与中文方向词 `上一篇`／`下一篇`，中间夹的是**标题本身**——
+      标题与地址都由 `seriesSiblings()` 交回的那一枚 post 现取，不在这里抄第二份。 */
+const seriesNavSegs = [];
+if (seriesPrev) seriesNavSegs.push({ href: `/essays/${seriesPrev.id}/`, text: `← 上一篇 ${seriesPrev.data.title}` });
+if (seriesNext) seriesNavSegs.push({ href: `/essays/${seriesNext.id}/`, text: `${seriesNext.data.title} 下一篇 →` });
 /* 每篇字数：构建期从**渲染前的稿子**（post.body，那份 md 原文）数，数得出才写（§12 假数字那一格）。
    ⚠️ 入参与 siteFacts 数 `p.body` 同一份，不是渲染后的 HTML：标签里的字母会被数成字。
    ⚠️ 没有"约"、没有向上取整、没有估——它是一枚加法的结果，读者拿稿子自己数应当一模一样。 */
@@ -282,6 +305,11 @@ const crumb = crumbTrail(HERE);
       )}
       {seriesSlug && (
         <p class="post-when">series · <a class="post-act" href={`/series/${seriesSlug}/`}>{seriesName}</a></p>
+      )}
+      {seriesNavSegs.length > 0 && (
+        /* 系列内导航（F5）：挨着上面那一行"这一串叫什么、它的索引页在哪儿"，这一行是"这一串里的前一枚／后一枚"。
+           两行都只在填了 series 时才存在，而下面那块 .post-nav 说的是全站日期邻居——两种语义三处都不混。 */
+        <p class="post-when">in series · {seriesNavSegs.map((s, i) => <>{`${i > 0 ? ' · ' : ''}`}<a class="post-act" href={s.href}>{s.text}</a></>)}</p>
       )}
       {relatedSegs.length > 0 && (
         /* 相关的几篇（F4）：共享的真 token 枚数在前、平票保持目录顺序、至多 3 枚——三条都在
