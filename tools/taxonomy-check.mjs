@@ -11,8 +11,9 @@
       订阅源里还带着它、关于页还在数它"。漏的那一处不会自己报告，所以这里朝两个方向查：
       别处出现 `getCollection(` ⇒ 红；posts.js 里那一枚也没了 ⇒ 也红（判据不许被"删掉就绿"过关，
       同 §17 那条 palette-check 的反向牙）。
-   ② **八个调用点确实在用那份**：点名 index / essays 列表 / essays 详情（getStaticPaths 那一格最容易漏）/
-      rss / atom / about / 系列索引 / 单枚系列页（最后两枚是第十五轮 `card/series` 添的），
+   ② **九个调用点确实在用那份**：点名 index / essays 列表 / 目录的第 n 页（本轮 `card/pagination` 添的，
+      与 essays 列表那两枚共用 `src/components/EssayIndex.astro` 一份模板）/ essays 详情（getStaticPaths 那一格最容易漏）/
+      rss / atom / about / 系列索引 / 单枚系列页（系列那两枚是第十五轮 `card/series` 添的），
       每处都要出现 `visiblePosts(`。只查①的话，把某处整段删掉也算"没绕过"。
       ⚠️ 第十五轮 `card/unlisted` 起这一格还多钉一件事：`publishedPosts()` 的**合法调用者是一枚名单**
       （第十五轮是一处：详情页 `getStaticPaths`；第十六轮 `card/feedout` 起是两处，加上同一篇的
@@ -164,11 +165,15 @@ cell('①', '读 posts 的唯一入口（别的调用点一律红；两枚读函
   return 5 + (hits.length ? 1 : 0);
 });
 
-/* ---------- ② 八个调用点点名 ＋ publishedPosts 的调用者名单 ---------- */
+/* ---------- ② 九个调用点点名 ＋ publishedPosts 的调用者名单 ---------- */
 cell('②', '读 posts 的页面都在吃 visiblePosts()，而 publishedPosts() 只在"建路"那两处', () => {
   const CALLERS = [
     'src/pages/index.astro',
     'src/pages/essays/index.astro',
+    /* 目录的第 n 页（本轮 `card/pagination`）：它与上面那一枚把同一份名单交给同一个模板
+       `src/components/EssayIndex.astro`，所以"画列表的那一处漏了草稿过滤"这一族的形状现在有两道门要守——
+       名单里少了这一枚，第 n 页就可以换成 `publishedPosts()` 而没人报。 */
+    'src/pages/essays/page/[n].astro',
     'src/pages/essays/[slug].astro',
     'src/pages/rss.xml.js',
     'src/pages/atom.xml.js',
@@ -187,6 +192,19 @@ cell('②', '读 posts 的页面都在吃 visiblePosts()，而 publishedPosts() 
     assert.ok(/visiblePosts\s*\(/.test(src), `② ${f} import 了却没调用 visiblePosts() —— 名字在、活儿没干（草稿照旧会漏）`);
     n += 2;
   }
+  /* ②·第三半（本轮 `card/pagination`）：**共用的目录模板自己不许去取集合**。
+     列表页从这一轮起是"两枚路由 ＋ 一份模板"（`src/components/EssayIndex.astro` 同时画第 1 页与第 n 页），
+     模板吃的是调用方交进来的 `posts` prop。为什么这一条必须钉：模板里只要允许出现一枚取集合的调用，
+     "谁喂这一页"就有了两处真值——把 `publishedPosts()`（含不列入的那枚"建路"读函数）喂进目录，
+     不列入的稿子就整篇回到 `/essays/` 与每一页 `/essays/page/<n>/` 里，而上面那圈点名全绿
+     （它点名的是路由，不是模板）。所以这里反向钉一枚：模板里 `publishedPosts(` 与 `getCollection(` 各必须零处。 */
+  const tplPath = join(ROOT, 'src', 'components', 'EssayIndex.astro');
+  assert.ok(existsSync(tplPath), '② src/components/EssayIndex.astro 不在了 —— 目录的模板换了宿主，这一格在评空气');
+  const tpl = codeOnly(readSrc(tplPath));
+  assert.ok(!/publishedPosts\s*\(/.test(tpl), '② EssayIndex.astro 里出现了 publishedPosts() —— 那份"含不列入"的建路读函数被拿去画列表了（不列入的稿子会回到目录每一页）');
+  assert.ok(!/getCollection\s*\(/.test(tpl), '② EssayIndex.astro 里出现了 getCollection( —— 模板自己去取集合，草稿过滤就有了第二处真值（名单必须由路由那两枚 visiblePosts() 交进来）');
+  assert.ok(/const\s*\{[^}]*\bposts\b[^}]*\}\s*=\s*Astro\.props/.test(tpl), '② EssayIndex.astro 不再从 Astro.props 里收那份名单 —— 上面那两枚路由交的东西没人接了');
+  n += 4;
   /* 详情页那一格是最容易漏的：过滤必须落在 getStaticPaths 里，落在别处都不算 */
   const detail = codeOnly(readSrc(join(ROOT, 'src/pages/essays/[slug].astro')));
   const gsp = /export async function getStaticPaths\s*\([\s\S]*?\)\s*\{[\s\S]*?\n\}/.exec(detail);
