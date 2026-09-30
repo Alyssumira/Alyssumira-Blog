@@ -17,8 +17,10 @@
    ── 口径（与 `q` 片段那条同源）────────────────────────────────────────────
    - 源：`FONT_HOST` 的镜像（默认 fonts.loli.net；本工具读同一份 site.js，env 开关语义一致，不改默认值）。
      取回来的就是远程 css2 当时会发的那批文件——base.css 的表逐字段照抄 css2 的响应（style/weight/unicode-range/display）。
-   - 换域名那天的后果（写进 runbook）：`FONT_HOST` 换镜像只影响 CJK 两族的远程链；
-     自托管两族走站内 `/fonts/**`，与镜像无关——镜像挂了它们照旧在场。
+   - 换域名那天的后果（写进 runbook）：⚠️ 2026-09-30 `card/cjk-subset` 之后口径变了——**站内四族全自托管**，
+     `FONT_HOST` 换镜像对**产物里渲染出来的字一枚都不影响**（CJK 两族也进了 `/fonts/**`，见 base.css 的「自托管」节）；
+     它现在只牵动两件事：本工具将来重新取拉丁那批时的源站，以及 `tools/og-card.html` 那枚手写 css2 URL（不进 dist/，
+     后果登记在 base.css:104）。镜像挂了站内照旧在场。
    - 复验不是"下过了"，是**盘上对账**：manifest 里的 sha256/字节 ⇄ public/ 里的真文件逐张相等；
      --tables 那一档再把每枚文件的 woff2 签名、numGlyphs、unitsPerEm 读回来打印（"下下来的就是你引用的那个文件"）。
 */
