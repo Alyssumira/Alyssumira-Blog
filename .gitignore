@@ -9,3 +9,6 @@ vibe_images/
 gh-tok
 .gh-tok
 *.token
+
+# 一次性量具的落点（浏览器 profile、变异还原备份、日志）——2026-09-30 有一枚卡把 260 个这类文件提交进去了，钉这一行防重犯
+.scratch/

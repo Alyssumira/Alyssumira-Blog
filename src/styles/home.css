@@ -1,20 +1,35 @@
 /* ============ 首页专属的那几枚色板 ============ */
-/* ⚠️ 色板本体（`:root` / `html[data-theme="dark"]` 的 16 + 14 枚）与基础层都在 `base.css`，
+/* ⚠️ 色板本体（`:root` 18 枚 + `html[data-theme="dark"]` 16 枚——第九轮 `card/glass` 之后是 18+16，
+   不是这条注释旧写的 16+14；现读自 `base.css`，`node tools/palette-check.mjs` 那串 42/42 就是它）
+   与基础层都在 `base.css`，
    这里只留**只有首页用得到**的：纱罩三档 + 文字遮罩 + 萤火色。
    它们不是漂移债——只有一份的东西不归并，归并了等于把首页的纱装到子页上。
-   门禁认这个：同一个 (选择器, 令牌) 键出现在两份表里才算分叉。 */
+   门禁认这个：同一个 (选择器, 令牌) 键出现在两份表里才算分叉。
+   2026-09-30（`card/pairedtokens`）：纱罩那三档亮暗都有、每档只有一枚颜色的，并成
+   一行 `light-dark(亮, 暗)`；合并的是声明的位置不是值（§2.2）。 */
 :root{
-  --scrim-top:rgba(242,244,239,.36);
-  --scrim-mid:rgba(242,244,239,.14);
-  --scrim-bottom:rgba(242,244,239,1);
+  /* 三枚真成对的纱罩。⚠️ `--scrim-text` 不并、`--firefly` 不并：
+     前者是一枚 `radial-gradient(...)`——`light-dark()` 只吃 <color>（CSS Color 4），塞进去是无效声明；
+     后者只有一档写了值（夜林沿用同一枚萤火色），不是成对令牌，给它造一个 `light-dark(X, X)`
+     等于把"只有一份"伪装成"两档都签过字"。
+     ⚠️ 拆这两支由 `tools/palette-check.mjs` 的 ①b 那一关管，退路那一段逐字符比对。
+     并之前实测过绕过它的后果：把暗档写成 `rgba(222,17,122,.9)`，
+     palette / gap / media / phase 四把尺子全 exit 0——这一关就是为那一格加的。 */
+  --scrim-top:light-dark(rgba(242,244,239,.36), rgba(14,19,13,.60));
+  --scrim-mid:light-dark(rgba(242,244,239,.14), rgba(14,19,13,.30));
+  --scrim-bottom:light-dark(rgba(242,244,239,1), rgba(14,19,13,1));
   --scrim-text:radial-gradient(72% 64% at 22% 60%,rgba(242,244,239,.5),transparent 78%);
   --firefly:#A9C4A0;
 }
 html[data-theme="dark"]{
-  --scrim-top:rgba(14,19,13,.60);
-  --scrim-mid:rgba(14,19,13,.30);
-  --scrim-bottom:rgba(14,19,13,1);
   --scrim-text:radial-gradient(72% 64% at 22% 60%,rgba(14,19,13,.62),transparent 78%);
+}
+/* 退路（同 mistwood.css 那一格的理由与实测：认不出 light-dark() 的引擎把这条声明按 token 流原样存下、
+   代入后让**那一条属性**失效——纱罩是面，面没了就是照片上直接压字，不是"淡一点"）。
+   这一段与上面三行的逐字符一致性由 palette-check ①b 守着，不靠记性。 */
+@supports not (color: light-dark(#fff,#000)){
+  :root{ --scrim-top:rgba(242,244,239,.36); --scrim-mid:rgba(242,244,239,.14); --scrim-bottom:rgba(242,244,239,1); }
+  html[data-theme="dark"]{ --scrim-top:rgba(14,19,13,.60); --scrim-mid:rgba(14,19,13,.30); --scrim-bottom:rgba(14,19,13,1); }
 }
 /* 时段色温的底与影（`--bg-top` / `--shadow`）已在 `base.css`；傍晚这一档首页还多一块纱，
    它跟着照片走，子页没有照片 ⇒ 留在这里。⚠️ 同一个选择器出现在两份表里不算分叉，

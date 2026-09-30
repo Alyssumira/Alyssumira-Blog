@@ -81,13 +81,65 @@ const FN = /(--[a-z0-9-]+):([^;]*rgba?\([^)]*\)[^;]*)/g;
    唯一的写法就是派生，而派生写法只在 FN 那条里活不下来（它要求值里含 `rgba(`）。
    不认它 = 第二层光的判据从源码里就读不到东西 = §16 点名的那个"扫了但一个字都没匹配到"的形状。 */
 const CMIX = /(--[a-z0-9-]+):\s*(color-mix\([^;]*\))/g;
+/* ⚠️ 2026-09-30（`card/pairedtokens`）加第四种读法：`light-dark(A,B)`——一枚声明里写着两档。
+   为什么这一关**必须**自己拆它，三条实测（都在这一轮跑过，见 §17 那一格）：
+   ① HEX 读不到它（要求冒号后紧跟 `#rrggbb`，先撞上 `light-dark` 那个 `l`）；
+   ② 把 `home.css` 夜档的纱罩写坏成 `light-dark(rgba(242,244,239,.36), rgba(222,17,122,.9))`
+      并删掉暗档那一行 ⇒ palette / gap / media / phase **四把尺子全 exit 0**——暗档那一枚从来不进读数；
+   ③ `--lit` 更坏：FN（"值里含 rgba()"）会把整条 `light-dark(…)` 吞进 value，而 `parsePaint`
+      只取**第一枚** rgba ⇒ 暗色档拿着亮色的灯复算 §2.4，把一处**本来正确**的改动报成
+      `光 α0.1 → --ink-2 4.25 ✗` 的假红。绿会漏、红会冤枉，两边都不是判据。
+   ⇒ 口径：成对声明先拆回两档（A 进 `:root`、B 进同 ctx 的 `html[data-theme="dark"]`），
+     再让上面三条正则去读拆出来的字面量；拆不动、落点不对、或残留没拆干净的，一律**红**，
+     不许退化成"读不到＝没有"（§16 那条"扫了但没匹配到和扫了且全长一个样"）。 */
+const LD_HEAD = /^\s*light-dark\s*\(/i;
+const LD_EVERYWHERE = /light-dark\s*\(/gi;
+const LD_ANY = /light-dark/i;
+const HEX6 = /^#[0-9A-Fa-f]{6}$/;
+const RGBLIT = /^rgba?\([^()]*\)$/;
+const LD_OK_SHAPE = v => HEX6.test(v) || RGBLIT.test(v);
+/* 按括号深度切顶层逗号：`light-dark(rgba(35,43,37,.07), rgba(227,232,224,.08))` 里那两个
+   逗号是参数内的，不能当分隔。切不出正好两段就返回 null（交上去判红，不猜）。 */
+function splitLightDark(value){
+  const open = value.indexOf('(');
+  if (open < 0 || !/\)\s*$/.test(value)) return null;
+  const inner = value.slice(open + 1, value.lastIndexOf(')'));
+  const out = []; let depth = 0, start = 0;
+  for (let i = 0; i < inner.length; i++){
+    const c = inner[i];
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+    else if (c === ',' && depth === 0){ out.push(inner.slice(start, i).trim()); start = i + 1; }
+  }
+  out.push(inner.slice(start).trim());
+  return out.length === 2 ? out : null;
+}
+/* 一枚拆出来的色该进哪张表——沿用 FN 那条一贯的口径（hex 进 toks、值里含 rgb()/rgba() 进 fn），
+   拆出来的两支与两档表里写着的字面量在表里长得**一模一样**，这是"改前改后打印的表逐字节相同"
+   那笔验收的前提。 */
+function routeColor(into, name, raw){
+  const v = raw.replace(/\s+/g, '');
+  if (HEX6.test(raw)) into.toks[name] = raw.toUpperCase();
+  else into.fn[name] = /^rgba?\(/i.test(v) ? v : raw;
+  return into;
+}
+const mkBoard = () => ({ toks: {}, fn: {} });
+/* 退路镜像那一个 ctx 的样子：`@supports not (color: light-dark(…))`——去空白再比，
+   因为盘上可以写 `light-dark(#fff, #000)` 而 allBlocks 把空白压成一个空格 */
+const MIRROR_CTX = s => /^@supportsnot\(color:light-dark\(/i.test(String(s).replace(/\s+/g, ''));
+/* 扫描期间累计的三样东西：拆出来的成对声明、拆不动/落点不对的、每份表里 `light-dark(` 出现了几枚 */
+const ldPairs = [], ldBad = [], ldRaw = new Map();
 /* 按大括号深度切，带 @media / @supports 的上下文——归并之后同一个选择器文本可以合法地出现在
    两份表里（各自声明自己那一层的令牌），所以键必须是"上下文 + 选择器 + 令牌名"，
    只看选择器文本会把 `@media (max-width:720px)` 里那条当成顶层那条的副本。 */
-function allBlocks(src){
+function allBlocks(src, file = '?'){
   const clean = src.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
   const out = []; const stack = []; let start = 0;
   const lineOf = p => clean.slice(0, p).split('\n').length;
+  /* 这一份表里 `light-dark(` 一共出现几枚（注释已抹掉），与"被拆掉的成对声明＋镜像那行的条件"
+     对账；对不上就是有枚这一关没读到——读不到不许当没有（② 那格的实测就是这一条的来历）。 */
+  let ldSeen = 0;
+  for (const m of clean.matchAll(LD_EVERYWHERE)) ldSeen++;
   for (let i = 0; i < clean.length; i++){
     const c = clean[i];
     if (c === '{'){ stack.push({ pre: clean.slice(start, i).trim().replace(/\s+/g, ' '), start }); start = i + 1; }
@@ -98,21 +150,50 @@ function allBlocks(src){
       const ctx = stack.map(s => s.pre).join(' / ');
       const attrs = {};
       for (const a of top.pre.matchAll(/\[data-([a-z-]+)="([a-z0-9-]+)"\]/g)) attrs[a[1]] = a[2];
-      const toks = {}, fn = {};
-      for (const t of body.matchAll(HEX)) toks[t[1]] = t[2].toUpperCase();
-      for (const t of body.matchAll(FN)) fn[t[1]] = t[2].replace(/\s+/g, '');
+      /* ---- 先拆 light-dark()，再让三条正则去读拆出来的两档 ---- */
+      const line = lineOf(top.start);
+      const ldSkip = new Set(), board = mkBoard();
+      let ldDark = null;
+      if (LD_ANY.test(body)){
+        for (const decl of body.split(';')){
+          const dm = /^\s*(--[a-z0-9-]+)\s*:\s*(.*\S)\s*$/.exec(decl);
+          if (!dm || !LD_HEAD.test(dm[2])) continue;
+          ldSkip.add(dm[1]);
+          const at = { file, sel: top.pre, ctx, line, name: dm[1], raw: dm[2].replace(/\s+/g, '') };
+          const args = splitLightDark(dm[2]);
+          if (!args){ ldBad.push({ ...at, why: '切不出正好两个顶层参数' }); continue; }
+          if (!args.every(LD_OK_SHAPE)){
+            ldBad.push({ ...at, why: `参数不是一枚这一关读得到的色字面量（只许 #rrggbb 或 rgb()/rgba()；box-shadow / filter / gradient 这类**复合值不许塞进 light-dark()**，它只吃 <color>）` });
+            continue;
+          }
+          /* 落点：只许顶层 `:root`。写在暗表里、写在 @media / @supports 里、写在时段块里，
+             这一关就无法说清 B 那一支该归哪一档——宁可红，不许猜一档。 */
+          if (ctx !== '' || top.pre !== ':root'){ ldBad.push({ ...at, why: '落点不是顶层 :root（这一关只认"顶层 :root 里的一处两档"）' }); continue; }
+          routeColor(board, dm[1], args[0]);
+          ldPairs.push({ file, name: dm[1], line, a: args[0].replace(/\s+/g, ''), b: args[1].replace(/\s+/g, '') });
+          ldDark = ldDark || mkBoard();
+          routeColor(ldDark, dm[1], args[1]);
+        }
+      }
+      const { toks, fn } = board;
+      for (const t of body.matchAll(HEX)) if (!ldSkip.has(t[1])) toks[t[1]] = t[2].toUpperCase();
+      for (const t of body.matchAll(FN)) if (!ldSkip.has(t[1])) fn[t[1]] = t[2].replace(/\s+/g, '');
       /* 派生色（color-mix）也算"色板令牌"：同一个键在第二份表里再声明一次就是第二处真值，
          上面那条"一处真值"判据必须看得见它，所以它走进同一张 `fn` 表。 */
-      for (const t of body.matchAll(CMIX)) fn[t[1]] = t[2].replace(/\s+/g, '');
-      out.push({ ctx, sel: top.pre, attrs, toks, fn, line: lineOf(top.start) });
+      for (const t of body.matchAll(CMIX)) if (!ldSkip.has(t[1])) fn[t[1]] = t[2].replace(/\s+/g, '');
+      out.push({ ctx, sel: top.pre, attrs, toks, fn, line });
+      /* 暗档那一支回到它与 `html[data-theme="dark"]` 同形的键上：表里的形状与两档表写出来的
+         一模一样，所以 §2.4 的读数、完备性那 42 枚、方向光的复算全都照旧吃得动它。 */
+      if (ldDark) out.push({ ctx, sel: 'html[data-theme="dark"]', attrs: { theme: 'dark' }, toks: ldDark.toks, fn: ldDark.fn, line, fromLd: true });
     }
     else if (c === ';' && !stack.length) start = i + 1;
   }
+  ldRaw.set(file, (ldRaw.get(file) || 0) + ldSeen);
   return out;
 }
 function readSheets(){
   const per = ALL_SHEETS.filter(f => existsSync(f))
-    .map(f => ({ file: f.split(/[\\/]/).pop(), blocks: allBlocks(readFileSync(f, 'utf8')) }));
+    .map(f => { const file = f.split(/[\\/]/).pop(); return { file, blocks: allBlocks(readFileSync(f, 'utf8'), file) }; });
   /* 基准板 = 三份表里 ctx 为空的那两条，按 base → mistwood → home 合并。
      归并之后同一键只会出现在一份里（这正是判据①守的事），所以合并顺序不影响读数；
      还按"取第一条命中"写的话，base.css 之外的令牌（--surface / --firefly）就会从这张表里消失——
@@ -133,10 +214,8 @@ function variants(per){
       if (b.ctx === '' && ('phase' in b.attrs || 'moon' in b.attrs)) out.push({ file, ...b });
   return out;
 }
-/* 档位来自 §2.4：正文级 ≥7、次要 ≥4.5，其余（三级/苔/枯草/月光）属大字或装饰档，不设地板
-   ⚠️ `--ink-visited` 也钉在 ≥7：它是"读过的那一行"的正文级墨（24px/600 目录行标题按 §2.4 尺寸档本来只要 3:1，
-   这一档**主动按正文档签**，因为"深一档"如果被压到读不出来，那这一枚改动就只剩代码没有读者）。 */
-const FLOOR = { '--ink': 7, '--moss-ink': 7, '--ink-2': 4.5, '--ink-visited': 7 };
+/* 档位来自 §2.4：正文级 ≥7、次要 ≥4.5，其余（三级/苔/枯草/月光）属大字或装饰档，不设地板 */
+const FLOOR = { '--ink': 7, '--moss-ink': 7, '--ink-2': 4.5 };
 const TIERS = [7, 4.5, 3];
 const PHASES = ['dawn', 'day', 'dusk', 'night'], MOONS = ['*', 'full'];
 
@@ -186,7 +265,7 @@ for (const [name, t] of themes){
     const worst = Math.min(a, b), floor = FLOOR[k];
     const ok = floor === undefined || worst >= floor;
     if (!ok) bad++;
-    console.log(`  ${k.padEnd(15)}${v}  ${c.L.toFixed(3)}  ${c.C.toFixed(3)}  ${c.H.toFixed(1).padStart(5)}  ${a.toFixed(2).padStart(6)}  ${b.toFixed(2).padStart(6)}  ${floor ? (ok ? '✓' : '✗ 应 ≥' + floor) : '—'}`);
+    console.log(`  ${k.padEnd(13)}${v}  ${c.L.toFixed(3)}  ${c.C.toFixed(3)}  ${c.H.toFixed(1).padStart(5)}  ${a.toFixed(2).padStart(6)}  ${b.toFixed(2).padStart(6)}  ${floor ? (ok ? '✓' : '✗ 应 ≥' + floor) : '—'}`);
   }
   const hues = Object.values(t).map(v => toOkLchSafe(v).H);
   console.log(`  色相散布 ${Math.min(...hues).toFixed(1)}°…${Math.max(...hues).toFixed(1)}（跨度 ${(Math.max(...hues) - Math.min(...hues)).toFixed(1)}°）——§1.1 说的是"不撞色"，不是"只有一个色相"，这里只报不判`);
@@ -201,10 +280,10 @@ function toOkLchSafe(hex){ try { return toOklch(hex) } catch (e) { return { L: 0
               ② §2 那批基础令牌必须确实在 base.css 里各声明一次 ⇒ 缺一枚就红，
                  否则"把色板全删掉"反而能让这一关变绿（越少越绿＝另一个形状的空转）。 */
 const BASE_SET = {
-  ':root': ['--bg-base', '--bg-top', '--ink', '--ink-visited', '--ink-2', '--ink-3', '--moss', '--moss-deep', '--moss-ink',
+  ':root': ['--bg-base', '--bg-top', '--ink', '--ink-2', '--ink-3', '--moss', '--moss-deep', '--moss-ink',
             '--straw', '--moon', '--line', '--glass', '--glass-border', '--mist', '--halo',
             '--shadow', '--shadow-contact', '--glass-edge'],
-  'html[data-theme="dark"]': ['--bg-base', '--bg-top', '--ink', '--ink-visited', '--ink-2', '--ink-3', '--moss', '--moss-deep',
+  'html[data-theme="dark"]': ['--bg-base', '--bg-top', '--ink', '--ink-2', '--ink-3', '--moss', '--moss-deep',
             '--moss-ink', '--line', '--glass', '--glass-border', '--mist', '--halo',
             '--shadow', '--shadow-contact', '--glass-edge'],
   'html[data-phase="dawn"][data-theme="light"]': ['--bg-top', '--shadow'],
@@ -214,11 +293,11 @@ const BASE_SET = {
 };
 /* ⚠️ 这枚登记值是 §17 那"三处同源"的第三处：规范句子（§2 那批基础令牌）/ 上面那份清单 /
    `src/styles/base.css` 的实际声明。三处一起动，动一处就红——所以清单不是注释，是判据。
-   44 = hex 24 + 值里含 rgba() 20（第十轮 `card/visited-ink` 从 42 抬上来：`:root` 与 dark 各多一枚
-   `--ink-visited`，共 +2；rgba 那一族一枚没动）。
+   42 = hex 22 + 值里含 rgba() 20（第九轮 `card/glass` 从 38 抬上来：`:root` 与 dark 各多一枚
+   `--shadow-contact` 与一枚 `--glass-edge`，共 +4）。
    下面两条牙：① 清单里的必须在 base.css 里（旧那条，防"删光就绿"）；
    ② base.css 里的必须都在清单里（第九轮新加，防"加完令牌忘了登记"——旧判据对多出来的一枚是瞎的）。 */
-const REGISTERED = 44;
+const REGISTERED = 42;
 let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingKeys = 0, needTotal = 0, orphans = 0;
 {
   const table = new Map();
@@ -228,7 +307,7 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
         for (const [k, v] of Object.entries(map)){
           const id = `${b.ctx ? b.ctx + ' / ' : ''}${b.sel} ${k}`;
           if (!table.has(id)) table.set(id, []);
-          table.get(id).push({ file, v, kind });
+          table.get(id).push({ file, v, kind, mirror: MIRROR_CTX(b.ctx) });
           if (file === 'base.css'){ basePalette++; kind === 'hex' ? baseHex++ : baseRgba++; }
         }
   /* 一处真值：同一个键跨文件重复 ⇒ 红 */
@@ -239,9 +318,11 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
     console.log(`  ✗ ${id} 在 ${files.length} 份表里各声明了一次：` + hits.map(h => `${h.file} ${h.v}`).join(' vs '));
     drift++;
   }
-  /* 完备性：§2 那批基础令牌必须住在 base.css，一枚都不许少 */
+  /* 完备性：§2 那批基础令牌必须住在 base.css，一枚都不许少。
+     ⚠️ 退路镜像（`@supports not (color: light-dark(…))` 里那两支）不进这张账——它是**退路**，
+     不是第二处真值，由下面 ①b 那一关逐字符管着它和合并态一不一致；在这里数它会把"镜像"读成"分叉"。 */
   const inBase = new Map();
-  for (const [id, hits] of table) for (const h of hits) if (h.file === 'base.css') inBase.set(id, h);
+  for (const [id, hits] of table) for (const h of hits) if (h.file === 'base.css' && !h.mirror) inBase.set(id, h);
   const listed = new Set();
   for (const [sel, list] of Object.entries(BASE_SET)) for (const k of list){
     needTotal++;
@@ -256,7 +337,90 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
   if (needTotal !== REGISTERED){ console.log(`  ✗ 清单实际 ${needTotal} 枚、规范登记值 ${REGISTERED} 枚 —— §17 那句计数与这份判据对不上了（三处同源）`); drift++; }
   console.log('\n=== 一处真值（base.css ← mistwood.css / home.css / essay.css）===');
   console.log(`  ${drift ? '✗ 这一关没过' : '✓'} base.css 集中了 ${baseHex} 枚 hex + ${baseRgba} 枚含 rgba() 的色板令牌（面/影/纱）；` +
-    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 ${dupKeys} 处、基础板 ${needTotal - missingKeys}/${needTotal} 枚在位（登记值 ${REGISTERED}＝hex 24 + rgba 20）、未登记的反向多枚 ${orphans} 处`);
+    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 ${dupKeys} 处、基础板 ${needTotal - missingKeys}/${needTotal} 枚在位（登记值 ${REGISTERED}＝hex 22 + rgba 20）、未登记的反向多枚 ${orphans} 处`);
+}
+
+/* ---------- ①b 成对声明（`light-dark()` 一处写两档）与它的退路镜像 ----------
+   这一关存在的唯一理由：第 0 问实测过，`light-dark()` 的第二参数在本仓的四把尺子里**原理性失明**
+   （坏值写进暗档：palette / gap / media / phase 全 exit 0）。把两档并到一行之前，先让这一关读得到两档。
+   三条牙：
+   ① **拆**——A 进 `:root`、B 进同 ctx 的 `html[data-theme="dark"]`（上面 allBlocks 已经做完了，
+      这里只查"拆不动的"与"落点不对的"，两者都红，不许静默少扫一枚）；
+   ② **枚数三方向对账**——规范登记值 ⇄ 拆出来的对数 ⇄ 盘上 `light-dark(` 出现的次数（第三种是
+      "这一关没读到却写在盘上"那一族：inline 规则里、@media 里、拆失败的都算，对不上就红）；
+   ③ **退路镜像逐字符**——认不出 `light-dark()` 的引擎会把这条声明原样存下再代入，实测结果是
+      **面退成透明、字退到继承色**（`.search-input`/玻璃/纱罩那一族全在面），不是"淡一点"而是"没了"，
+      所以退路是硬要求；而退路本身正是本卡要治的那个病（一处改了另一处忘），于是由这一关比对
+      「合并态的 A/B」⇄「镜像里的 `:root` / `html[data-theme="dark"]`」两侧**逐字符相同**。 */
+const LD_REGISTERED = 6;   /* 三处同源的第三处：§17 那句话 / 这一枚字面量 / 样式表里的成对声明枚数 */
+const LD_NEEDLE = ['home.css', '--scrim-top', 'rgba(242,244,239,.36)', 'rgba(14,19,13,.60)'];
+const nrm = v => String(v).replace(/\s+/g, '').toUpperCase();
+let ldDrift = 0;
+{
+  const mirror = new Map();                     /* `${file}|${令牌}` → {a,b}（退路两支） */
+  const pairIds = new Set();
+  for (const { file, blocks } of per){
+    for (const b of blocks){
+      if (!MIRROR_CTX(b.ctx)) continue;
+      const side = b.sel === ':root' ? 'a' : b.sel === 'html[data-theme="dark"]' ? 'b' : null;
+      if (!side){ ldDrift++; console.log(`  ✗ ${file}:${b.line} 退路镜像里冒出没认得的选择器 ${b.sel} —— 镜像只管 :root 与 html[data-theme="dark"] 那两支`); continue; }
+      for (const [k, v] of [...Object.entries(b.toks), ...Object.entries(b.fn)]){
+        const id = `${file}|${k}`;
+        if (!mirror.has(id)) mirror.set(id, {});
+        mirror.get(id)[side] = v;
+      }
+    }
+  }
+  for (const p of ldPairs) pairIds.add(`${p.file}|${p.name}`);
+  for (const b of ldBad){
+    ldDrift++;
+    console.log(`  ✗ ${b.file}:${b.line} ${b.sel} ${b.name}：${b.raw}\n    —— ${b.why}`);
+  }
+  if (ldPairs.length !== LD_REGISTERED){
+    ldDrift++;
+    console.log(`  ✗ 拆出来的成对声明 ${ldPairs.length} 对、规范登记值 ${LD_REGISTERED} 对 —— §17 那句计数与这份判据对不上了（"把 light-dark() 全删掉"不许变成绿）`);
+  }
+  const needle = ldPairs.find(p => p.file === LD_NEEDLE[0] && p.name === LD_NEEDLE[1] &&
+    nrm(p.a) === nrm(LD_NEEDLE[2]) && nrm(p.b) === nrm(LD_NEEDLE[3]));
+  if (!needle){
+    ldDrift++;
+    console.log(`  ✗ 盘上没有 needle 那一枚成对声明（${LD_NEEDLE[0]} 的 ${LD_NEEDLE[1]}：${LD_NEEDLE[2]} ⇄ ${LD_NEEDLE[3]}）` +
+      ` —— "拆两档再进表"这一关此刻正在空转：它没在读任何一行真实的成对声明`);
+  }
+  /* 盘上出现次数 ⇄ 这一关读到的次数 */
+  let rawTotal = 0, accounted = 0;
+  for (const { file, blocks } of per){
+    const seen = ldRaw.get(file) || 0;
+    const pairs = ldPairs.filter(p => p.file === file).length;
+    const heads = new Set(blocks.filter(b => MIRROR_CTX(b.ctx)).map(b => b.ctx)).size;
+    const bad = ldBad.filter(b => b.file === file).length;
+    rawTotal += seen; accounted += pairs + heads + bad;
+    if (seen !== pairs + heads + bad){
+      ldDrift++;
+      console.log(`  ✗ ${file} 盘上有 ${seen} 枚 light-dark()，这一关只读到 ${pairs + heads + bad} 枚` +
+        `（成对 ${pairs} + 镜像条件 ${heads} + 拆不动已点名的 ${bad}）—— 剩下的那些没人读：` +
+        `要么改成这一关认得的成对声明，要么在这一关里点名它，不许让它匿名通过（§16"扫了但没匹配到"同族）`);
+    }
+  }
+  for (const p of ldPairs){
+    const m = mirror.get(`${p.file}|${p.name}`) || {};
+    if (m.a === undefined || nrm(m.a) !== nrm(p.a)){
+      ldDrift++;
+      console.log(`  ✗ ${p.file}:${p.line} ${p.name} 的**亮档**没有退路或与合并态不一致（镜像读到 ${m.a === undefined ? '∅' : m.a}，成对声明写的是 ${p.a}）`);
+    }
+    if (m.b === undefined || nrm(m.b) !== nrm(p.b)){
+      ldDrift++;
+      console.log(`  ✗ ${p.file}:${p.line} ${p.name} 的**暗档**没有退路或与合并态不一致（镜像读到 ${m.b === undefined ? '∅' : m.b}，成对声明写的是 ${p.b}）`);
+    }
+  }
+  for (const [id, m] of mirror) if (!pairIds.has(id)){
+    ldDrift++;
+    console.log(`  ✗ ${id.replace('|', ' 的 ')} 只住在退路镜像里（亮 ${m.a ?? '∅'} / 暗 ${m.b ?? '∅'}）、上面没有对应的成对声明 —— 镜像是退路，不是第二处真值`);
+  }
+  console.log('\n=== 成对声明（light-dark 一处写两档）与退路镜像 ===');
+  console.log(`  ${ldDrift ? '✗ 这一关没过' : '✓'} 拆回两档 ${ldPairs.length} 对（A 进 :root、B 进 html[data-theme="dark"]）、` +
+    `退路镜像在册 ${mirror.size} 枚、盘上 light-dark() 共 ${rawTotal} 枚 / 这一关读到 ${accounted} 枚、` +
+    `needle ${needle ? '在位' : '✗ 不在位'}（登记值 ${LD_REGISTERED} 对＝§17 那句计数）`);
 }
 
 /* ---------- ② 时段 / 月相块 + ③ 方向光：随时间变的色板与照度也要过闸 ---------- */
@@ -280,6 +444,10 @@ const CMIX_RE = /^color-mix\(insrgb,var\((--[a-z0-9-]+)\),?([0-9.]+)%,transparen
 function paintOf(name, effFn){
   const raw = effFn[name];
   if (raw === undefined) return null;
+  /* 拆干净的 light-dark() 不该出现在这张表里（allBlocks 早就把它拆成两支了）；
+     真出现在这儿＝这一关漏了一处写法。这里**绝不退回 parsePaint**——那正是实测过的
+     "只取第一枚 rgba、暗档拿亮色灯复算"那个假红的入口。读不懂就红，不猜。 */
+  if (LD_ANY.test(String(raw))) return 'unparsed';
   const direct = parsePaint(raw);
   if (direct) return direct;
   const m = CMIX_RE.exec(String(raw).replace(/\s+/g, ''));
@@ -303,6 +471,10 @@ function stateLine(label, eff, effFn, coverNote){
     else line += `  ${k} ${w.toFixed(2)}✓`;
   }
   /* 方向光那一档：把 --lit 当"整页最亮处"合成进底，再复算一次同样的地板 */
+  if (LD_ANY.test(String(effFn['--lit'] || ''))){
+    bad2++; console.log(line + `\n    ✗ ${label} 的 --lit 里还留着 light-dark() —— 这一关没把它拆成两档。` +
+      `这里不许"取第一枚 rgba"：那等于暗色档拿亮色的灯复算 §2.4（2026-09-30 实测过这一格假红）`); return;
+  }
   const lit = parsePaint(effFn['--lit']);
   if (!lit){ bad2++; console.log(line + `\n    ✗ ${label} 没有 --lit —— 方向光的判据正在空转`); return; }
   if (lit.a === 0){ bad2++; console.log(line + `\n    ✗ ${label} 的 --lit α=0 —— 这盏灯根本没亮，判据空转`); return; }
@@ -363,5 +535,5 @@ console.log(`  两层光（方向光 + 正文脚下地面光）复算 ${groundCh
   `${groundChecked < litChecked ? `少于方向光的 ${litChecked} 档＝有档位被第二层漏掉了` : '与方向光同档数＝两盏灯跑的是同一批档'}）`);
 if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相、方向光与两层光的合成都没有把任何一档推下它的地板');
 
-if (bad || bad2 || drift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值`); process.exit(1); }
+if (bad || bad2 || drift || ldDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');
