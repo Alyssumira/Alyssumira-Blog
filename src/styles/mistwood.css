@@ -154,7 +154,9 @@ html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:
 .display{ position:relative; display:flex; }
 .settings-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
-  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
+  /* `card/hairline`：与 `base.css` 那枚主题钮同族同换法（显式 30×30、外框不漂；
+     `border:0` 压 UA 的 2px outset 复活，实测依据见 base.css 那一格）。 */
+  border:0; box-shadow:inset 0 0 0 1px var(--glass-border); background:transparent; cursor:pointer;
   color:var(--ink-2);
   transition:color .3s cubic-bezier(.22,1,.36,1),background-color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
 }
@@ -433,13 +435,18 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 
 .cover{
   position:relative; overflow:hidden; border-radius:16px;
-  border:1px solid var(--glass-border);
   background:linear-gradient(150deg,var(--bg-top),var(--glass));
-  /* 第九轮：这块面以前一根影都没有——它有 1px 玻璃描边、有雾底，却和纸**一样平**，
+  /* 第九轮：这块面以前一根影都没有——它有雾底，却和纸**一样平**，
      读起来是"印在纸上"而不是"一片贴在纸上"。给它接触影（贴着底边那一线），不给环境影
      （目录行是文字版面，卡底散开一圈影会让 92px 的缩略图像要飞起来），也不给厚度边
-     （它不是能看穿的面，`--glass` 在这里只是占位雾）。 */
-  box-shadow:var(--shadow-contact);
+     （它不是能看穿的面，`--glass` 在这里只是占位雾）。
+     `card/hairline`（2026-09-30）：描边换 **外向** 1px 发丝影（Nook 的 `0 0 0 1px` 形状）。
+     ⚠️ 不用 inset：这格里 `img` 是 `position:absolute; inset:0` 铺满 padding box 的子内容，
+     inset 影画在子内容**之下**——真图一进格，发丝线就被图盖掉（静默丢描边）。外向影画在盒外，
+     img 永远盖不住它。几何账（1440 实测）：外框 92×69 逐位不变（`width:92px` + aspect-ratio 吃
+     border-box），padding box 90×67 → 92×69（+2）——线本身从"占 1px 盒"变成"画在盒外 1px"，
+     92px 那笔在册读数是外框，没漂；photo 面积 +2px 一事登记在这里。contact 影在前、发丝在后。 */
+  box-shadow:var(--shadow-contact),0 0 0 1px var(--glass-border);
 }
 .row .cover{ flex:none; width:92px; aspect-ratio:4/3; align-self:center; border-radius:10px; }
 
