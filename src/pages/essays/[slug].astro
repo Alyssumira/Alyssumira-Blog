@@ -152,6 +152,29 @@ if (seriesNext) seriesNavSegs.push({ href: `/essays/${seriesNext.id}/`, text: `$
    ⚠️ 形状：`.post-act` 那一族的**文字链接**，与许可行／系列行／相关行同一条声明——不是胶囊、
       不是第四种按钮形状（§9 那句"没有一枚是胶囊形"照旧成立，那一格的枚数账本轮跟着改）。 */
 const letterHref = EMAIL ? `${EMAIL}?subject=${encodeURIComponent(post.data.title)}` : '';
+/* 回到这一篇的开头（第十九轮 `card/topact`）：形状不是本卡定的——§15 第十一轮那一格裁掉悬浮圆钮**那一笔**里
+   就写死了唯一合法形态："并进 `.post-act` 那一族做一枚文字钮（同一条声明，零新形状），并同步把 §9 那句的枚数
+   与'没有一枚是胶囊形'改成现值"。这里不重审那条裁决（第五个模糊面／第二种材质那两笔账在它自己那一格），只照它施工。
+   ⚠️ **无 JS 的真链接**：一枚吃 `.post-act` 的 `<a>`，片段值由 `TOP_ID` 一处给（靶与 href 两处各写一遍字面量，
+   就是同一件事立两处真值——改名那天必然只改中一边，产物当场变成 §12 那种死锚点）。靶是同一页 `<header class="post-head">`
+   上新加的一枚 `id`：本篇的头（面包屑＋篇名）就是"这一篇的开头"，`<main>` 与它同一枚上缘、而那三枚 `position:fixed`
+   的节点（进度条／刻度／目录）说的不是"这一篇的开头"。只加一枚属性、不包任何元素。
+   ⚠️ `#`（空片段，点了停在原地）与 `#top`（浏览器特判，没有靶也照样滚）都不算靶——判据是**片段必须在这份产物里
+   数得出同值的 id**（`tools/reading-check.mjs` ⑤，两侧都有牙；通用面在 `runtime-check` 的全站具名片段扫描）。
+   ⚠️ **不加 `scroll-behavior`、不加点击脚本**（§17 运行时普查那四类：主题／时钟／入场／目录，本卡一枚都不新增）。
+   代价照登而不是当省略：落地那一瞬间的行为由 `base.css` 那**条在册**的 `html{scroll-behavior}` 决定（`prefers-reduced-motion`
+   下同名那条是 `auto`＝瞬移），本卡一个字没动它，也没为这一枚钮写第二份时序——它因此**不是**"平滑滚回顶部"那种控件。
+   ⚠️ **零新 CSS 是这一族的硬口径**（`card/permit`／`card/series`／F4／F5／F6 那一招的再一次使用）：行是
+   `<p class="post-when">`（在册 14px／`--ink-2`／`margin-top:14px`），链接挂 `.post-act`（在册那条 12px 等宽声明）
+   ⇒ `src/styles/**` 零改动，`gap-check` 那 142 枚间距／30 枚圆角／12 种写法一枚不动。为什么不坐在盖章／专注那一行里：
+   那一行的 14px 横档是 `.post-focus{margin-left:14px}` 给的，那枚名字属于专注开关——第三枚要么借一个不属于它的名字
+   （假语义），要么新写一条声明（新槽位）；两样都比"多一行在册节奏"贵。
+   ⚠️ 标签两层（§7，与 `share ·`／`focus ·`／`letter ·` 同一写法）：拉丁 `top` 说的是去处、中文那半说的是动作；
+   `top` 自己**不是**链接（`/top/` 这种东西不存在，画出来就是 §12 的死锚点）。
+   ⚠️ 位置：紧跟盖章那一排、排在许可／系列／相关／写信那几行之前——它是"对这一页做的一件事"，那四行说的是
+   "这一篇与谁有关"；`letter` 仍是 `.post-tail` 末位（F6 那一格的登记不动）。打印不新写一行：`.post-tail` 整块由
+   `base.css` 那条 `html .post-tail{display:none}` 接住（§19.1 清单）。 */
+const TOP_ID = 'post-head';
 /* 每篇字数：构建期从**渲染前的稿子**（post.body，那份 md 原文）数，数得出才写（§12 假数字那一格）。
    ⚠️ 入参与 siteFacts 数 `p.body` 同一份，不是渲染后的 HTML：标签里的字母会被数成字。
    ⚠️ 没有"约"、没有向上取整、没有估——它是一枚加法的结果，读者拿稿子自己数应当一模一样。 */
@@ -268,7 +291,10 @@ const crumb = crumbTrail(HERE);
   </nav>
 
   <main class="wrap">
-    <header class="post-head reveal">
+    {/* 靶：`id={TOP_ID}` 是文末那枚 `top` 指的地方；为什么落在这里、代价（不加平滑滚动）与判据（reading-check ⑤）
+        全在上面 `TOP_ID` 那一格。⚠️ 这一格说明走的是"表达式里的注释"那条写法——它一个字节都不落进产物；
+        HTML 注释会原样长字节（F6 那一轮就为这件事把一段模板注释删回去过）。 */}
+    <header class="post-head reveal" id={TOP_ID}>
       <!-- 一行四读：路径（home · essays，能点）· 日期 · 字数。分隔点用字面 ` · `，
            与许可那一行／`.post-when` 同一个写法，不为它新写一条 CSS（`.tax-back` 那份声明住在
            mistwood.css，"标签行里的那一枚链接"就是它管的这一族——复用类，不复制声明，§17）。
@@ -315,6 +341,12 @@ const crumb = crumbTrail(HERE);
            aria-pressed 由脚本跟着状态翻；它是 <button type=button>，不是 href，所以 §12 死锚点那条管不到它。 -->
       <button class="post-act post-focus" id="post-focus" type="button" hidden aria-pressed="false">focus · 只看字</button>
       <p class="stamp-note" id="stamp-note" hidden></p>
+      {/* 回到这一篇的开头（`card/topact`）：形状由 §15 第十一轮那一格写死——`.post-act` 那一族的文字控件、
+          同一条声明、零新形状，不是那枚被裁掉的悬浮圆钮。裁决原文在规范里，这里不重审，只照它施工。
+          为什么不坐在盖章／专注那一行里（那一行的 14px 横档是 `.post-focus` 那枚名字给的，借它＝假语义、
+          新写一条＝新槽位）、为什么不吃 `#top` 那枚浏览器特判、为什么不加平滑滚动——全在上面 `TOP_ID` 那一格。
+          `letter` 仍是 `.post-tail` 末位（F6 那一格的登记不动）；打印由 `base.css` 那条 `.post-tail{display:none}` 接住。 */}
+      <p class="post-when">top · <a class="post-act" href={`#${TOP_ID}`}>回到这一篇的开头</a></p>
       {licenseSegs.length > 0 && (
         <p class="post-when">{licenseSegs.map((s, i) => <>
           {`${i > 0 ? ' · ' : ''}${s.pre}`}
