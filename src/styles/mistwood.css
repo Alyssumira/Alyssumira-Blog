@@ -547,14 +547,18 @@ a.row:visited{ color:var(--ink-visited); }
    为什么不是"整页什么都不画"：那读起来像坏了；为什么不是"编几个分类填上"：那是 §12 的假内容族
    （AI 生成内容同族），分类名只能来自作者的 front matter。句子里的篇数是 `visiblePosts()` 的真数。
    ⚠️ 一个垂直方向的固定 px 都没有：上下那点距离由 `.page-head` 自己那条 64px 收尾段给（已上格，C 档在册）。
-   行内链接走 §8.3 那套"正文链接"语言（`--moss-ink` + 40% 下划线 → 悬停补满 + 变粗 2px），不新开一种悬停。 */
+   行内链接走 §8.3 那套"正文链接"语言（`--moss-ink` + 40% 下划线 → 悬停补满 + 变粗 2px），不新开一种悬停。
+   ⚠️ 下面名单里第二枚 `.essay-browse a` 是 F2（`card/f2entries`）添的：`/essays/` 名单之后那一行"按家族读"的入口。
+   它要的正是**同一条**声明（同色、同下划线、同那两枚属性的悬停），所以照这个仓的"名单式合并"写法把名字添进名单，
+   不复制一份声明、也不给它另写一条 `:hover`（§17 复用类、不复制声明；同表先例 `.cover img,.thing .shot,.portrait img,.post-body img`）。
+   容器 `.essay-browse` 自己**一条声明都不写**：行内布局、继承行高 ⇒ `gap-check` 那 142 枚一枚不增。 */
 .tax-empty{ max-width:52ch; font-size:15px; line-height:1.85; color:var(--ink-2); }
-.tax-empty a{
+.tax-empty a,.essay-browse a{
   color:var(--moss-ink); text-decoration-line:underline; text-decoration-thickness:1px;
   text-underline-offset:3px; text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);
   transition:text-decoration-color .3s cubic-bezier(.22,1,.36,1),text-decoration-thickness .3s cubic-bezier(.22,1,.36,1);
 }
-.tax-empty a:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; }
+.tax-empty a:hover,.essay-browse a:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; }
 /* 分类页/标签页页头那枚"全部分类 / 全部标签"回链：它住在 `.sec-label` 那一行里，所以不另开一行版面。
    颜色从 --ink-3（那一行的装饰档）提回 --ink-2——一枚链接必须读得出它是链接（§2.4）。 */
 .tax-back{

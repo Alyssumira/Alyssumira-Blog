@@ -5,6 +5,13 @@ import { fmtDate, root } from '../lib/markdown.js';
 import { intrinsicProps } from '../lib/image-dims.js';
 import { readMinutes } from '../lib/stats.js';
 import { essaysPerPage, pageRanges, pageHref } from '../lib/pagination.js';
+/* 三族索引页的可见入口（F2 `card/f2entries`）用的那三份分组函数——**就是 `/categories/`、`/tags/`、`/series/`
+   三页自己用的那三份**（`groupBy(posts, categoryOf)` / `tagGroups(posts)` / `seriesGroups(posts)`，
+   `seriesGroups` 住在 `src/lib/series.js`，它是 `taxonomy.js` 那份 `groupMany` 的一个特例）。
+   ⚠️ 这里不 import `posts.js`、也不写第二种"谁算这一族的一篇"：判家族非空与判清单非空必须是同一份实现，
+      否则"索引页说有三篇、目录页说一枚都不画"这种分叉只能靠人肉发现（§16 记过这一族）。 */
+import { categoryOf, groupBy, tagGroups } from '../lib/taxonomy.js';
+import { seriesGroups } from '../lib/series.js';
 
 /* 草稿不在这一页（也不在详情页、订阅源、关于页那几个数里）——filter 只住在 lib/posts.js 那一份。
    顺序：置顶在最前，其余按日期倒序；下面的"按年分节"与 folio 都吃这个数组的顺序，
@@ -77,6 +84,21 @@ for (const p of items) {
 /* 门牌是**整份目录**里第几行，不是这一页第几行 ⇒ 起点是本页在全局的偏移，跨页连号（01 02 03 | 04 05）。
    与跨年分节连号同一条口径，判据在 `tools/runtime-check.mjs` 的门牌对账那一格（本轮已扩到跨页）。 */
 let folio = at.from;
+
+/* 三族索引页的可见入口（F2 `card/f2entries`，规格在规范 §9 那一格）。三句话：
+   ① **只向 shipped 的那份分组要数**：`posts` 是两枚路由交进来的 `visiblePosts()` 结果（口径与三族索引页
+      自己用的那一条 filter 相同；模板不取集合，`tools/taxonomy-check.mjs` 第②格钉着这件事），
+      家族成员因此是"数出来的"，不是这一页再 filter 一遍。
+   ② **没填就不出现，而且是字节级的**：一族为空 ⇒ 那一枚锚不落；三族全空 ⇒ 整行不进产物。
+      今天三篇稿子的 `category`／`tags`／`series` 三行都空着，所以这一格的现读数是 **0 枚入口**，
+      `/essays/` 与改动前逐字节相同（§12 禁"预留一个只会显示空缺的位置"，`display:none` 那种空壳也不算过关）。
+   ③ **不替作者起名字**：三个词是族的**入口名**（分类／标签／系列），不是分类名——分类名照样只来自 front matter。
+   href 一律站内相对 ⇒ 绝对地址那笔账（产物里 200 处占位域名）一枚不涨。 */
+const browse = [
+  { label: '分类', at: '/categories/', n: groupBy(posts, categoryOf).length },
+  { label: '标签', at: '/tags/', n: tagGroups(posts).length },
+  { label: '系列', at: '/series/', n: seriesGroups(posts).length },
+].filter(f => f.n > 0);
 ---
 <Layout title={pageTitle} desc="经得起重读的东西。" here="essays">
   <main class="wrap">
@@ -137,6 +159,20 @@ let folio = at.from;
         </ol>
       </section>
     ))}
+
+    {/* 三族索引页的可见入口（F2，判它出现几次数的账在 `---` 上面那一格）：
+        ⚠️ 零新 CSS 的两条落点——① 锚点吃 `mistwood.css:552` 那条 `.tax-empty a`，做法是**给名单添一枚名字**
+           （`.tax-empty a,.essay-browse a`），声明仍只有一处真值（§17 复用类、不复制声明，同一份表里的先例
+           是 `.cover img,.thing .shot,.portrait img,.post-body img`）；② 容器 `.essay-browse` 一条声明都不写，
+           行内布局＋继承的行高 ⇒ `gap-check` 那 142 枚间距与 30 枚圆角一个都不动。
+        ⚠️ 悬停吃同一条 `:hover`（`text-decoration-color` ＋ `text-decoration-thickness` 两枚属性），
+           不为这一族另写一条 ⇒ §1 那枚"手势内 ≤3 属性"的预算自动守住。
+        ⚠️ 为什么不能拿详情页那族 `.post-act` 当落点：这一页只加载 `Layout.*.css`（base ＋ mistwood 两份），
+           `.post-act` 住在 `essay.css`，在这一页根本不存在——用它就是给这一页新引一份材质。
+        三族全空 ⇒ 整块一个字节都不落（今天这一态）。 */}
+    {browse.length > 0 && (
+      <nav class="essay-browse" aria-label="按家族读这份目录">browse — 按 {browse.flatMap((f, i) => [i ? ' · ' : null, <a href={f.at}>{f.label}</a>])} 读</nav>
+    )}
 
     {/* 翻页那一行：**整份名单装得下就一个字都不出现**（`ranges.length > 1` 是唯一的条件）。
         今天三篇 ÷ 每页 3 行 ＝ 一页 ⇒ 产物里既没有 `<nav>`、也没有 `/essays/page/` 这串字节，
