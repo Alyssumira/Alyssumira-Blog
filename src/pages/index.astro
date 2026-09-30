@@ -4,15 +4,6 @@ import Layout from '../layouts/Layout.astro';
 import SearchEntry from '../components/SearchEntry.astro';
 import { things, notes } from '../data/site.js';
 import { fmtDate, inlineMd } from '../lib/markdown.js';
-import { intrinsicProps } from '../lib/image-dims.js';
-/* 首屏那两张照片上的 `width`/`height` 由构建期读真文件头发来（`src/lib/image-dims.js`），两句口径写在这里而不是
-   模板里——Astro 把 HTML 注释**原样落进产物**（`src/layouts/Layout.astro:21` 那格为同一件事点过名），
-   说明写进模板就等于把它发给每一位访客，还会被 `tools/imgpipe-check.mjs` 数成一枚图注。
-   ① **这两枚不参与最终盒尺寸**：`home.css:89` 那条 `.bg-photo img{ position:absolute; inset:0; width:100%; height:100% }`
-      把它们完全覆写 ⇒ 布局一个像素不动（改前／改后逐枚 rect 与整页 scrollHeight 实测相同，读数登记在规范 §8.4）。
-      发它们只为了一条判据能全站成立："产物里每一枚 img 都自带固有盒子"，不留"哪几枚可以不带"的例外名单。
-   ② **这里不加 `decoding="async"`**：这两张是 eager 载入，那一枚属性会把解码挪出主线程，而 §8.2 那条时间轴
-      （照片 1.2s 起、2.2s 走完、3.4s 收口）是按现在的解码时机签的字——要动它得连那串数一起复量，不在这一卡的格子里。 */
 import { visiblePosts } from '../lib/posts.js';
 import { readMinutes, tone } from '../lib/stats.js';
 
@@ -29,10 +20,10 @@ const walk = notes[0];
   <div class="scene" aria-hidden="true">
     <div class="bg-gradient"></div>
 
-    <!-- 两张同构图照片：亮 / 暗，主题切换 = 交叉淡化（两枚属性为什么加、为什么不上屏，写在上面 --- 里） -->
+    <!-- 两张同构图照片：亮 / 暗，主题切换 = 交叉淡化 -->
     <div class="bg-photo" data-depth="0.02">
-      <img class="photo-light" src="/assets/bg-light.jpg" {...intrinsicProps('/assets/bg-light.jpg')} alt="" draggable="false">
-      <img class="photo-dark" src="/assets/bg-dark.jpg" {...intrinsicProps('/assets/bg-dark.jpg')} alt="" draggable="false">
+      <img class="photo-light" src="/assets/bg-light.jpg" alt="" draggable="false">
+      <img class="photo-dark" src="/assets/bg-dark.jpg" alt="" draggable="false">
     </div>
 
     <div class="scrim"></div>
