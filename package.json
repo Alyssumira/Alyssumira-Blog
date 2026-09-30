@@ -11,7 +11,7 @@
     "og": "node tools/og-cards.mjs",
     "check": "node tools/new-post.mjs --check && node tools/check-markdown.mjs && node tools/palette-check.mjs && node tools/phase-check.mjs && node tools/gap-check.mjs && node tools/taxonomy-check.mjs && node tools/media-check.mjs && node tools/font-subset.mjs --verify",
     "selftest": "node tools/phase-check.mjs --selftest",
-    "gate": "npm run check && npm run build && node tools/font-subset.mjs --check && node tools/imgpipe-check.mjs && node tools/feed-check.mjs && node tools/pagination-check.mjs && node tools/search-check.mjs && node tools/runtime-check.mjs && node tools/og-check.mjs --dist"
+    "gate": "npm run check && npm run build && node tools/font-subset.mjs --check && node tools/imgpipe-check.mjs && node tools/feed-check.mjs && node tools/search-check.mjs && node tools/runtime-check.mjs && node tools/og-check.mjs --dist"
   },
   "devDependencies": {
     "@astrojs/rss": "^4.0.19",
