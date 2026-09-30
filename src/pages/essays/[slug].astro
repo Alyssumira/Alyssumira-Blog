@@ -1,7 +1,7 @@
 ---
 import '../../styles/essay.css';
 import Layout from '../../layouts/Layout.astro';
-import { renderArticle, fmtDate, strictHref } from '../../lib/markdown.js';
+import { renderMd, fmtDate, strictHref } from '../../lib/markdown.js';
 import { visiblePosts, publishedPosts } from '../../lib/posts.js';
 import { categoryOf, tagsOf, taxSlug, isUnlisted } from '../../lib/taxonomy.js';
 import { seriesOf } from '../../lib/series.js';
@@ -92,14 +92,7 @@ const words = cjkCount(post.body) + latinWords(post.body);
    零枚 ⇒ 下面那一整块 `<dialog>` 连同它的收起钮**一个字节都不进产物**（"没填 ⇒ 整块不出现"，
    与 hasTax / whenText 同一条模式；不是发一块再 display:none）。
    ⚠️ 判据不写成运行时的 querySelectorAll：那样静态产物里就永远躺着一枚没人认领的空 dialog。 */
-const article = renderArticle(post.body);
-const bodyHtml = article.html;
-/* 这一页的章清单与正文那一排 id 来自**同一次** renderArticle 调用（`card/anchors`，§15 那一格）：
-   目录里的每一枚 `href="#x"` 都对着正文里一枚真存在的 `id="x"`，两边同源 ⇒ 不许出现"HTML 里有目录、
-   href 指向产物里不存在的 id"那种死锚点（§12），也不许出现"正文有章、目录没有条目"那种半张地图。
-   级别（`level`）只交"它是哪一级"这一枚事实，缩进怎么画仍归 CSS（`#toc a.sub`，§9 那条"同一个符号
-   不许表达两种状态"）。 */
-const heads = article.heads;
+const bodyHtml = renderMd(post.body);
 const hasShot = /<figure class="shot"/.test(bodyHtml);
 /* ---- 稿件级转载许可族（§15 详情页那一格，第十五轮 `card/permit`）----
    四枚都可空，**没填 ⇒ 这一段一个字节都不出现**（与上面 whenText / hasTax / hasShot 同一条模式，
@@ -182,22 +175,11 @@ const crumb = crumbTrail(HERE);
        revised 是 git 里最后一次改动型提交的日历日（问不到＝undefined ⇒ Seo 那一键整块不写），date 是 front matter 那天。
        ⚠️ 这里只是把「已经在这儿的值」交给 Layout，页面上那行「改于」的判据与灰度一个字没动（§7 / §15）。 -->
   <div id="progress" aria-hidden="true"></div>
-  <!-- 章节刻度（§6.3）：同一批标题（H2 ＋ H3，与右侧目录同一份清单、同一个出处）在这条线上的位置。
+  <!-- 章节刻度（§6.3）：同一批标题（H2 ＋ 本轮起也算 H3，与右侧目录同一个选择器）在这条线上的位置。
        右侧目录给名字，这一排给形状——窄屏没有目录，刻度还在。
-       aria-hidden：它是这一篇结构的图形化重述，读屏已经有目录。
-       ⚠️ 节点本身是**构建期**烘进 HTML 的（`card/anchors`）：只有 `left` 那个百分比是几何量、非运行时
-       量不出来（`site.js` 的 measureMarks），位置与点亮两件事仍然归脚本，但"这一排有没有东西"不再看 JS。 -->
-  <div id="progress-marks" aria-hidden="true">{heads.map(() => <span></span>)}</div>
-  <!-- 目录：构建期就是一条条真链接（`card/anchors`，§15 那一格）。运行期只剩"高亮正在读的那一章"
-       这一件真·运行时职责（§1 的口径：无 JS 时目录仍然在、仍然能跳）。
-       ⚠️ `href` 用的那枚 id 与正文那排 id 是同一批字符串（同一次 renderArticle 的产物），
-       所以"HTML 里有目录、href 指向产物里不存在的 id"这种死锚点从源头上不成立；
-       对账判据在 `tools/runtime-check.mjs` 的「目录⇄正文 id」那一格，两侧都有牙。
-       ⚠️ 条目文字走 `set:html`：`h.text` 是渲染结果**去壳**之后的串，里面的 `&` 已经是 `&amp;`，
-       再让模板转义一遍就会在屏幕上长出 `&amp;`（与运行期 `a.textContent = h.textContent` 不同读法）。 -->
-  <nav id="toc" aria-label="目录">
-    {heads.map(h => <a href={'#' + h.id} class:list={[h.level === 3 && 'sub']} set:html={h.text}></a>)}
-  </nav>
+       aria-hidden：它是这一篇结构的图形化重述，读屏已经有目录 -->
+  <div id="progress-marks" aria-hidden="true"></div>
+  <nav id="toc" aria-label="目录"></nav>
 
   <main class="wrap">
     <header class="post-head reveal">
