@@ -257,7 +257,10 @@ cell('④', '注入侧与判据同源（撤掉注入 ⇒ 本卡必须跟着换�
   assert.ok(/export function intrinsicProps/.test(dims) && /export function intrinsicAttrs/.test(dims),
     '④ image-dims.js 的两枚出口少了一枚 —— 注入侧（JSX 展开用对象）与渲染器（拼属性用字符串）现在得各写一份判断');
   let n = 2;
-  for (const f of ['src/components/PostRow.astro', 'src/pages/essays/index.astro', 'src/pages/things.astro']){
+  /* ⚠️ 列表页那一枚在本轮 `card/pagination` 换了宿主：目录行（连封面 `<img>` 的那一枚）从
+     `src/pages/essays/index.astro` 搬进 `src/components/EssayIndex.astro`——第 1 页与 `/essays/page/<n>/`
+     两处共用同一份模板（§15 那一格）。这一格是"注入落点"的点名，跟着换名才对得上盘上的字节。 */
+  for (const f of ['src/components/PostRow.astro', 'src/components/EssayIndex.astro', 'src/pages/things.astro']){
     const src = code(readFileSync(join(ROOT, f), 'utf8').replace(/\r\n/g, '\n'));
     assert.ok(/intrinsicProps\(/.test(src), `④ ${f} 不再给 img 派生宽高 —— 判据覆盖的落点少了一处（不是红，是要在这里点名，免得下一个人以为全站都注入了）`);
     n += 1;

@@ -11,11 +11,35 @@ import { safe, href, strictHref } from '../src/lib/markdown.js';   /* 锚点归�
    两枚 URL 键"能不能当路用"同样只有一份：strictHref()。tools/ 这一侧**不写第二份协议正则**，
    只纯消费它和 href() 的返回值——两者的差恰好就是把两种坏形状分开点名的依据（见下面那一格） */
 import { splitFm, readTaxonomy, unquote } from './frontmatter.mjs';
-import { groupMany, aliasSlot, aliasesOf } from '../src/lib/taxonomy.js';
+import { groupMany } from '../src/lib/taxonomy.js';
+import { ESSAYS_PAGE_NS } from '../src/lib/pagination.js';   /* 分页命名空间那一段（`/essays/page/<n>/`）：
+   保留字名单向** shipped 的那一枚常量**要，不在这里抄一份字面量——抄的那份改了没人知道（§13a 那句话）。
+   这一份文件不 import 'astro:content'，所以 node 侧吃得动它（口径同 taxonomy.js 头上那两段）。 */
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const POSTS = join(ROOT, 'src', 'content', 'posts');
 const DATA = join(ROOT, 'src', 'data', 'site.js');
+
+/* 稿件 id 的**第一段**不许是这些字面量（本轮 `card/pagination` 立这一格）。
+   ⚠️ 名单只加不减：将来 `/essays/` 底下再多一枚静态命名空间（例如 `/essays/tag/<x>/` 那种写法），
+      新第一段先进这一格、再动路由——反过来做就是"页面先建出来、保留字名单补漏"，
+      那一族"作者写了稿子而它的地址被机制吃掉"是 §12 那条"写了却看不见"的近亲。 */
+const RESERVED_FIRST_SEG = [ESSAYS_PAGE_NS];
+
+/* 递归收全部稿件 id（相对 posts/、不带 .md、子目录用 `/` 连着）。
+   ⚠️ 为什么这里要递归而上面那圈主循环只扫平铺的 `*.md`：集合那一侧是 `content.config.ts` 里那枚 glob loader，
+   它的 pattern 是 `**` 打头的那一种——**它认子目录**。判据只扫平铺就会漏掉恰好最危险那一种 id
+   （`page/2.md` ⇒ `/essays/page/2/`，与分页第 2 页同一枚地址）。与 `astro.config.mjs` 的
+   `unlistedPaths()` 同一条理由：读不到盘就不许判。 */
+function postIds(dir, rel = ''){
+  const out = [];
+  if (!existsSync(dir)) return out;
+  for (const e of readdirSync(dir, { withFileTypes: true })){
+    if (e.isDirectory()){ out.push(...postIds(join(dir, e.name), `${rel}${e.name}/`)); continue; }
+    if (/\.md$/i.test(e.name)) out.push(`${rel}${e.name.replace(/\.md$/i, '')}`);
+  }
+  return out.sort();
+}
 
 
 const today = () => {
@@ -135,117 +159,52 @@ async function check() {
      这一行存在的理由与上面那枚一模一样（§16 那一族："扫了但没匹配到"与"扫了且全过"长得一样）：
      它证明这一格真的逐篇读过那一枚键，而不是一枚从没被喂过输入的保险。 */
   console.log(`· 不列入检查 ${files.length} 篇：其中 ${unlistedSeen} 篇写着 unlisted: true${unlistedSeen ? '' : '（0 篇是今天签字的状态，不是这一格没跑——每一篇的 front matter 都被读过）'}`);
+  /* ⚠️ 分页命名空间（本轮 `card/pagination` ①）：`/essays/page/<n>/` 那一段 `page` 由目录的分页路由占用
+     （`src/pages/essays/page/[n].astro`），而详情页那一族是 `src/pages/essays/[slug].astro` ＋ 同址的
+     `src/pages/essays/[slug]/index.md.js`——**同一个层级、同一个源**。撞车的成因两枚，都在本机实测过：
+       · `src/content/posts/page.md`（平铺）⇒ id `page` ⇒ `/essays/page/`。build **全绿**（实测 14 页），
+         产物里 `dist/essays/page/index.html` 是一篇稿子、`dist/essays/page/2/index.html` 是目录的第 2 页，
+         两件事叠在同一棵目录下、没有一句话报错。坏在判据侧：任何按**路径形状**数"哪几页是目录页"的产物级尺子
+         （`tools/pagination-check.mjs` 第②格就是这么枚举的）从此读不出谁是谁——两侧格子的"朝窄不误红"就失效了。
+       · `src/content/posts/page/2.md`（子目录）⇒ id `page/2` ⇒ 与第 2 页**同一枚地址**，而且 `[slug]` 那一枚
+         参数填不进带斜杠的 id：实测 build 当场 `[ERROR] TypeError: Missing parameter: slug`
+         （栈在 `/essays/page/2/index.md` 那一格），exit 码还不稳（本机读到 127，§16 记过"throw 那两跑的 exit 码不稳定"）。
+     ⇒ 结论是**必须挡**，落点就在这一格（构建期红、用人话说破），不是运行时兜底——运行时兜底意味着
+        "作者写了稿子而它的地址被机制吃掉"，那一族 §12 管着。
+     ⚠️ 顺带把"稿件放子目录"整族挡掉：上面第二枚成因与保留字无关也一样炸（集合那一侧的 glob pattern 是 `**` 打头那一种、认子目录，
+        而两枚 `[slug]` 路由不认），今天 0 枚，所以这一格是拦未来的，不是修今天的。 */
+  const ids = postIds(POSTS);
+  let reservedHits = 0;
+  let nestedHits = 0;
+  for (const id of ids){
+    const head = id.split('/')[0];
+    if (RESERVED_FIRST_SEG.includes(head)){
+      reservedHits++;
+      console.log(`✗ ${id}.md：id 的第一段 "${head}" 是 /essays/ 的**保留字**（名单：${RESERVED_FIRST_SEG.join(' / ')}，住在 tools/new-post.mjs 顶上那一格，值向 src/lib/pagination.js 的 ESSAYS_PAGE_NS 要）。`
+        + `那一整段命名空间归目录的分页路由：/essays/${head}/<页码>/ 是"第 <页码> 页"，不是稿件地址。`
+        + (id.includes('/')
+            ? `这一枚还是子目录写法，实测构建当场炸（[ERROR] TypeError: Missing parameter: slug），炸在 /essays/${id}/index.md 那一格。`
+            : `实测这一枚**不炸**：build 全绿，而 dist/essays/${head}/index.html（这一篇）与 dist/essays/${head}/2/index.html（目录第 2 页）叠在同一棵目录里——绿着的撞车比红着的更难发现。`)
+        + `出路：改名字（node tools/new-post.mjs <slug> 只准小写字母、数字、连字符，且不许等于 ${RESERVED_FIRST_SEG.join(' / ')}），稿子内容一个字不用动。`);
+      bad++;
+    } else if (id.includes('/')){
+      nestedHits++;
+      console.log(`✗ ${id}.md：稿件放在子目录里 ⇒ id 带斜杠（"${id}"），而详情页那两枚路由都是单段的 [slug]：实测 build 报 [ERROR] TypeError: Missing parameter: slug（集合那一侧 glob 是 **/*.md，认子目录，两处不认）。`
+        + `出路：把文件挪回 src/content/posts/ 平铺（站内没有任何一处支持"目录式稿件"，slug 里那枚连字符是给你分段用的）。`);
+      bad++;
+    }
+  }
+  /* 看得见数：**0 也要打这一行**（§16 那一族："扫了但没匹配到"与"扫了且全过"在两串输出里是同一种样子）。
+     这一格读的是**盘上的文件树**，不是集合，所以它必须报出扫了几枚 id——一枚都没扫到就是判据空转，当场红。 */
+  if (!ids.length) { console.log('✗ 分页命名空间检查：一枚稿件 id 都没扫到（posts/ 读不到？）——这一格在空转，不许算过'); bad++; }
+  else console.log(`· 分页命名空间检查 ${ids.length} 枚 id：保留字撞名 ${reservedHits} 处 · 子目录写法 ${nestedHits} 处（都是 0 才是今天签字的状态；名单＝${RESERVED_FIRST_SEG.join(' / ')}，只扫 id 的第一段）`);
+
   /* ⚠️ 用 shipped 的那个分组函数，不在工具里再猜一遍归一化：两份实现会各自赦免同一个错，
      于是"预检全绿、astro build 当场抛"（或反过来）都会发生。构建期那一侧是**抛**——
      静默合并等于替作者把两件事说成一件（§12 假语境的近亲），起名是他的活，不是机器的。 */
   for (const [what, pick] of [['分类', p => [p.data.category]], ['标签', p => p.data.tags], ['系列', p => [p.data.series]]]) {
     try { groupMany(taxPosts, pick, what); }
     catch (e) { console.log(`✗ 撞名（跨篇）：${e.message}`); bad++; }
-  }
-
-  /* ── 旧地址那一族（第十七轮 `card/aliases`）：形状、撞名、跨篇重复，三样都在源码级拦 ──────────
-     为什么这一格必须住在 `--check`（源码级、build 之前）而不是只住在产物级的 `tools/alias-check.mjs`：
-     撞名那一族在构建侧**根本不红**——`astro build` 只打印一行
-     `[WARN] Could not render \`/about\` from route \`/[...alias]\` as it conflicts with higher priority route \`/about\``
-     就把那枚跳转页静默丢掉，退出码仍是 0、"N page(s) built" 照报（2026-09-30 实测）。
-     也就是说：作者写完 `aliases` 之后，站上是"旧地址仍然死着"，而门禁全绿。红必须响在人动手的那一刻。
-     ⚠️ 判据不在这里重写：形状归 `src/lib/taxonomy.js` 的 `aliasSlot()`（页面与门禁同一份），
-        名单归 `aliasesOf()`；本格只回答"这枚地址是不是已经被别人占着了"，答案从**路由表本身**现扫，
-        不抄一份固定路由名单——抄的那份迟早和 `src/pages/` 分叉（§16 记过这一族）。 */
-  {
-    const ROUTES = [];                                    /* src/pages 里每一枚路由的字面段形状 */
-    (function w(dir, rel = ''){
-      if (!existsSync(dir)) return;
-      for (const e of readdirSync(dir, { withFileTypes: true })){
-        const p = join(dir, e.name);
-        if (e.isDirectory()){ w(p, `${rel}${e.name}/`); continue; }
-        if (!/\.(astro|js|ts|mdx?)$/i.test(e.name)) continue;
-        /* 路由的字面段：去掉扩展名，末段**恰好是 `index`** 才算"这一层的目录页"（丢掉那一段）。
-           ⚠️ 不是"任何以 index 开头的都丢"：`essays/[slug]/index.md.js` 交出来的是 `/essays/<slug>/index.md`
-              那一枚**原文端点**（第三段是字面量 `index.md`），把它当成 `/essays/<slug>/` 会让撞名那一格
-              指错本家——红话指错文件比不红更坏（假阳性教人忽略门禁，本仓 §16 记过）。 */
-        const segs0 = (rel + e.name).replace(/\.(astro|js|ts|mdx?)$/i, '').split('/');
-        if (segs0[segs0.length - 1] === 'index') segs0.pop();
-        const stem = segs0.join('/');
-        const parts = stem.split('/').filter(x => x !== '');
-        ROUTES.push({
-          file: `src/pages/${rel}${e.name}`,
-          parts: parts.map(x => {
-            const r = /^\[\.\.\.(.+)\]$/.exec(x), m = /^\[(.+)\]$/.exec(x);
-            if (r) return { rest: true, name: r[1] };
-            if (m) return { param: true, name: m[1] };
-            return { lit: x };
-          }),
-          dynamic: false,
-        });
-        const last = ROUTES[ROUTES.length - 1];
-        last.dynamic = last.parts.some(x => x.param || x.rest);
-        last.static = '/' + last.parts.map(x => x.lit ?? '*').join('/') + (last.parts.length ? '/' : '');
-      }
-    })(join(ROOT, 'src', 'pages'));
-    /* 这一枚文件自己不算"别人" */
-    const isAliasRoute = r => r.parts.some(x => x.rest && /alias/i.test(x.name));
-    const matches = (r, segs) => {
-      for (let i = 0; i < r.parts.length; i++){
-        const x = r.parts[i];
-        if (x.rest) return true;                                    /* rest 吃掉后面所有段 */
-        if (i >= segs.length) return false;
-        if (x.lit !== undefined){ if (x.lit !== segs[i]) return false; continue; }
-      }
-      return r.parts.length === segs.length;
-    };
-    /* 「认得出的那一层」：一枚参数段的值能从盘上算出来，才许用"真值相等"当撞名判据。
-       essays/[slug] ⇄ 稿件文件名；categories|tags|series/[name] ⇄ 现算的分类·标签·系列清单。
-       认不出来的那些（下一轮 `card/pagination` 正在加的 essays/page/[n] 就是第一个）一律按**整层**算占着：
-       它生成的值由那一页自己的算术决定，我在这儿猜一个"不会撞"就是假绿。 */
-    const postIds = new Set(files.map(f => f.slice(0, -3)));
-    const taxAddrs = { categories: new Set(), tags: new Set(), series: new Set() };
-    for (const [what, pick, dir] of [['分类', p => [p.data.category], 'categories'], ['标签', p => p.data.tags, 'tags'], ['系列', p => [p.data.series], 'series']])
-      try { for (const g of groupMany(taxPosts, pick, what)) taxAddrs[dir].add(`/${dir}/${g.slug}/`); }
-      catch { /* 撞名上面那一格已经点名过，这里不再重复报 */ }
-    const ENUM = { essays: new Set([...postIds].map(x => `/essays/${x}/`)), ...taxAddrs };
-    const PUBLIC_TOP = existsSync(join(ROOT, 'public'))
-      ? new Set(readdirSync(join(ROOT, 'public')).map(x => `/${x.toLowerCase()}`)) : new Set();
-    const seen = new Map();                                  /* 旧地址 → 第一篇声明它的稿子 */
-    let aliasChecked = 0;
-    for (const f of files){
-      const slug = f.slice(0, -3);
-      const parsed = splitMd(read(join(POSTS, f)));
-      if (!parsed) continue;
-      const tax = readTaxonomy(parsed.fmText);
-      if (tax.errors.length) continue;                        /* 坏写法上面已经红过了 */
-      for (const raw of (tax.aliases ?? [])){
-        aliasChecked++;
-        const s0 = aliasSlot(raw);
-        if (!s0.path){ console.log(`✗ ${f}：aliases 里有一项钉不成站内地址——${s0.bad}`); bad++; continue; }
-        for (const other of tax.aliases ?? []){
-          if (other !== raw && String(other) > String(raw) && aliasSlot(other).path === s0.path){ console.log(`· ${f}：aliases 里 "${raw}" 与 "${other}" 是同一枚地址 ${s0.path}（去掉首尾斜杠是同一种写法）——按一枚算`); break; }
-        }
-        const segs = s0.path.replace(/^\/|\/$/g, '').split('/');
-        const prev = seen.get(s0.path);
-        if (prev && prev !== slug){ console.log(`✗ 旧地址撞名（跨篇）：${s0.path} 同时被 ${prev} 与 ${slug} 声明——路由只会留名单里第一枚，另一篇的访客被悄悄改道。给其中一篇换一个旧地址`); bad++; }
-        else if (!prev) seen.set(s0.path, slug);
-        /* 静态资源那一层：public/ 顶层叫什么，那枚前缀就被谁占着——文件本身永远排在跳转页前面 */
-        if (PUBLIC_TOP.has(`/${segs[0].toLowerCase()}`)){
-          console.log(`✗ ${f}：aliases 里的 ${s0.path} 落在 public/${segs[0]}/ 那一层——托管先按文件找这一枚路径，跳转页永远轮不到被读到。换一个不属于静态资源目录的旧地址`);
-          bad++;
-        }
-        for (const r of ROUTES){
-          if (isAliasRoute(r) || !matches(r, segs)) continue;
-          if (!r.dynamic){ console.log(`✗ ${f}：aliases 里的 ${s0.path} 与站内固定路由撞上（${r.file} 就是那一枚地址的本家）——旧地址不许盖在 about / notes / essays 目录 / feed 这些页面上，那一页会整枚消失`); bad++; break; }
-          /* 「认得出的那一层」＝恰成 `essays/[slug]` 与 `categories|tags|series/[name]` 那一种形状（一枚字面段＋一枚参数段，
-             而参数段的值能从盘上现数出来）。别的那种动态路由——`card/pagination` 正在排的 `essays/page/[n]` 是第一个——
-             它生成的地址（分页码、将来的归档月页……）由那一页自己的算术决定，我在源码侧数不出来 ⇒ **整层都算被占着**：
-             这里宁可红一次让作者换个写法，也不留"看着不撞、下一轮那一张卡落地才撞"的假绿。 */
-          const enumerable = r.parts.length === 2 && r.parts[0].lit !== undefined && r.parts[1].param === true && ENUM[r.parts[0].lit];
-          if (!enumerable){ console.log(`✗ ${f}：aliases 里的 ${s0.path} 落在 ${r.file} 那一层——那一层生成哪些地址由它自己算（分页码那一类），我在源码侧数不出来；旧地址写到里面去，早晚与那一页抢同一枚地址`); bad++; break; }
-          if (!ENUM[r.parts[0].lit].has(s0.path)) continue;                     /* 这一层的其它地址（比如改名后的旧 slug）正是这一族要接的对象 */
-          if (s0.path === `/essays/${slug}/`){ console.log(`✗ ${f}：aliases 里的 ${s0.path} 就是这一篇自己的详情页——旧地址与真地址同名，跳转页会被详情页静默吃掉（实测 build 只 WARN 不红），而那枚旧地址本来要指的是"改名之前的那一枚"。删掉这一项，或者写成它真正替换掉的那枚旧路径`); bad++; break; }
-          console.log(`✗ ${f}：aliases 里的 ${s0.path} 已经是站上一枚真产物（${r.file} 会为它烘出页面）——两枚路由抢同一枚地址时 Astro 只打一行 WARN 就把跳转页丢了，build 与 check 之外没人知道旧地址没生效`); bad++; break;
-        }
-      }
-    }
-    console.log(`· 旧地址检查 ${aliasChecked} 项（${[...new Set([...seen.keys()])].length} 枚在册）：与固定路由／详情页／分类三族／静态资源层逐枚比过（0 项是今天签字的状态，不是这一格没跑——每一篇的 front matter 都被读过）`);
   }
   /* 数量直接 import 来数：site.js 是真模块，按文本猜格式会静默读成 0 */
   const { things, notes } = await import(pathToFileURL(DATA).href);
@@ -294,6 +253,13 @@ function create() {
   }
   if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
     console.log(`✗ slug "${slug}" 不合规矩：只用小写字母、数字、连字符（它要进 URL）`);
+    return 1;
+  }
+  /* 保留字（本轮 `card/pagination` ①，与上面 --check 那一格同一份名单、同一枚常量）：
+     建稿当场拦比构建期红好——`--check` 那一格管的是"已经丢进 posts/ 的稿子"（作者可能直接拷文件），
+     这一格管的是"正用这条命令起名"，两处的判据必须同值所以都读 RESERVED_FIRST_SEG。 */
+  if (RESERVED_FIRST_SEG.includes(slug.split('/')[0])) {
+    console.log(`✗ slug "${slug}" 不能用："${slug.split('/')[0]}" 是 /essays/ 的保留字（名单：${RESERVED_FIRST_SEG.join(' / ')}）——/essays/${slug.split('/')[0]}/<数字>/ 是目录的第几页，不是稿件地址（成因与实测在 --check 那一格与规范 §15）。换个名字，标题与内容都不用动。`);
     return 1;
   }
   if (!/^\d{4}[.]\d{2}[.]\d{2}$/.test(date)) {
