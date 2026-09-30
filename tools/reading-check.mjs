@@ -1,5 +1,6 @@
-/* reading-check.mjs —— 详情页那一族三格（F4 相关阅读 ／ F5 系列内导航 ／ F6 写信回应）的门禁
-   （第十八轮 `card/reading2`；接进 `npm run gate`，位置在 `lifegrid-check` 之后、两枚起浏览器的尺子之前。
+/* reading-check.mjs —— 详情页那一族四格的门禁
+   （第十八轮 `card/reading2` 立前三格 F4／F5／F6，第十九轮 `card/topact` 补第四格"回到这一篇的开头"；
+   接进 `npm run gate`，位置在 `lifegrid-check` 之后、两枚起浏览器的尺子之前。
    它是**读产物的**判据，所以不许塞进 `npm run check`：干净检出上 `dist/` 还不存在，
    放在 build 之前就会假红（§16 签过的那一条，`search-check`／`feed-check`／`lifegrid-check` 同一格）。
 
@@ -30,16 +31,32 @@
       且 `about.astro` 里那枚局部 const 真的没了；详情页必须还在 import 并调用那两枚纯函数、池子必须是
       `visiblePosts()` 那份数组；`related.js`／`series.js` 不许 import `astro:content`；这三格**零新 CSS**
       （五份样式表里不许出现为它们新增的选择器）、**零新色**（本卡碰过的源码文件里不许有色字面量）。
+   ⑤ **回到这一篇的开头那枚文字钮**（第十九轮 `card/topact`；形状是 §15 第十一轮那格**写死的唯一合法形态**——
+      并进 `.post-act` 那一族，同一条声明、零新形状，不是那枚被裁掉的悬浮圆钮）：逐份详情页产物判四件事——
+      · 那一枚**恰好**存在一枚，且宿主是 `.post-tail` 这一块（§9 数的那一族可点件吃的就是这一块）；
+      · 它的片段值在**同一份产物**里数得出同值的 `id`，且只数得出**一枚**（`#`＝点了停在原地、`#top`＝浏览器
+        特判没有靶也照样滚，两样都不算靶：§12 死锚点禁令对"降级"同样成立，`card/anchors` 那一格已把这一面钉过）；
+      · 文案是 §7 那两层（拉丁标签 `top` ＋ 中文说明），标签自己不是链接；
+      · 非详情页（about／首页／notes）零枚且**不许误红**——那一族只住在详情页文末，别的页没有"本篇的头"可指。
+      源码级另钉四条：模板里那枚靶与那枚钮的字面还在（两边一断就是死锚点）、`site.js` 里不许出现 `post-head`
+      （§17 运行时普查那四类：主题／时钟／入场／目录，这一枚是无 JS 的真链接）、模板不许有 `onclick`、
+      五份样式表不许冒出为它新增的选择器或文案，且 `scroll-behavior` 全站仍是**两枚**（在册那两枚：base.css 的
+      smooth ＋ reduced-motion 那档 auto）——本卡明写**不加**平滑滚动，落地那一瞬间由那条既有的说。
 
    ── 两侧都有格子（口径照 lifegrid-check / media-check）──────────────────────────
-   朝宽：③ 那十五枚合成坏样本必红；另在真产物上跑过三枚真变异（退出码与红句原文登记在规范 §16 那一格）。
+   朝宽：③ 那十五枚合成坏样本必红；⑤ 那十枚绊线（靶改名／空片段／`#top` 特判／少一枚／多一枚／靶复制／
+         挪出宿主／宿主读不出／只剩拉丁那一层／详情页被按非详情页那一档判）必红；另在真产物与真源码上跑过
+         五枚真变异（退出码与红句原文登记在规范 §16 那一格）。
    朝窄：今天零载体必须绿且当众说明它由 fixture 兜住；注入真载体（两篇共享 tags ＋ 同一枚系列）之后
-         同一格也必须绿——它判的是"产物 ⇄ 复算相等"，不是"产物里必须为 0"。
+         同一格也必须绿——它判的是"产物 ⇄ 复算相等"，不是"产物里必须为 0"。⑤ 的朝窄有两处：合法产物逐份
+         恰好一枚（不是"扫不到"，seen=0 当场红），以及**没有 `.post-tail` 的那几页**判不出红。
 
    ── 不碰的 ────────────────────────────────────────────────────────────────────
    · 仓库里那三篇稿件一个字节不改（载体只在变异那一跑里临时注入，跑完还原并复算行尾与枚数）。
    · 不动 gap-check / palette-check 的在册数（这一族零新 CSS、零新色，两把尺一枚都不该动）。
    · 不判版式与几何（那三行落在哪个高度、窄屏折几行——本卡零新 CSS，账在 §4／§11）。
+   · 不判"点下去真的落到了哪儿"（那是浏览器给的滚动行为，本机没有那台仪器；⑤ 判的是**靶在这份产物里存在**，
+     与 §16 那句"真的能带出主题"留给人在默认浏览器看一眼是同一档未验到）。
 */
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -504,6 +521,150 @@ cell('④', '邮箱只有一处真值／页面与尺子吃同一份纯函数／�
   return n;
 });
 
+/* ---------- ⑤ 回到这一篇的开头那枚文字钮（第十九轮 `card/topact`，§15 第十一轮那格留下的唯一合法形态） ----------
+   那一格当年裁的是**悬浮圆钮**（第五个模糊面／第二种材质），同时写死了替代方案：并进 `.post-act` 那一族做一枚
+   **文字控件**（同一条声明、零新形状）。这一格判的是那枚控件的两件事实：
+   ① 它在**每一份**详情页产物里恰好一枚，且宿主是 `.post-tail` 那一块（§9 数的那一族的可点件就是这一块）；
+   ② 它的片段值在**同一份产物**里数得出同值的 `id`，一枚不多一枚不少——`#`（空片段＝点了停在原地）与
+      `#top`（浏览器特判＝没有靶也照样滚）都不算靶，那正是 §12 死锚点禁令的另一面。
+   ⚠️ 判的是**产物**：模板与 `site.js` 那两枚源码级断言只钉"这一枚不需要脚本、也没人为它新写一条 CSS"
+      （§17 运行时普查那四类：主题／时钟／入场／目录）。 */
+const hasTail = html => stripComments(html).includes('<div class="post-tail');
+/* `.post-tail` 那一块的边界按 `<div>`／`</div>` 配平走出来，不靠"里面没有 div"这一条今天成立的事实 */
+function tailSpanOf(html){
+  const s = stripComments(html);
+  const open = s.indexOf('<div class="post-tail');
+  if (open < 0) return null;
+  let depth = 0;
+  for (const m of s.matchAll(/<div\b|<\/div>/g)){
+    if (m.index < open) continue;
+    if (m[0] === '</div>'){
+      if (--depth === 0) return [open, m.index];
+    } else depth++;
+  }
+  return null;
+}
+const topRowsOf = html => [...stripComments(html).matchAll(
+  /<p class="post-when">top · <a class="post-act"[^>]*?href="#([^"]*)"[^>]*>([^<]*)<\/a><\/p>/g)]
+  .map(m => ({ frag: m[1], text: m[2], index: m.index }));
+/* ① 的真产物与 ③ 那批合成样本共用这一枚 ⇒ 牙只有一副 */
+function judgeTop(html, exp){
+  const red = [];
+  const body = stripComments(html);
+  const rows = topRowsOf(html);
+  if (!exp.required){
+    if (hasTail(html)) red.push(`${exp.slug} 不是详情页却带着 .post-tail 那一族 ⇒ ⑤ 判"这一族只住在详情页"这一档没了参照`);
+    if (rows.length) red.push(`${exp.slug} 不是详情页，产物里却有 ${rows.length} 枚 top 钮 —— §15:1353 那一格给的是详情页文末那一族，别的页没有靶可指`);
+    return red;
+  }
+  const span = tailSpanOf(html);
+  if (span === null) red.push(`${exp.slug} 的 .post-tail 那一块读不出边界（没有那块／嵌套没配上）⇒ 那枚 top 钮的宿主判不了`);
+  if (rows.length !== 1)
+    red.push(`${exp.slug} 的"回到这一篇的开头"应当恰好一枚，产物里数到 ${rows.length} 枚 —— 宿主是 .post-tail 那一族（§15 第十一轮那格留下的唯一合法形态：文字控件，不是悬浮圆钮）`);
+  for (const r of rows){
+    if (span && !(r.index > span[0] && r.index < span[1]))
+      red.push(`${exp.slug} 那枚 top 钮不在 .post-tail 里 —— §9 数的那一族可点件吃的就是这一块，挪出去它就不在册了`);
+    if (!r.frag){
+      red.push(`${exp.slug} 的 top 钮片段是空的（href="#" 是一枚点了停在原地的活壳，§12）`);
+      continue;
+    }
+    const hits = body.split(`id="${r.frag}"`).length - 1;
+    if (hits === 0 && r.frag === 'top')
+      red.push(`${exp.slug} 的 top 钮吃的是 #top 那枚浏览器特判、这一页却没有 id="top" ⇒ 它靠特判假装能到，不是指向本篇的一个真靶（§12）`);
+    else if (hits === 0)
+      red.push(`${exp.slug} 的 top 钮指向 #${r.frag}，而这份产物里没有 id="${r.frag}" ⇒ §12 死锚点：关掉 JS 它也照样是一条点不开的行`);
+    else if (hits > 1)
+      red.push(`${exp.slug} 里 id="${r.frag}" 出现 ${hits} 处 ⇒ 两枚靶抢同一个片段，那枚钮落在哪一篇的头没人说得准`);
+    if (!/[\u4e00-\u9fff]/.test(r.text))
+      red.push(`${exp.slug} 的 top 钮只剩拉丁那一层（${JSON.stringify(r.text)}）—— §7 那两层（拉丁标签＋中文说明）是这一族的写法，share／focus／letter 三枚同源件都这么写`);
+  }
+  return red;
+}
+cell('⑤', '回到这一篇的开头那枚文字钮：每份详情页恰好一枚、宿主是 .post-tail、片段在同一份产物里数得出同值的 id；非详情页一枚都不许有；零新 CSS、零新脚本', () => {
+  let n = 0, seen = 0, resolved = 0;
+  const per = [], frags = [];
+  /* ① 真产物：已发布稿逐篇（名单与 ① 同一枚 roster()，不另配一份） */
+  const { published } = roster();
+  assert.ok(published.length > 0, '⑤ 盘上一枚已发布稿都读不到 —— 这一格在空转');
+  n++;
+  for (const p of published){
+    const file = join(DIST, 'essays', p.id, 'index.html');
+    assert.ok(existsSync(file), `⑤ 已发布的 ${p.id} 在 dist/essays/${p.id}/index.html 上没有产物 —— dist 是半成品？重跑 npm run build`);
+    n++;
+    const html = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+    const red = judgeTop(html, { slug: p.id, required: true });
+    for (const r of red) problems.push(`⑤ ${r}`);
+    const rows = topRowsOf(html);
+    seen += rows.length;
+    frags.push(rows[0] ? rows[0].frag : '∅');
+    if (rows[0] && rows[0].frag && stripComments(html).includes(`id="${rows[0].frag}"`)) resolved++;
+    n += 4;                                            /* 宿主在场 ⇄ 恰好一枚 ⇄ 靶在同页 ⇄ 两层文案；红逐条点名进账单 */
+    per.push(`      ${p.id}：top 钮 ${rows.length} 枚（href="#${rows[0] ? rows[0].frag : '∅'}" ⇄ 同页 id ${rows[0] && rows[0].frag && stripComments(html).includes(`id="${rows[0].frag}"`) ? '在册 ✓' : '读不到 ✗'}）`);
+  }
+  /* ② 朝窄：非详情页（今天真的没有 .post-tail 的那几页）不许误红——它们压根没有这一族，也没有靶 */
+  for (const rel of ['dist/about/index.html', 'dist/index.html', 'dist/notes/index.html']){
+    const f = join(ROOT, rel);
+    if (!existsSync(f)) continue;                      /* 那一页今天不产出（换了路由形状）——由 runtime-check 那格管枚数 */
+    const red = judgeTop(readFileSync(f, 'utf8').replace(/\r\n/g, '\n'), { slug: rel, required: false });
+    for (const r of red) problems.push(`⑤ ${r}`);
+    n++;
+  }
+  /* ③ 收集器不空转的正面控制 + 绊线（合成样本，仓库与产物都不动） */
+  const HEAD = '<header class="post-head reveal" id="post-head"><h1 class="post-title">甲篇</h1></header>';
+  const TAIL = '<div class="post-tail reveal"><button class="post-act" id="post-stamp" type="button">share</button>'
+    + '<p class="post-when">top · <a class="post-act" href="#post-head">回到这一篇的开头</a></p></div>';
+  const row = (href, text = '回到这一篇的开头') => `<p class="post-when">top · <a class="post-act" href="${href}">${text}</a></p>`;
+  const EXP = { slug: 'fx', required: true };
+  assert.deepEqual(judgeTop(HEAD + TAIL, EXP), [], `⑤ fixture 的正面样本没能过自己的判据（${judgeTop(HEAD + TAIL, EXP).join('；')}）⇒ 后面那些"必红"证明的是坏样本还是它自己？`);
+  n++;
+  assert.equal(topRowsOf(HEAD + TAIL).length, 1, '⑤ needle：收集器在合成样本上都读不到那枚钮 ⇒ 真产物上那枚"恰好一枚"分不开"真有一枚"与"读不到"');
+  assert.deepEqual(judgeTop('<main class="wrap"><p>关于</p></main>', { slug: 'fx-非详情页', required: false }), [],
+    '⑤ needle：没有 .post-tail 的一页被判成红 ⇒ ② 那一档（非详情页不许误红）是假的');
+  n += 2;
+  const wires = [
+    ['片段指向这一页没有的 id（靶被改名）', HEAD + '<div class="post-tail reveal">' + row('#post-headx') + '</div>', EXP],
+    ['片段是空的（href="#" 停在原地）', HEAD + '<div class="post-tail reveal">' + row('') + '</div>', EXP],
+    ['吃 #top 那枚浏览器特判、页上没有 id="top"', HEAD + '<div class="post-tail reveal">' + row('#top') + '</div>', EXP],
+    ['整篇少了这一行（控件被摘掉）', HEAD + '<div class="post-tail reveal"><button id="post-stamp"></button></div>', EXP],
+    ['凭空多出第二枚（同一块里两行）', HEAD + TAIL + '<div class="post-tail reveal">' + row('#post-head') + '</div>', EXP],
+    ['靶被复制成两枚（片段有两处可落）', HEAD + '<h2 id="post-head">冒牌靶</h2>' + TAIL, EXP],
+    ['那枚钮被挪出 .post-tail（§9 数的那一块之外）', HEAD + row('#post-head') + '<div class="post-tail reveal"></div>', EXP],
+    ['宿主那一块本身读不出边界（没有 .post-tail）', HEAD + row('#post-head'), EXP],
+    ['中文那一层没了（只剩拉丁 top · top）', HEAD + '<div class="post-tail reveal">' + row('#post-head', 'top') + '</div>', EXP],
+    ['详情页却按"非详情页"那一档判（required 传错）', HEAD + TAIL, { slug: 'fx', required: false }],
+  ];
+  for (const [what, html, e] of wires){
+    assert.ok(judgeTop(html, e).length > 0, `⑤ 绊线没牙：${what} 却被同一枚判据读成过`);
+    n++;
+  }
+  /* ④ 源码级同源：模板里那两枚字面（靶与钮）必须在，脚本与样式表里不许出现为它新写的东西 */
+  const tpl = codeOnly(read('src/pages/essays/[slug].astro'));
+  assert.ok(/const TOP_ID = 'post-head';/.test(tpl), '⑤ 模板里 `const TOP_ID = \'post-head\'` 那枚字面没了 —— 靶与 href 的唯一真值搬走，那枚钮与本篇的头就会开始各说一套');
+  assert.ok(/<header class="post-head reveal" id=\{TOP_ID\}>/.test(tpl), '⑤ 模板里那枚 `<header class="post-head">` 不再吃 TOP_ID 当靶 —— 产物里那枚钮指的就是它，两边一断就是死锚点');
+  assert.ok(/<a class="post-act" href=\{`#\$\{TOP_ID\}`\}>回到这一篇的开头<\/a>/.test(tpl), '⑤ 模板里那枚 top 钮不再吃 `.post-act` 那同一条声明、或片段值不再由 TOP_ID 拼 —— §15:1353 那句"同一条声明，零新形状"就是这一行');
+  assert.ok(!/onclick/.test(tpl), '⑤ 模板里出现了 onclick —— 这一枚是无 JS 的真链接，加上脚本就多了第五类运行时（§17）');
+  const sj = codeOnly(read('src/scripts/site.js'));
+  assert.ok(!/post-head/.test(sj), '⑤ site.js 里出现了 post-head —— 那枚钮本来不需要脚本；§17 运行时普查的四类（主题／时钟／入场／目录）就此多了一处');
+  n += 5;
+  /* 零新 CSS 是这一族的硬口径（与 ④ 同一句），顺带钉住"没为它加 scroll-behavior"（§8.8 白名单外，§17 普查外） */
+  for (const css of ['src/styles/essay.css', 'src/styles/mistwood.css', 'src/styles/base.css', 'src/styles/home.css', 'src/styles/notes.css']){
+    const t = codeOnly(read(css));
+    assert.ok(!/\.post-top\b|回到这一篇/.test(t),
+      `⑤ ${css} 里冒出了为"回到这一篇的开头"新增的选择器或文案 —— 这一枚的落点是 .post-when ＋ .post-act（在册那两条声明），零新 CSS 是这一族的硬口径（新一条带上下 px 的规则就得进 gap-check 注册表）`);
+    if (css === 'src/styles/base.css') assert.equal((t.match(/scroll-behavior/g) || []).length, 2,
+      '⑤ base.css 里 scroll-behavior 不再是两枚（在册那两枚：全站 smooth ＋ reduced-motion 那档 auto）—— 本卡明写不加平滑滚动，落地行为由那条既有的说');
+    else assert.ok(!/scroll-behavior/.test(t), `⑤ ${css} 里冒出 scroll-behavior —— 为这一枚钮新开平滑滚动就是把 §17 那张普查表改一行`);
+    n += 2;
+  }
+  assert.ok(seen > 0, `⑤ 扫了 ${published.length} 份详情页产物，一枚 top 钮都没匹配到（seen=0）⇒ 判据空转，"扫了但没匹配到"不是通过`);
+  n++;
+  notes.push(`⑤ 逐篇（已发布 ${published.length} 枚）：\n${per.join('\n')}`);
+  notes.push(`⑤ 今天在册：top 钮共 ${seen} 枚 ⇄ 详情页 ${published.length} 份，片段值 ${frags.map(f => '#' + f).join('／')}，`
+    + `在同页找得出同值 id 的 ${resolved}/${published.length} 份；非详情页（about／首页／notes）0 枚且不当成红——那一族只住在详情页文末，别的页没有本篇的头可指`);
+  return n;
+});
+
+
 /* ---------- 打印 ---------- */
 for (const nt of notes) console.log(`  ${nt}`);
 if (problems.length){
@@ -511,6 +672,7 @@ if (problems.length){
   for (const p of problems) console.log(`  · ${p}`);
   process.exit(1);
 }
-console.log(`\n✓ 详情页三格（F4 相关／F5 系列内导航／F6 写信回应）：四格共 ${asserted} 条断言全过`
+console.log(`\n✓ 详情页那一排四格（F4 相关／F5 系列内导航／F6 写信回应／回到这一篇的开头）：五格共 ${asserted} 条断言全过`
   + ` —— related 由本工具独立复算对账、in series 与 /series/<slug>/ 的行序双向咬合、letter 与 src/data/site.js 同源且百分号编码；`
+  + `top 那枚逐份恰好一枚、片段在同一份产物里数得出同值的 id；`
   + `零载体那一档当众报"在册 0 枚"，它由 ① 的六枚 needle 与 ② ③ 的 fixture 兜住（不空转）`);
