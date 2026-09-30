@@ -17,6 +17,9 @@ import { lastRevisionDate, whenLine } from '../../lib/revised.js';
    同样管详情页）：cjkCount / latinWords 是 readMinutes 与 siteFacts.words 已经在吃的同一对函数，
    所以每一篇报的字数与关于页那个总数逐篇相加一定对得上——第三把尺子从一开始就不许存在。 */
 import { cjkCount, latinWords } from '../../lib/stats.js';
+/* 写信回应（F6）：邮箱地址向 `src/data/site.js` 要，不在这一页抄第二份（§13a 那句"抄的那份改了
+   没人知道"管的就是这一族；关于页那一枚今天也改成吃同一份）。 */
+import { EMAIL } from '../../data/site.js';
 
 export async function getStaticPaths(){
   /* 这一格里**两枚读函数各管一件事**（第十五轮 `card/unlisted`，口径写在 `src/lib/posts.js` 头上那段），
@@ -134,6 +137,21 @@ const relatedSegs = (related ?? []).map(r => ({ href: `/essays/${r.id}/`, text: 
 const seriesNavSegs = [];
 if (seriesPrev) seriesNavSegs.push({ href: `/essays/${seriesPrev.id}/`, text: `← 上一篇 ${seriesPrev.data.title}` });
 if (seriesNext) seriesNavSegs.push({ href: `/essays/${seriesNext.id}/`, text: `${seriesNext.data.title} 下一篇 →` });
+/* 写信回应（F6，`docs/美化建议.md` §11.3 预签的"第二批 P1"第三枚）：文末一枚 mailto，
+   `subject` 预填这一篇的篇名，**正文留空**——回信写什么归读者，我们不替他起头（塞一句模板话进去
+   就是 §12 那种假语义：那几行字看起来像作者说的，其实谁都没说）。
+   ⚠️ 这是"评论"在纯静态下的正确形态，不是它的替身演员：没有评论区、没有 Webmention、没有统计、
+      没有后端（§12 那两条"评论区 / Webmention 不做"与"编一个访问量"在这一格都被绕开了——
+      回应走到信里，站上不留任何一枚我们拿不到的数）。
+   ⚠️ 地址只有一个出处：`src/data/site.js` 的 `EMAIL`（关于页那一枚吃的是同一枚；两页各抄一份邮箱
+      就是 §13a 点名的"抄的那份改了没人知道"）。那一枚空着 ⇒ 这一整行不出现（§14"没填 ⇒ 不出现"，
+      `href=""` 是一枚点了停在原地的活壳）。
+   ⚠️ subject 走 `encodeURIComponent`：今天三篇的篇名就带着中文与 ` · `，随时可能出现引号——
+      不编码的话 `#` 会被当成片段起点、`&` 会开出第二枚参数、`%` 会留下半截转义，
+      那封邮件到达时主题已经不是这一篇的名字（RFC 6068 里 mailto 的参数本来就必须百分号编码）。
+   ⚠️ 形状：`.post-act` 那一族的**文字链接**，与许可行／系列行／相关行同一条声明——不是胶囊、
+      不是第四种按钮形状（§9 那句"没有一枚是胶囊形"照旧成立，那一格的枚数账本轮跟着改）。 */
+const letterHref = EMAIL ? `${EMAIL}?subject=${encodeURIComponent(post.data.title)}` : '';
 /* 每篇字数：构建期从**渲染前的稿子**（post.body，那份 md 原文）数，数得出才写（§12 假数字那一格）。
    ⚠️ 入参与 siteFacts 数 `p.body` 同一份，不是渲染后的 HTML：标签里的字母会被数成字。
    ⚠️ 没有"约"、没有向上取整、没有估——它是一枚加法的结果，读者拿稿子自己数应当一模一样。 */
@@ -317,6 +335,12 @@ const crumb = crumbTrail(HERE);
            枚数不印在行首：那一串 `N 篇` 与 `/series/` 页头那枚是同一族"数得出的真值"，可这一行的
            真值是**这几枚标题本身**，多印一个数就多一处"这行说了几篇"与"这行画了几篇"打架的地方。 */
         <p class="post-when">related · {relatedSegs.map((s, i) => <>{`${i > 0 ? ' · ' : ''}`}<a class="post-act" href={s.href}>{s.text}</a></>)}</p>
+      )}
+      {letterHref && (
+        /* 写信回应（F6）：这一行是 `.post-tail` 的末位——"读完之后能做的最后一件事"。
+           href 的三枚零件（地址、?subject=、编码过的篇名）全部在上面的 `letterHref` 那一行算完，
+           这里不拼第二遍；地址那一个出处在 `src/data/site.js`。 */
+        <p class="post-when">letter · <a class="post-act" href={letterHref}>写信回应这一篇</a></p>
       )}
     </div>
 
