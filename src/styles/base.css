@@ -98,8 +98,11 @@ html[data-theme="dark"][data-moon="full"]{ --shadow:0 16px 30px -10px rgba(14,19
    复验：node tools/font-selfhost.mjs ＋ --tables 用 fontTools 逐张读回 numGlyphs/unitsPerEm）。
    为什么这两族解绑而 CJK 两族不解：全量 CJK 实测 5.75MB＋4.31MB（101 枚/族），子集化到"当前稿件用过的字"
    等于给下一篇稿子挖坑（发了就缺字，§12 假语义同族）；拉丁两族全量共 476,088B，切得起也不留坑。
-   后果登记：FONT_HOST 换镜像只影响 CJK 两族的远程链，这两族走站内路径与镜像无关；
-   `q` 片段仍旧留在 src/data/site.js 的清单里——它现在是"这两族的表怎么生成"的出处，拼 URL 那一头不再吃它们。
+   ⚠️ 上面那两句是 2026-09-29 的账，**后半句已被 2026-09-30 `card/cjk-subset` 换掉**：CJK 两族现在以
+   "产物级码点并集"的子集自托管（下面那两枚 face），当年那句"发了就缺字"的坑由
+   tools/font-subset.mjs --check 的产物覆盖判据堵死（新稿缺字＝gate 红，先 --make 重切再发）。
+   后果登记：FONT_HOST 换镜像今天只剩 tools/og-card.html 那枚手写 css2 URL 还吃它（不进 dist/）；
+   `q` 片段仍旧留在 src/data/site.js 的清单里——它是各族 face 表"当初按什么请求生成"的出处，拼 URL 那一头已整行拆除（Layout.astro 的 self 旗判据补位）。
    ⚠️ 两族亮暗同栈：这里只有 face 表，没有任何按 data-theme 分支的字面量——暗色用的就是同一批。 */
 @font-face{font-family:'Fraunces';font-style:italic;font-weight:300;font-display:swap;src:url("/fonts/fraunces/6NU58FyLNQOQZAnv9ZwNjucMHVn85Ni7emAe9lKqZTnbB-gzTK0K1ChjdfeQ_5Y.woff2") format("woff2");unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
 
@@ -160,6 +163,21 @@ html[data-theme="dark"][data-moon="full"]{ --shadow:0 16px 30px -10px rgba(14,19
 @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6qfjptAgt5VM-kVkqdyU8n3twJwl5FgtIU.woff2") format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
 
 @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url("/fonts/ibm-plex-mono/-F6qfjptAgt5VM-kVkqdyU8n3twJwlBFgg.woff2") format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+
+/* CJK 两族自托管**子集**（2026-09-30 `card/cjk-subset`，规范 §3.3 末与 §12「随滚动微调字重」那一格）：
+   src ＝ tools/font-subset.mjs --make 从本机 Noto{Serif,Sans}SC-VF.ttf（SIL OFL 1.1，Google Fonts Noto 项目；
+   源脸路径＋SHA256 与逐张清单在 tools/font-subset.manifest.json）切出的 woff2，码点并集**取自 dist 产物可见文本**
+   （源文件口径实测漏 259 枚屏上真会画的汉字），wght 轴保留、两次生成逐字节可复现（sha 450f6026…/7d58c339…）。
+   这一节买的东西只有一件：**区间描述符 `font-weight:200 900 / 100 900`**。css2 那边 303 枚 face 用单值描述符
+   400/600/700 把同一批可变 slice 文件钉死（文件里有轴、描述符 clamp 掉），`font-variation-settings:'wght' 550`
+   在那种 face 上读平；区间一开，同一枚量具下四档 300/400/550/700 读数 4/4 互异（读数表见 §12 那一格）。
+   不带 unicode-range：子集吃的是**全并集**（拉丁/数字/标点都在内）——只切方块区会把正文里走 Noto Serif SC 的
+   数字（essay.css「全站唯一数字不走等宽」那一层）掉进回退栈，§3.2 那笔等宽账连坐。
+   复验：--verify（清单⇄盘上 sha256/字节/帧头，源码级，在 check 链里）＋ --check（dist 覆盖⇄cmap＋fvar 轴在场，
+   产物级，在 gate 里排在 build 之后）。拿不到这两枚文件时屏上画什么：栈里身位之后的 `-fallback` 影子家族
+   （见下节）＋"Songti SC"/雅黑，读数登记在规范那一格末（降级量过一次，不是"浏览器会自己回退"）。 */
+@font-face{font-family:'Noto Serif SC';font-style:normal;font-weight:200 900;font-display:swap;src:url("/fonts/noto-serif-sc-subset/noto-serif-sc-wght-subset.woff2") format("woff2");}
+@font-face{font-family:'Noto Sans SC';font-style:normal;font-weight:100 900;font-display:swap;src:url("/fonts/noto-sans-sc-subset/noto-sans-sc-wght-subset.woff2") format("woff2");}
 
 /* ⚠️ 这四枚 <族名>-fallback 影子家族是**度量回退**，不是第二套字体：src 全走 local()，远程 css2 取不到的
    访客会落在"本机 serif/monospace 本来就会落到的那枚字"上，只是行盒与字宽被 override 拉回远程族的度量。
@@ -251,12 +269,7 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 @keyframes nav-in{ to{ opacity:1; transform:translate(-50%,0); } }
 .theme-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
-  /* `card/hairline`（2026-09-30）：发丝线从 `border:1px solid` 换成 inset `box-shadow`——显式 30×30
-     在 border-box 下外框两种写法逐位相同（实测 rect 30x30 不变、`.nav-links` 270.48/367.97 不动），
-     差别只在内容盒 +2px（钮里那枚 15px svg 仍居中，圆心不漂）。
-     ⚠️ `border:0` 不是可有可无：<button> 的 UA 默认框是 2px outset，撤掉作者 border 它会复活——
-     实测漏写这一句时 clientWidth 从 30 掉回 **26**（30−2×2），那圈灰疙瘩就是它。 */
-  border:0; box-shadow:inset 0 0 0 1px var(--glass-border); background:transparent; cursor:pointer;
+  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
   color:var(--ink-2);
   transition:color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
 }
@@ -296,8 +309,7 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
    按下那一下 `.98` 走 §8.1 回弹档（它唯一的合法用途就是"按下"）。
    ⚠️ 字号与字距**不写**：`font:inherit` 让它吃宿主那一行（`.sec-label` 13px/.14em、`.hero-log` 13px/.12em），
    于是这一枚字与它所在的那一行是同一副度量——这正是"同族语言、不是新材质"的意思。
-   ⚠️ 为什么它不是第三枚圆钮：胶囊里那两枚（主题 / 滑杆）都是 30px 圆 + 1px 发丝影（`card/hairline` 起线画在
-   `box-shadow` 上，盒宽不占），第三枚同形
+   ⚠️ 为什么它不是第三枚圆钮：胶囊里那两枚（主题 / 滑杆）都是 30px 圆 + 1px 玻璃描边，第三枚同形
    就是把 §11 那笔账再撞一遍；而站内"有面板可开的那一枚字"早就有先例，不需要新形状。 */
 .search-toggle{
   background:none; border:0; padding:0; cursor:pointer; font:inherit; color:var(--moss-ink);
