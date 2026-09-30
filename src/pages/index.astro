@@ -53,8 +53,21 @@ const walk = notes[0];
          自我闭合，而入口那一块里装着面板那枚 `<div class="settings">`——挂着 `<p>` 的时候面板被甩到
          `.search` 外面，"点外面只收不抢焦点"于是把**点结果行**当成点了外面（选中一篇的瞬间面板先收、
          焦点没还），几何读数也一路落到 `top:100%+14` 即屏幕之外。版面逐位不变：
-         `*{margin:0;padding:0}`（base.css:210）早就清了 `<p>` 的 UA 外边距，这一行的所有样式都挂在 class 上。 -->
-    <div class="hero-log"><b>{pad(counts.essays)}</b> essays<span class="sep">·</span><b>{pad(counts.things)}</b> things<span class="sep">·</span><b>{pad(counts.notes)}</b> notes<SearchEntry /></div>
+         `*{margin:0;padding:0}`（base.css:210）早就清了 `<p>` 的 UA 外边距，这一行的所有样式都挂在 class 上。
+         ⚠️ **这一行末尾又多了一枚字：订阅入口**（第六轮 `card/navcrumb`，`docs/美化建议.md` §11.2 F1）。
+         feed 本来就躺在 `<head>`（`Layout.astro:100` 那枚机器读的 `<link rel=alternate>`）与 404 的地址清单里，
+         缺的只是"人看得见的那一枚"——一个有 RSS 却在正常浏览路径里订不了的博客，功能上是断的。四条落法：
+         ① 形状跟着**同一行里那枚** `search — 搜全文` 走（拉丁标签 + 破折号 + 中文，§7 那一层的既有形状），
+         锚点吃 `.tax-back` 那份声明——"住在标签行里的那一枚链接"正是它管的一族（§17 复用类、不复制声明，
+         零新 CSS、零新垂直槽位，`gap-check` 那 142 枚一个不动）；
+         ② 落点在这一行**不在导航**：§11 那笔"七项胶囊／296.48／上限 300"的账是搜索撞过的，第八项等于再撞一遍；
+         ③ **只给 RSS 一枚**，Atom 不并列：两枚 feed 读的是同一个 `visiblePosts()`（`atom.xml.js:4` 那格钉着），
+         并排两枚字给读者的不是两份内容，是同一份清单的两副地址——多那一枚只会让人多猜一次点哪个；
+         ④ 它是真 `<a href="/rss.xml">`，**不靠脚本显形**（与 `SearchEntry` 那块带 `hidden` 的相反）：
+         无 JS 的访客照样订得到，§12 那句"有字没功能"在这一格反过来站。
+         代价照实登记：订阅入口今天只有首页这一处，子页扉页那一行（`.sec-label`）是 `white-space:nowrap`
+         的门牌，加一枚字就得逐档量它顶不顶穿内容盒——那一笔归 §11 那把尺，本轮不为它重开。 -->
+    <div class="hero-log"><b>{pad(counts.essays)}</b> essays<span class="sep">·</span><b>{pad(counts.things)}</b> things<span class="sep">·</span><b>{pad(counts.notes)}</b> notes<span class="sep">·</span><a class="tax-back" href="/rss.xml" title="订阅源（RSS 2.0）：站上架得出的文章都在，草稿一枚不进">rss — 订阅</a><SearchEntry /></div>
     <!-- 此刻的话：入夜＝守夜 / 清晨＝初 / 傍晚＝暮，由 site.js 决定说不说（读不到 session 就永远不说） -->
     <p class="hero-watch" id="hero-watch" hidden></p>
   </main>

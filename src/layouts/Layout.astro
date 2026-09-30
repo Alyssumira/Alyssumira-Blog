@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import Seo from '../components/Seo.astro';
 import { ROOT } from '../lib/stats.js';
+import { NAV } from '../lib/nav.js';
 import { fonts, FONT_HOST, FONT_FILE_HOST } from '../data/site.js';
 
 /* revised / date 只有详情页（src/pages/essays/[slug].astro 那个 <Layout> 标签）会传：其余五页没有 ⇒
@@ -46,13 +47,11 @@ const ogImage = new URL(ogCard || cardFor(Astro.url.pathname) || SITE_CARD, Astr
 /* 站名从字面量提成变量：og:site_name 与 JSON-LD 的 WebSite.name 吃同一枚值（§13a）。
    ⚠️ 只折了这两处消费——下面那条 rss 的 title、各页页题尾巴上的 ' · mistwood' 还各自写着，散在本卡不许碰的文件里 */
 const SITE_NAME = 'mistwood';
-const links = [
-  ['/', '首页', 'home'],
-  ['/essays/', '文章', 'essays'],
-  ['/things/', '小东西', 'things'],
-  ['/about/', '关于', 'about'],
-  ['/notes/', 'notes', 'notes'],
-];
+/* 导航表本体在 `src/lib/nav.js`（第六轮 `card/navcrumb` 搬出去的）：这一枚壳画它，`Seo.astro` 的
+   JSON-LD 面包屑与详情页那行可见面包屑吃同一份。这里不再写字面量——写第二份就是给"哪一栏叫什么"
+   立两处真值（§13a 那格的原话是"抄的那份改了没人知道"，本轮只是把同一个理由管到屏幕上那条链）。
+   ⚠️ 项数一枚没动：胶囊那一排仍旧是 5 链接 + 滑杆 + 主题 = 七项，§11 那笔 296.48／上限 300 的实测账
+   由 `tools/search-check.mjs` 在 gate 里数着，本轮不给它添第八项。 */
 /* css2 只拼没自托管旗的族（见 src/data/site.js 的 fonts 清单与 base.css 的自托管节）；
    哪一天四族全解绑了，这一枚就该整行拆掉而不是发一个空查询——当场抛，不静默挂一枚坏 link */
 const remoteFonts = fonts.filter(f => !f.self);
@@ -93,7 +92,7 @@ const FONTS = `${FONT_HOST}/css2?${remoteFonts.map(f => 'family=' + f.q).join('&
 <meta name="twitter:image" content={ogImage.href}>
 <!-- 结构化数据（§13a）：一份 JSON-LD，站点身份 + 详情页那一篇 + 面包屑。它是构建期落的静态 HTML，
      没有内联脚本、不碰首帧那五枚显示属性的判定（下面那段是全站唯一的内联写者，理由钉在 §16 第四类门禁） -->
-<Seo siteName={SITE_NAME} canonical={canonical} ogImage={ogImage} title={title} desc={desc} type={type} here={here} links={links} revised={revised} date={date} />
+<Seo siteName={SITE_NAME} canonical={canonical} ogImage={ogImage} title={title} desc={desc} type={type} here={here} revised={revised} date={date} />
 <link rel="preconnect" href={FONT_HOST}>
 <link rel="preconnect" href={FONT_FILE_HOST} crossorigin>
 <link href={FONTS} rel="stylesheet">
@@ -133,7 +132,7 @@ const FONTS = `${FONT_HOST}/css2?${remoteFonts.map(f => 'family=' + f.q).join('&
     <span class="weather">· <span id="weather-word">light</span></span>
   </div>
   <nav class="nav-links">
-    {links.map(([href, label, key]) => <a href={href} class:list={[{ here: key === here }]}>{label}</a>)}
+    {NAV.map(([href, label, key]) => <a href={href} class:list={[{ here: key === here }]}>{label}</a>)}
     <div class="display">
       <button class="settings-toggle" id="settings-toggle" aria-expanded="false" aria-controls="display-settings" aria-label="显示设置" title="显示设置">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">

@@ -5,6 +5,7 @@ import { renderMd, fmtDate, strictHref } from '../../lib/markdown.js';
 import { visiblePosts, publishedPosts } from '../../lib/posts.js';
 import { categoryOf, tagsOf, taxSlug, isUnlisted } from '../../lib/taxonomy.js';
 import { seriesOf } from '../../lib/series.js';
+import { crumbTrail } from '../../lib/nav.js';
 import { lastRevisionDate, whenLine } from '../../lib/revised.js';
 /* 字数向 stats.js 要，不在这一页重新数一遍（文件头那句"列表页与关于页的总计必须是同一把尺子"
    同样管详情页）：cjkCount / latinWords 是 readMinutes 与 siteFacts.words 已经在吃的同一对函数，
@@ -151,8 +152,25 @@ if (byline){
   if (sourceHref) licenseSegs.push({ pre: '原文 ', text: sourceHref, url: sourceHref });
 }
 if (licName) licenseSegs.push({ pre: '许可 ', text: licName, url: licHref });
+/* ---- 可见面包屑（第六轮 `card/navcrumb`，`docs/美化建议.md` §11.2 F3）----
+   与 JSON-LD 那条链吃**同一个函数**（`src/lib/nav.js` 的 `crumbTrail()`）：屏幕上说的和机器读的
+   不会一枚地址各说各话。这里只比机器侧少两样——末节不印、字面走拉丁那一层。
+   ⚠️ **字面取 `key`（拉丁小写）不取 `name`（中文）**：§7"两层各管一种语言"，而 `.post-meta` 是
+      IBM Plex Mono 的英文标签层——同一行塞中文就是 §7 与 §3 各点名过一次的那个形状（`hour` 那一行
+      当初正是为躲它另起了 `.post-when`，14px 宋体）。拉丁那一半**不是新起的名**：它就是导航表第三列
+      （`here` 的取值域，`home`／`essays`），而 §19 的纸上一页脚今天已经在写同层同词的
+      `mistwood · essays · 2026.09.20`——屏幕上这一行只是把纸上那串里路径的那一半变成能点的。
+   ⚠️ **末节（这一篇自己的名字）不印**：它就是下面那枚 42px 的 `<h1>`，同一屏里把篇名再抄一遍小字
+      是重复，不是"我在哪"。机器侧照旧带末节（§13a 那一格），因为抓取器读的是那条链的完整形状——
+      两边的差别来自层，不是两处各算各的。
+   ⚠️ **原先那枚原地标签 `essay` 撤了**：它说的"这一篇属于文章那一栏"现在由能点的 `essays` 说，
+      同一行里同一件事只许说一遍（§4 每区块一件事）。日期与字数两枚一个字没动。
+   ⚠️ `here` 由这一页的 `HERE` 派生（与下面 `<Layout here={HERE}>` 同一枚常量）：那一枚 prop 管导航
+      点亮哪一项，这一枚管面包屑中段取哪一节，说的是同一件事——写两遍字面量就是给同一件事两处真值。 */
+const HERE = 'essays';
+const crumb = crumbTrail(HERE);
 ---
-<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here="essays" type="article" date={post.data.date} revised={revised} noindex={unlisted}>
+<Layout title={`${post.data.title} · mistwood`} desc={sub || post.data.title} here={HERE} type="article" date={post.data.date} revised={revised} noindex={unlisted}>
   <!-- JSON-LD 要的这两枚就取自上面已经算好的 prop，不另问一次 git、也不从 slug 反推路径（:10-12 那条禁令同样管这里）：
        revised 是 git 里最后一次改动型提交的日历日（问不到＝undefined ⇒ Seo 那一键整块不写），date 是 front matter 那天。
        ⚠️ 这里只是把「已经在这儿的值」交给 Layout，页面上那行「改于」的判据与灰度一个字没动（§7 / §15）。 -->
@@ -165,7 +183,12 @@ if (licName) licenseSegs.push({ pre: '许可 ', text: licName, url: licHref });
 
   <main class="wrap">
     <header class="post-head reveal">
-      <p class="post-meta">{fmtDate(post.data.date)} · essay · {words} 字</p>
+      <!-- 一行四读：路径（home · essays，能点）· 日期 · 字数。分隔点用字面 ` · `，
+           与许可那一行／`.post-when` 同一个写法，不为它新写一条 CSS（`.tax-back` 那份声明住在
+           mistwood.css，"标签行里的那一枚链接"就是它管的这一族——复用类，不复制声明，§17）。
+           ⚠️ `.post-meta` 没有 `white-space:nowrap`（不像 `.sec-label` 那枚门牌）⇒ 窄屏它自然折行，
+           这一行多了两枚词不会顶穿内容盒，也就不会重演 §11 那笔"裁掉的那半截正好是入口本身"。 -->
+      <p class="post-meta">{crumb.map((c, i) => <>{`${i > 0 ? ' · ' : ''}`}<a class="tax-back" href={c.href}>{c.key}</a></>)} · {fmtDate(post.data.date)} · {words} 字</p>
       <h1 class="post-title">{post.data.title}</h1>
       {whenText && <p class="post-when">{whenText}</p>}
       {sub && <p class="post-sub">{sub}</p>}

@@ -13,8 +13,9 @@
       拿不到的东西不进 JSON-LD（§12"编一个访问量"那条管到这里）。 */
 import { AUTHOR } from '../data/site.js';
 import { publishISO, revisedOn } from '../lib/revised.js';
+import { crumbTrail } from '../lib/nav.js';
 
-const { siteName, canonical, ogImage, title, desc, type = 'website', here = '', links = [], revised, date } = Astro.props;
+const { siteName, canonical, ogImage, title, desc, type = 'website', here = '', revised, date } = Astro.props;
 
 /* 唯一的取址口径：相对路径 + Astro.site。canonical / ogImage 是 Layout 算好的那两枚 URL 对象，传进来用，不在这儿重算 */
 const at = p => new URL(p, Astro.site).href;
@@ -61,13 +62,10 @@ const posting = isArticle ? {
   dateModified: revisedOn(date, revised) || undefined,
 } : null;
 
-/* 面包屑：中段直接从 Layout 那张导航表里取（同一份真值，不在这儿抄第二份名字），末节是本页自己。
-   只有首页一级（404 那种"这里没有页面"的地址）⇒ 一条两级的链都拼不出来，整块不写 */
-const trail = [];
-const home = links.find(l => l[2] === 'home');
-if (home) trail.push({ name: home[1], item: at(home[0]) });
-const up = links.find(l => l[2] === here && l[2] !== 'home');
-if (up) trail.push({ name: up[1], item: at(up[0]) });
+/* 面包屑：中段从 `src/lib/nav.js` 那一枚导航表里取（同一份真值，不在这儿抄第二份名字，也不在组件里
+   重拼一遍——第六轮 `card/navcrumb` 把表搬出 `Layout` 之后，屏幕上那行可见面包屑吃的是同一个函数），
+   末节是本页自己。只有首页一级（404 那种"这里没有页面"的地址）⇒ 一条两级的链都拼不出来，整块不写 */
+const trail = crumbTrail(here).map(c => ({ name: c.name, item: at(c.href) }));
 if (isArticle) trail.push({ name: title, item: canonical.href });
 const crumb = trail.length > 1 ? {
   '@type': 'BreadcrumbList',
