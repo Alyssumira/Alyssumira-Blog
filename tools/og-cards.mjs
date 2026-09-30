@@ -6,8 +6,6 @@
          node tools/og-cards.mjs --probe=<文本>   只跑"装不装得下"那一趟，不出图不写盘——改标题之前先问一句
          node tools/og-cards.mjs --twice         每张连出两遍并比 md5（同一台机器同一份输入应当逐字节相同；
                                                  这是"字体真落地了、画面不是碰运气"那一半的复验）
-   落位之后本脚本还会往 tools/og-cards.manifest.json 落一笔账（每枚卡：出图那一次的 title ＋ 落位后回读的 sha256/bytes）；
-   读者是 tools/og-check.mjs（npm run gate 的末步，排在 build 之后）。清单没有第二支笔会写它——手改它等于伪造出图记录。
    两个方向都验过（§16 那一族"判据不许空转"）：
      朝宽 --probe=<九十个汉字> ⇒ exit 1、一张图都不写；
      朝窄 现有三篇的标题（5 / 11 / 6 字）⇒ exit 0、不误报。
@@ -22,20 +20,15 @@
    ③ **不合格就不出图**：标题超出字号梯度（模板文件头那四档）时，这一篇**报错**，不裁字、不缩到看不见、
       也不让字压在树线上；而且**整轮什么都不写盘**（两阶段：全部出完、全部复验过，才一次落位），
       免得半新半旧的卡混在一起被人转发。宁缺毋滥在这一格是安全的，因为 `Layout.astro` 那侧
-      "盘上没有就退回站点级 /og.png"，缺一枚卡不会做出一个 404 的 og:image。
-   ④ **落位之后要落一笔账**：全部卡复验通过、写进 `public/og/` 之后，本脚本再往 `tools/og-cards.manifest.json`
-      写"这一张是按哪一句题面画的 ＋ 落位后回读的那枚字节的 sha256"，读者是 `tools/og-check.mjs`
-      （`npm run gate` 的末步，排在 build 之后）。为什么这一笔必须由出图的这一侧落、而不是由检查的那一侧推：
-      改过 `title` 却不重跑本脚本时，盘上那枚 PNG **一个字节都没变、文件照样在**——"存在性"读不出任何事，
-      判据会绿着放行一张写着旧标题的卡（`card/ogcheck` 2026-09-30 实测了这一档假绿，读数在 §13a）。
-      清单跟着卡一起走：卡没重出，题面就没落笔，那一格当场红。 */
+      "盘上没有就退回站点级 /og.png"，缺一枚卡不会做出一个 404 的 og:image。 */
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, mkdtempSync, statSync, rmSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
+import { resolveBrowser, browserCandidates, spawnBrowser } from './browser-bin.mjs';
 import { sortPosts, isDraft } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -45,13 +38,6 @@ const POSTS_DIR = join(ROOT, 'src', 'content', 'posts');
 const PUBLIC_OG = join(ROOT, 'public', 'og');
 const SITE_PNG = join(ROOT, 'public', 'og.png');
 const PS1 = join(ROOT, 'tools', 'og-verify.ps1');
-/* 题面⇄字节的清单：写者只有这一支笔（出完、复验过、落位之后才写）。读者是 tools/og-check.mjs。
-   为什么必须有这一份而不是"文件在不在"：改过 title 却不重跑 npm run og，盘上那枚 PNG 一个字节没变、文件照样在，
-   存在性判据当场绿——转发出去的是一张写着旧标题的卡。mtime 那一档更不能用：git 不存 mtime，
-   干净检出上卡与稿件的先后由 checkout 顺序决定（实测：与 HEAD 逐字节相同时稿件 mtime 仍比卡新 2ms ⇒ 恒假红）。 */
-const MANIFEST = join(ROOT, 'tools', 'og-cards.manifest.json');
-const MANIFEST_NOTE = '逐篇社交卡的题面与字节清单。**写者只有 `tools/og-cards.mjs`**（全部卡出完、Node 帧头与 GDI+ 两道复验通过、落位之后才写这一份）；读者是 `tools/og-check.mjs`（`npm run gate` 的末步，排在 build 之后）。手工改这份文件＝伪造出图记录：把它改成「当前题面 ＋ 旧卡的 sha256」就能骗过判据，所以清单不许手改，改卡只许走 `npm run og`。口径与未验到的那两笔登记在 `docs/设计规范.md` §13a 与 §16。';
-const MANIFEST_GENERATED = '这一份由 npm run og（tools/og-cards.mjs）在卡落位之后写：题面是出图那一次的 front matter title，sha256/bytes 是落位后回读那枚文件算的。逐条 stamped 记的是这一条是谁落的笔——og-cards＝出图链当场盖的章，bootstrap＝就地起的账（题面⇄像素那一道没当众跑过出图链，见 §13a 本轮登记）；下一轮全量 npm run og 会把它们换掉。';
 const W = 1200, H = 630;                       /* 卡面尺寸：与模板、与 og:image:width/height 同一枚 */
 const TOKENS = ['--bg-top', '--bg-base', '--ink', '--ink-2', '--moss', '--moss-deep'];
 const RUN_TIMEOUT = 180_000;                   /* 一次浏览器调用最多等多久（含字体那几个请求） */
@@ -149,14 +135,14 @@ function replaceOnce(src, re, to, what){
 }
 
 /* ---------- 4. 起浏览器（异步！runtime-check 文件头钉过的坑：spawnSync 冻住事件循环）---------- */
-const EDGE_CANDIDATES = [
-  opt('edge'),
-  process.env['PROGRAMFILES'] && join(process.env['PROGRAMFILES'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-  process.env['PROGRAMFILES(X86)'] && join(process.env['PROGRAMFILES(X86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-  process.env['LOCALAPPDATA'] && join(process.env['LOCALAPPDATA'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-].filter(Boolean);
-const EDGE = EDGE_CANDIDATES.find(p => existsSync(p));
-if (!EDGE) die(`找不到浏览器可执行文件（试过：${EDGE_CANDIDATES.join(' / ')}）`, '  换浏览器传 --edge=<路径>；这一条不降级、不跳过');
+/* 用哪一枚浏览器不在这里判——站内唯一一处是 `tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）：
+   判据是**探得到靶**（交回的 DOM 里带着只有 JS 跑过才存在的标记），不是"msedge 的文件在不在盘上"。 */
+const browserSkips = [];
+const BROWSER = await resolveBrowser({ flag: opt('browser') || opt('edge'), label: 'og-cards', log: s => browserSkips.push(s.trim()) });
+const EDGE = BROWSER && BROWSER.bin;
+const EDGE_CANDIDATES = browserCandidates(opt('browser') || opt('edge')).map(c => c.bin);
+if (!EDGE) die(`没有一枚浏览器探得到靶（试过：${EDGE_CANDIDATES.join(' / ')}）\n${browserSkips.map(s => '  ' + s).join('\n')}`,
+  '  换浏览器传 --browser=<路径>（旧名 --edge= 也认）或设环境变量 MISTWOOD_BROWSER；这一条不降级、不跳过');
 
 let profiles = [];
 function newProfile(tag){
@@ -176,7 +162,7 @@ const FLAGS = (profile, budget) => [
 function runEdge(args){
   return new Promise(res => {
     let child;
-    try { child = spawn(EDGE, args, { cwd: dirname(EDGE), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    try { child = spawnBrowser(EDGE, args, { cwd: dirname(EDGE), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
     catch (e){ return res({ fail: `spawn ${EDGE} 抛了：${e.message}` }); }
     let out = '', err = '', done = false;
     child.stdout.on('data', d => { out = (out + d.toString('utf8')).slice(-400_000); });
@@ -295,7 +281,6 @@ function gdiRun(files){
 
 /* ---------- 9. 一张卡的两阶段：先全出全验，再一次落位 ---------- */
 function md5(p){ return createHash('md5').update(readFileSync(p)).digest('hex'); }
-function sha256(p){ return createHash('sha256').update(readFileSync(p)).digest('hex'); }
 
 const template = readFileSync(TEMPLATE, 'utf8');
 if (!template.includes('/*OG:TOKENS*/')) die(`${TEMPLATE} 里没有 /*OG:TOKENS*/ 槽 —— 色板注入这一步已经不存在了，卡面上的色就成了没人管的孤儿`);
@@ -411,40 +396,6 @@ for (const r of table){
   console.log(`  ✓ public/og/${r.id}.png  ${r.size} 字节  md5=${r.md5.slice(0, 8)}  GDI+ ${r.gdi.WIDTH}×${r.gdi.HEIGHT} ${r.gdi.PIXFMT}  字号=${r.fit.size} 行数=${r.fit.lines} 盒底=${r.fit.bottom}/${r.fit.floor}`);
   console.log(`      标题「${r.title}」${r.old ? (r.old === r.md5 ? '（与上一版逐字节相同：这篇的标题没改过）' : '（覆盖了上一版 ' + r.old.slice(0, 8) + '）') : '（新卡）'}${r.twice ? `  第二遍 md5=${r.twice.slice(0, 8)} 相同` : ''}`);
 }
-/* 9d 清单落笔：卡真的落位了才写，写的就是"这一张是按哪一句题面画的、落位后回读的那枚字节的 sha256"。
-   为什么放在落位之后而不是之前：清单先写、图后炸，仓库里就留下一条"按新题面出过图"的假记录——
-   判据拿它去比题面，比出来的是绿，而卡还是旧的。这一族与 die() 那句"本轮一张图都没写盘"是同一立场。
-   全量跑（不带 --slug）顺手清掉稿子已经不在了的那几条：③ 那一格会点名盘上残留的 png，"重跑全量 og"那句红话
-   说的就是这里——留着它们不会多拦住什么，只会让清单自己腐烂。--slug 只改那一条，其余原样。 */
-function readPrevManifest(){
-  if (!existsSync(MANIFEST)) return { cards: {} };
-  let j;
-  try { j = JSON.parse(readFileSync(MANIFEST, 'utf8')); }
-  catch (e){ die(`${basename(MANIFEST)} 不是合法 JSON（${e.message}）—— 出图这一趟要往里落笔，读不回来就别往下写`,
-    '  这一份的写者只有本脚本：手动编辑改坏了就 git checkout -- 它，再重跑 npm run og'); }
-  if (!j || typeof j !== 'object' || !j.cards || typeof j.cards !== 'object')
-    die(`${basename(MANIFEST)} 里没有 cards 那一格 —— 清单形状不是本脚本写的那一种，不猜`, '  要么改坏了，要么 tools/og-check.mjs 与本脚本的口径分叉了，两处一起改');
-  return j;
-}
-function writeManifest(prev){
-  const cards = prev.cards && typeof prev.cards === 'object' ? { ...prev.cards } : {};
-  if (!only) for (const s of Object.keys(cards)) if (!posts.some(p => p.id === s)) delete cards[s];
-  for (const r of table){
-    cards[r.id] = { title: r.title, sha256: sha256(r.dest), bytes: statSync(r.dest).size, stamped: 'og-cards' };
-  }
-  /* generated 里不写日期：写了日期，"重跑一遍但题面没变"也会造出一枚清单 diff，
-     而这一份文件的不变量恰恰是——题面与字节没变时它逐字节不动（og-check ④⑤ 量的就是这两枚值） */
-  const json = JSON.stringify({ note: MANIFEST_NOTE, generated: MANIFEST_GENERATED, cards }, null, 2) + '\n';
-  writeFileSync(MANIFEST, json, 'utf8');
-  const back = JSON.parse(readFileSync(MANIFEST, 'utf8'));
-  if (!back.cards || Object.keys(back.cards).length !== Object.keys(cards).length)
-    die(`${basename(MANIFEST)} 落位后回读的条目数变了（写 ${Object.keys(cards).length}，读回 ${back.cards ? Object.keys(back.cards).length : '没有 cards'}）`,
-      '  与逐张卡那条"落位后回读 md5"同一个道理：写进去与读回来的不是同一份，就别当它存在');
-  const stamped = Object.values(back.cards).filter(c => c.stamped === 'og-cards').length;
-  console.log(`  ✓ ${basename(MANIFEST)}：本次落笔 ${table.length} 条（stamped=og-cards 共 ${stamped} 条／清单总条目 ${Object.keys(back.cards).length} 条）`);
-}
-writeManifest(readPrevManifest());
-
 if (has('site')){
   writeFileSync(SITE_PNG, readFileSync(join(scratch, '_site.png')));
   console.log(`  ✓ public/og.png 重出（md5=${md5(SITE_PNG).slice(0, 8)}）——注意这是往 git 里改一枚二进制`);

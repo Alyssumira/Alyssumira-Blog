@@ -53,11 +53,9 @@ function flowItems(inner){
    这里不写第二份归一化、也不写第二份排序。
    ⚠️ 第十五轮 `card/unlisted` 起这一份**还多读一枚布尔键 `unlisted`**（走 `parseFlag` 那同一枚读法，
       与 draft/pinned 同一条口径：只认 YAML 1.2 核心 schema 那六个字面量、引号不剥、空着＝没填＝默认），
-      第十七轮 `card/aliases` 起**再多读一枚数组键 `aliases`**（旧地址那一族，与 `tags` 同一枚 flow／block 读法，
-      但不过 cleanName——理由写在下面那一格），所以这一族今天交出来的是**八枚键**。为什么工具侧必须读得到它们：
-      `runtime-check` 的"不列入对账"那一格与 `tools/alias-check.mjs` 都要按**盘上真值**现算名单
-      （"哪些稿子该从产物里消失"、"哪些旧地址该有一枚文件"这两件事都不许在工具里另猜一遍，也不许硬编码名单），
-      而它们吃的就是这里这一份 `readTaxonomy` ＋ `src/lib/taxonomy.js` 的那几枚纯读法。
+      所以这一族今天交出来的是**七枚键**。为什么工具侧必须读得到它：`runtime-check` 的"不列入对账"那一格
+      要按**盘上真值**现算名单（"哪些稿子该从产物里消失"这件事不许在工具里另猜一遍，也不许硬编码名单），
+      而它吃的就是这里这一份 `readTaxonomy` ＋ `src/lib/taxonomy.js` 的 `isUnlisted()`。
    返回的 errors 是**可以直接 print 的句子主体**（调用方拼 `✗ ${f}：${e}`），
    语气照本仓库既有那条：把后果说清，不只说"格式不对"。 */
 export function readTaxonomy(fmText){
@@ -159,28 +157,6 @@ export function readTaxonomy(fmText){
       + `要它算${effect[key]}就写 true，不算就写 false，或者把这一行整条删掉（删掉＝没填＝${unset[key]}）`);
   }
 
-  /* 旧地址那一族（第十七轮 `card/aliases`）：`aliases` 是**一串站内路径**，读法与 `tags` 同一族
-     （flow `[a, b]` 或 block `- a`），但**不过 cleanName**——路径不是名字：把 `aliases: [/A  B/]`
-     里的空白折叠掉就是机器替作者改写了他声明的那枚地址，而这一族唯一的活是"旧地址仍然能到达"。
-     写法合格不合格（`/`、带协议头、带 `?`、带扩展名那几枚）不在这里判，判据只住在
-     `src/lib/taxonomy.js` 的 `aliasSlot()`，`--check` 与 `tools/alias-check.mjs` 都调它（两份判据迟早分叉）。
-     ⚠️ block 那一路自己扫（`^[ \t]+-[ \t]*(.*)$`，**允许项为空**）：`blockItems` 那枚 `\S` 会把
-        `- ` 一行的空项直接吞掉，空项在这一族必须是"点名"而不是"消失"（作者写了却看不见那一族）。 */
-  let aliases = [];
-  const am = lineOf('aliases');
-  if (am){
-    const v = am[1].trim();
-    if (v === '') {
-      aliases = [...fmText.slice(am.index + am[0].length).matchAll(/^[ \t]+-[ \t]*(.*)$/gm)].map(x => unquote(x[1]));
-    }
-    else if (v === '[]') aliases = [];
-    else if (v.startsWith('[')){
-      if (!v.endsWith(']')) errors.push(`aliases "${v}" 这个方括号没关好——zod 会当场报错、astro build 红，整站烘不出来`);
-      else aliases = flowItems(v.slice(1, -1)).map(unquote);
-    }
-    else errors.push(`aliases 写成 "${v}" 是个字符串——schema 要的是 YAML 数组（` + '`aliases: [/旧路径/, /另一个/]' + `），这一篇会让 astro build 当场报错，而那一族旧地址一枚都接不住`);
-  }
-
   /* 归一化之后没有地址的名字：页面那侧（groupBy / tagsOf）会把它丢掉，于是"作者写了却不出现"——
      那正是 §12 那条"作者写了但读者看不见"的形状，也是死锚点 `/categories//` 的来源。
      在这里说破，不留给渲染器兜底。 */
@@ -198,5 +174,5 @@ export function readTaxonomy(fmText){
     errors.push(`series "${series}" 归一化之后是空串（纯标点／符号的名字清完什么也不剩）——它没有地址可指，详情页那一行不会出现、/series/ 的清单里也不会有它（` + '`/series//`' + ` 是 §12 的死锚点）；起个含字母或数字的名字，或者把这一行删掉`);
   }
 
-  return { category, tags, draft: flags.draft, pinned: flags.pinned, unlisted: flags.unlisted, series, seriesOrder, aliases, errors };
+  return { category, tags, draft: flags.draft, pinned: flags.pinned, unlisted: flags.unlisted, series, seriesOrder, errors };
 }
