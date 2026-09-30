@@ -3,6 +3,14 @@ import Layout from '../layouts/Layout.astro';
 import SearchEntry from '../components/SearchEntry.astro';
 import { siteFacts, tone } from '../lib/stats.js';
 import { inlineMd } from '../lib/markdown.js';
+import { intrinsicProps } from '../lib/image-dims.js';
+/* 人像那两枚宽高原先是模板里手写的字面量 276/276（**值是对的，但是抄来的**）：换成构建期读真文件头。
+   为什么这一枚值得动：`tools/imgpipe-check.mjs` 那把尺量的是"dist 里的属性 ⇄ 盘上真尺寸"，
+   而抄来的字面量一旦哪天换了别的人像就会悄悄对不上——那正是判据要红的形状，可它红的是我们自己的记账，
+   不是页面的病。换掉之后这一枚图没有"第二处真值"可漂。
+   几何零影响：`mistwood.css:504` 给 `.portrait img` 写的是 `position:absolute; inset:0; width:100%; height:100%`，
+   盒子由 `.portrait` 那枚 `width:220px; aspect-ratio:1/1`（:634）定，两枚属性从来不上屏（实测见规范 §8.4 那一格）。
+   ⚠️ 说明写在 `---` 里而不是模板里：Astro 把 HTML 注释原样落进产物（`src/layouts/Layout.astro:21` 点过名）。 */
 import { visiblePosts } from '../lib/posts.js';
 import { fonts, notes } from '../data/site.js';
 
@@ -41,7 +49,7 @@ const walk = notes[0];
       <!-- 桌面 ≥1024 这两块左右排（人像左、简介右）——简介只有两句，不是长阅读，
            所以它走"构图"的度量，不占 §4 那 680 的长文阅读度量；essays 的 680 一个字不动 -->
       <div class="about-lede">
-        <div class="portrait reveal"><img src="/assets/portrait.png" alt="Alyssumira" width="276" height="276"></div>
+        <div class="portrait reveal"><img src="/assets/portrait.png" alt="Alyssumira" {...intrinsicProps('/assets/portrait.png')}></div>
         <div class="about-text reveal">
           <p>写代码的人，住在城市边缘，心在森林里。白天修 bug，傍晚散步，夜里把这个网站当作营地慢慢打理。</p>
           <p>这里不追热点，只收集经得起重读的东西。</p>

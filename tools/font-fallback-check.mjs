@@ -83,7 +83,6 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync }
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir, homedir } from 'node:os';
-import { resolveBrowser, browserCandidates } from './browser-bin.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -110,14 +109,14 @@ const die = (msg, hint) => {
 };
 
 if (!existsSync(join(DIST, 'index.html'))) die(`没有产物 ${DIST}`, '  先 `npm run build`——本工具读 dist/，不读源码');
-/* 用哪一枚浏览器不在这里判——站内唯一一处是 `tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）：
-   判据是**探得到靶**（交回的 DOM 里带着只有 JS 跑过才存在的标记），不是"msedge 的文件在不在盘上"。 */
-const browserSkips = [];
-const BROWSER = await resolveBrowser({ flag: opt('browser') || opt('edge'), label: 'font-fallback-check', log: s => browserSkips.push(s.trim()) });
-const EDGE = BROWSER && BROWSER.bin;
-const EDGE_CANDIDATES = browserCandidates(opt('browser') || opt('edge')).map(c => c.bin);
-if (!EDGE) die(`没有一枚浏览器探得到靶（试过：${EDGE_CANDIDATES.join(' / ')}）\n${browserSkips.map(s => '  ' + s).join('\n')}`,
-  '  换浏览器传 --browser=<路径>（旧名 --edge= 也认）或设环境变量 MISTWOOD_BROWSER；这条不降级、不跳过');
+const EDGE_CANDIDATES = [
+  opt('edge'),
+  process.env['PROGRAMFILES'] && join(process.env['PROGRAMFILES'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['PROGRAMFILES(X86)'] && join(process.env['PROGRAMFILES(X86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['LOCALAPPDATA'] && join(process.env['LOCALAPPDATA'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+].filter(Boolean);
+const EDGE = opt('edge') ? resolve(opt('edge')) : EDGE_CANDIDATES.find(p => existsSync(p));
+if (!EDGE || !existsSync(EDGE)) die(`找不到 msedge（试过 ${EDGE_CANDIDATES.join(' / ')}）`, '  换浏览器传 --edge=<路径>；这条不降级、不跳过');
 
 /* ---------- 探针表：真页面上现成的元素（两档都量，甲档是参照） ----------
    文字必须是**静态**的：#clock 会被 site.js 改写、about 页 colophon 有构建时刻三行——都不选。 */
@@ -523,7 +522,7 @@ if (GATE && idle.length === 0) {
     }
   }
 }
-console.log(`浏览器 ${EDGE}（${BROWSER.note}）｜容差 ±${TOL_H}/±${TOL_W}${(TOL_H !== 2 || TOL_W !== 2) ? ' ⚠️ 这一跑拧过容差（默认 2/2）——不是同一把尺，别拿去跟历史读数对账，更不许拿它把红拧成绿' : '（默认档）'}`);
+console.log(`浏览器 ${EDGE}｜容差 ±${TOL_H}/±${TOL_W}${(TOL_H !== 2 || TOL_W !== 2) ? ' ⚠️ 这一跑拧过容差（默认 2/2）——不是同一把尺，别拿去跟历史读数对账，更不许拿它把红拧成绿' : '（默认档）'}`);
 const j0 = (o, k) => Object.values(o).map(x => x[k]).join('/');
 const sum0 = (o, k) => Object.values(o).map(x => x[k]).reduce((a, b) => a + b, 0);
 console.log(`见证物 甲档（在场）：/fonts 请求=${j0(remote, 'selfFontReqs')} 枚、到位字节=${sum0(remote, 'selfFontBytes')}B、正身 loaded=${j0(remote, 'selfFacesLoaded')} 枚`);
