@@ -22,12 +22,15 @@
       谁哪天拿它去画列表或算邻居，这一格直接点名是哪个文件（邻居那一步要是吃了它，
       不列入的稿子就会出现在别人的上一篇／下一篇里，"站内任何一处都不指向它"当场破）。
    ③ **schema 那一侧同源**：`content.config.ts` 必须声明四枚 taxonomy 键 ＋ 两枚系列键（`series`／`seriesOrder`）
-      ＋ 一枚 `unlisted`，且 draft/pinned/unlisted/series **不许 coerce**、必须经过那层"空值退回 undefined"。
+      ＋ 一枚 `unlisted` ＋ 一枚 `aliases`（第十七轮 `card/aliases`：与 `tags` 逐字符同形的 `blankSlot(z.array(z.string()).default([]))`），
+      且 draft/pinned/unlisted/series **不许 coerce**、category/tags/aliases **不许出现任何 coerce**、必须经过那层"空值退回 undefined"。
       判的是代码形状，不是注释——coerce 那一条是 §12"假语境"的牙（`z.coerce.boolean()` 把 `"false"` 也铸成 true，
       一篇作者要发的稿子会自己消失而构建全绿；`unlisted` 那一枚换的是"稿子自己从目录里消失"，同一个形状）。
       ⚠️ `seriesOrder` 那一枚**用 coerce.number() 是合法的**（与 `hour` 同一枚形状、
       空值先退回 undefined 所以铸不出 0），这一格钉的是它的下界必须是 `positive()`、不许被换成 `min(0)`。
    ④ **判据本身还有牙**（行为，不是文本）：拿假 post 对象喂 shipped 的那几个纯函数，
+      第十七轮起也喂 `aliasSlot`／`aliasesOf`——`aliasesOf` 与 `tagsOf` 是同一种形状（`(post.data.<键> ?? []).map(...)`），
+      读串了键就是"每个标签长出一枚跳转页"，而 ① ② ③ 三格全绿：只有反例分得开。
       逐条要求"该红的红"：草稿为真 ⇒ isDraft 真；不列入为真 ⇒ isUnlisted 真、而 isDraft 仍旧假
       （两枚键读反／读串了就是这一格的红——两枚键长得一模一样，抄一行改一个键是最常见的坏法）；
       置顶 ⇒ 排在最前；逗号字符串/空标签 ⇒ 不进清单；
@@ -51,7 +54,7 @@ import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
-import { isDraft, isUnlisted, sortPosts, cleanName, taxSlug, categoryOf, tagsOf, feedTerms, groupBy, tagGroups, bySize, parseFlag } from '../src/lib/taxonomy.js';
+import { isDraft, isUnlisted, sortPosts, cleanName, taxSlug, categoryOf, tagsOf, feedTerms, groupBy, tagGroups, bySize, parseFlag, aliasSlot, aliasesOf } from '../src/lib/taxonomy.js';
 import { seriesOf, orderOf, seriesGroups } from '../src/lib/series.js';
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
 
@@ -242,7 +245,7 @@ cell('②', '读 posts 的页面都在吃 visiblePosts()，而 publishedPosts() 
 });
 
 /* ---------- ③ schema 那一侧同源 ---------- */
-cell('③', 'content.config.ts 的七枚键（taxonomy 四枚 + 系列两枚 + 不列入一枚：不许 coerce 的照旧、空值退回 undefined）', () => {
+cell('③', 'content.config.ts 的八枚键（taxonomy 四枚 + 系列两枚 + 不列入一枚 + 旧地址一枚：不许 coerce 的照旧、空值退回 undefined）', () => {
   const src = codeOnly(readSrc(join(ROOT, 'src', 'content.config.ts')));
   /* 注释先抹掉：content.config.ts 里那段警告文字**故意**抄着 `z.coerce.boolean()` 这个坏写法（讲它为什么禁），
      不抹的话判据会被自己的例子命中——同 §9 那条"注释里别抄坏值"的教训。 */
@@ -254,6 +257,9 @@ cell('③', 'content.config.ts 的七枚键（taxonomy 四枚 + 系列两枚 + �
     /* 不列入那一枚**必须与 draft 逐字符同形**（同一枚 blankSlot、同一个 `default(false)`）：
        两处形状一分叉，"没填 ⇒ 照常被列出"这条就变成两处各说一遍。 */
     unlisted: /unlisted:\s*blankSlot\(z\.boolean\(\)\.default\(false\)\)/,
+    /* 旧地址那一枚（第十七轮 `card/aliases`）**必须与 tags 逐字符同形**（同一枚 blankSlot、同一个 `default([])`）：
+       两处形状一分叉，"没填 ⇒ 一枚产物都不生成"这条就变成两处各说一遍——而这一族的"没填"恰恰是最常见的状态。 */
+    aliases: /aliases:\s*blankSlot\(z\.array\(z\.string\(\)\)\.default\(\[\]\)\)/,
   };
   let n = 0;
   for (const [k, re] of Object.entries(KEYS)){
@@ -267,8 +273,8 @@ cell('③', 'content.config.ts 的七枚键（taxonomy 四枚 + 系列两枚 + �
      "一篇作者照常发的稿子从列表／feed／搜索里消失，而构建全绿"——同一枚假语境，换了个键。 */
   const badCoerce = /(?:draft|pinned|unlisted)[^\n]*z\.coerce\.boolean\(\)/.exec(src);
   assert.ok(!badCoerce, `③ draft/pinned/unlisted 用了 z.coerce.boolean()（"${badCoerce && badCoerce[0]}"）—— 那会把 "false"、"no"、"0" 全铸成 true`);
-  const badString = /(?:category|tags)[^\n]*z\.coerce\./.exec(src);
-  assert.ok(!badString, `③ category/tags 里出现了 z.coerce.（"${badString && badString[0]}"）—— 空着的键会被铸成 0 或 "false"，那是假语境的近亲`);
+  const badString = /(?:category|tags|aliases)[^\n]*z\.coerce\./.exec(src);
+  assert.ok(!badString, `③ category/tags/aliases 里出现了 z.coerce.（"${badString && badString[0]}"）—— 空着的键会被铸成 0 或 "false"，那是假语境的近亲`);
   /* 空值那一层必须在：`default()` 只放行 undefined，YAML 里空着的键交来的是 null（同 hour 那枚先例的口径） */
   assert.ok(/const blankSlot = t => z\.preprocess\(\s*v => \(v === null \|\| v === ''\) \? undefined : v\s*,\s*t\)/.test(src),
     '③ blankSlot 那层 preprocess 没了或换了口径 —— `tags:`／`category:` 空着（null）会撞进 zod 的英文堆栈');
@@ -310,6 +316,28 @@ cell('④', 'shipped 的那几个纯函数吃反例（逻辑写反这族文本�
   assert.equal(isUnlisted(mk('off', { unlisted: false })), false, '④ isUnlisted 对 false 读成真');
   assert.equal(isUnlisted(mk('d2', { draft: true })), false, '④ isUnlisted 读的是 draft 那一枚键（两枚键被写串了）—— 不列入与草稿会并成一件事：地址也不建了，而"只有拿到地址的人能读"要的正是地址在');
   assert.equal(isDraft(mk('u2', { unlisted: true })), false, '④ isDraft 读的是 unlisted 那一枚键（两枚键被写串了）—— 真草稿会照样进列表、进 feed、被关于页数进去');
+
+  /* ---- 旧地址那一族（第十七轮 `card/aliases`）：形状判据与"读哪一枚键"都有牙 ----
+     ⚠️ 上面那两枚"读串键"的反例管的是 `!!post.data.<键>` 那一族，`aliasesOf` 长得和 `tagsOf` 更像
+        （都是 `(post.data.<键> ?? []).map(...)`）：一旦它读成 `tags`，页面会给每个**标签**烘一枚跳转页，
+        而 ① ② ③ 三格全绿——文本判据看不见逻辑，只有把两枚键各喂一次反例才分得开。
+     ⚠️ 这里判的是**行为**（该收到的收到、该收不到的收不到），不是把 `alias-check` 的产物对账搬一遍。 */
+  assert.equal(aliasesOf(mk('al', { aliases: ['/2026/old/', 'bare'] })).join('|'), '/2026/old/|/bare/',
+    '④ aliasesOf 读不出 data.aliases（或归一化没补齐目录式尾斜杠）⇒ 在册名单永远算成空的，旧地址一枚都不建');
+  assert.equal(aliasesOf(mk('al2', { aliases: ['/a/', '/a'] })).length, 1,
+    '④ 同一枚地址的两种写法（带不带尾斜杠）在 aliasesOf 里没并成一枚 ⇒ 路由会给同一篇文章烘两页');
+  assert.equal(aliasesOf(mk('al3', { tags: ['/x/'], aliases: [] })).length, 0,
+    '④ aliasesOf 读的是 tags 那一枚键 —— 每个标签都会长出一枚跳转页，而旧地址一枚都没有');
+  assert.equal(tagsOf(mk('al4', { tags: ['散文'], aliases: ['/x/'] })).join('|'), '散文',
+    '④ tagsOf 被改成读 aliases 那一枚键 —— 详情页的胶囊会指向 /tags//x/，标签清单也塌了');
+  assert.equal(aliasesOf(mk('al5', {})).length, 0, '④ 没填 aliases 却交出一枚地址 ⇒ "没填 ⇒ 一枚产物都不生成"那条断了（§12 不留活壳）');
+  for (const bad of ['/', 'https://example.com/a/', '/a?b', '/a.html']){
+    const r = aliasSlot(bad);
+    assert.equal(r.path, '', `④ aliasSlot(${JSON.stringify(bad)}) 交出 ${JSON.stringify(r)} —— 这一枚不该有地址：写进路由就是给站内造一枚指不到东西的活壳`);
+    assert.ok(r.bad, `④ aliasSlot(${JSON.stringify(bad)}) 没有成因句 —— "作者写了却看不见"必须被点名（§12 那一族）`);
+  }
+  assert.equal(aliasSlot('/2026/old').path, '/2026/old/', '④ aliasSlot 没把省略尾斜杠的写法补成目录式（本站 URL 只有目录式一种，§15）');
+  assert.equal(aliasSlot('/旧路径/').path, '/旧路径/', '④ aliasSlot 把非 ASCII 的旧路径清了 —— 中文旧地址是本仓认的（safe() 那一族白名单不归这里管）');
 
   const old = mk('old', { pinned: true, date: new Date('2026-01-01') });
   const nu = mk('new', { date: new Date('2026-09-01') });
@@ -398,7 +426,10 @@ cell('④', 'shipped 的那几个纯函数吃反例（逻辑写反这族文本�
     mkS('c', '甲串', 1, '2026-03-01'),
   ]));
   assert.deepEqual(multi.map(g => `${g.slug}:${g.posts.length}`), ['乙串:2', '甲串:1'], '④ 系列清单的排序不是"篇数多的在前"（bySize 那一把尺子换了）');
-  return 21 + 15 + 5;
+  /* 第十七轮 `card/aliases` 那一族交出的 15 条：`aliasesOf` 与 `tagsOf` 各读自己那枚键（5）＋
+     四枚不合格形状各两条（path 为空 ＋ 有成因句，8）＋ 两枚正向（目录式补齐／非 ASCII 不清）＝ 15。
+     上面那三串数各自是哪一族，本轮没重新数——只把新加的这一族单独记一行（改了别族要回来对账）。 */
+  return 21 + 15 + 5 + 15;
 });
 
 /* ---------- ⑤ 真实稿件：清单算得出、slug 唯一 ---------- */
@@ -515,4 +546,4 @@ if (problems.length){
   for (const p of problems) console.log(`  · ${p}`);
   process.exit(1);
 }
-console.log(`\n✓ 分类/标签/草稿/置顶/系列/不列入：六格共 ${asserted} 条断言全过，读 posts 的唯一入口没有被绕开`);
+console.log(`\n✓ 分类/标签/草稿/置顶/系列/不列入/旧地址：六格共 ${asserted} 条断言全过，读 posts 的唯一入口没有被绕开`);

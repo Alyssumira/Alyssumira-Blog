@@ -11,7 +11,7 @@ import { safe, href, strictHref } from '../src/lib/markdown.js';   /* 锚点归�
    两枚 URL 键"能不能当路用"同样只有一份：strictHref()。tools/ 这一侧**不写第二份协议正则**，
    只纯消费它和 href() 的返回值——两者的差恰好就是把两种坏形状分开点名的依据（见下面那一格） */
 import { splitFm, readTaxonomy, unquote } from './frontmatter.mjs';
-import { groupMany } from '../src/lib/taxonomy.js';
+import { groupMany, aliasSlot, aliasesOf } from '../src/lib/taxonomy.js';
 import { ESSAYS_PAGE_NS } from '../src/lib/pagination.js';   /* 分页命名空间那一段（`/essays/page/<n>/`）：
    保留字名单向** shipped 的那一枚常量**要，不在这里抄一份字面量——抄的那份改了没人知道（§13a 那句话）。
    这一份文件不 import 'astro:content'，所以 node 侧吃得动它（口径同 taxonomy.js 头上那两段）。 */
@@ -205,6 +205,111 @@ async function check() {
   for (const [what, pick] of [['分类', p => [p.data.category]], ['标签', p => p.data.tags], ['系列', p => [p.data.series]]]) {
     try { groupMany(taxPosts, pick, what); }
     catch (e) { console.log(`✗ 撞名（跨篇）：${e.message}`); bad++; }
+  }
+
+  /* ── 旧地址那一族（第十七轮 `card/aliases`）：形状、撞名、跨篇重复，三样都在源码级拦 ──────────
+     为什么这一格必须住在 `--check`（源码级、build 之前）而不是只住在产物级的 `tools/alias-check.mjs`：
+     撞名那一族在构建侧**根本不红**——`astro build` 只打印一行
+     `[WARN] Could not render \`/about\` from route \`/[...alias]\` as it conflicts with higher priority route \`/about\``
+     就把那枚跳转页静默丢掉，退出码仍是 0、"N page(s) built" 照报（2026-09-30 实测）。
+     也就是说：作者写完 `aliases` 之后，站上是"旧地址仍然死着"，而门禁全绿。红必须响在人动手的那一刻。
+     ⚠️ 判据不在这里重写：形状归 `src/lib/taxonomy.js` 的 `aliasSlot()`（页面与门禁同一份），
+        名单归 `aliasesOf()`；本格只回答"这枚地址是不是已经被别人占着了"，答案从**路由表本身**现扫，
+        不抄一份固定路由名单——抄的那份迟早和 `src/pages/` 分叉（§16 记过这一族）。 */
+  {
+    const ROUTES = [];                                    /* src/pages 里每一枚路由的字面段形状 */
+    (function w(dir, rel = ''){
+      if (!existsSync(dir)) return;
+      for (const e of readdirSync(dir, { withFileTypes: true })){
+        const p = join(dir, e.name);
+        if (e.isDirectory()){ w(p, `${rel}${e.name}/`); continue; }
+        if (!/\.(astro|js|ts|mdx?)$/i.test(e.name)) continue;
+        /* 路由的字面段：去掉扩展名，末段**恰好是 `index`** 才算"这一层的目录页"（丢掉那一段）。
+           ⚠️ 不是"任何以 index 开头的都丢"：`essays/[slug]/index.md.js` 交出来的是 `/essays/<slug>/index.md`
+              那一枚**原文端点**（第三段是字面量 `index.md`），把它当成 `/essays/<slug>/` 会让撞名那一格
+              指错本家——红话指错文件比不红更坏（假阳性教人忽略门禁，本仓 §16 记过）。 */
+        const segs0 = (rel + e.name).replace(/\.(astro|js|ts|mdx?)$/i, '').split('/');
+        if (segs0[segs0.length - 1] === 'index') segs0.pop();
+        const stem = segs0.join('/');
+        const parts = stem.split('/').filter(x => x !== '');
+        ROUTES.push({
+          file: `src/pages/${rel}${e.name}`,
+          parts: parts.map(x => {
+            const r = /^\[\.\.\.(.+)\]$/.exec(x), m = /^\[(.+)\]$/.exec(x);
+            if (r) return { rest: true, name: r[1] };
+            if (m) return { param: true, name: m[1] };
+            return { lit: x };
+          }),
+          dynamic: false,
+        });
+        const last = ROUTES[ROUTES.length - 1];
+        last.dynamic = last.parts.some(x => x.param || x.rest);
+        last.static = '/' + last.parts.map(x => x.lit ?? '*').join('/') + (last.parts.length ? '/' : '');
+      }
+    })(join(ROOT, 'src', 'pages'));
+    /* 这一枚文件自己不算"别人" */
+    const isAliasRoute = r => r.parts.some(x => x.rest && /alias/i.test(x.name));
+    const matches = (r, segs) => {
+      for (let i = 0; i < r.parts.length; i++){
+        const x = r.parts[i];
+        if (x.rest) return true;                                    /* rest 吃掉后面所有段 */
+        if (i >= segs.length) return false;
+        if (x.lit !== undefined){ if (x.lit !== segs[i]) return false; continue; }
+      }
+      return r.parts.length === segs.length;
+    };
+    /* 「认得出的那一层」：一枚参数段的值能从盘上算出来，才许用"真值相等"当撞名判据。
+       essays/[slug] ⇄ 稿件文件名；categories|tags|series/[name] ⇄ 现算的分类·标签·系列清单。
+       认不出来的那些（下一轮 `card/pagination` 正在加的 essays/page/[n] 就是第一个）一律按**整层**算占着：
+       它生成的值由那一页自己的算术决定，我在这儿猜一个"不会撞"就是假绿。 */
+    const postIds = new Set(files.map(f => f.slice(0, -3)));
+    const taxAddrs = { categories: new Set(), tags: new Set(), series: new Set() };
+    for (const [what, pick, dir] of [['分类', p => [p.data.category], 'categories'], ['标签', p => p.data.tags, 'tags'], ['系列', p => [p.data.series], 'series']])
+      try { for (const g of groupMany(taxPosts, pick, what)) taxAddrs[dir].add(`/${dir}/${g.slug}/`); }
+      catch { /* 撞名上面那一格已经点名过，这里不再重复报 */ }
+    const ENUM = { essays: new Set([...postIds].map(x => `/essays/${x}/`)), ...taxAddrs };
+    const PUBLIC_TOP = existsSync(join(ROOT, 'public'))
+      ? new Set(readdirSync(join(ROOT, 'public')).map(x => `/${x.toLowerCase()}`)) : new Set();
+    const seen = new Map();                                  /* 旧地址 → 第一篇声明它的稿子 */
+    let aliasChecked = 0;
+    for (const f of files){
+      const slug = f.slice(0, -3);
+      const parsed = splitMd(read(join(POSTS, f)));
+      if (!parsed) continue;
+      const tax = readTaxonomy(parsed.fmText);
+      if (tax.errors.length) continue;                        /* 坏写法上面已经红过了 */
+      for (const raw of (tax.aliases ?? [])){
+        aliasChecked++;
+        const s0 = aliasSlot(raw);
+        if (!s0.path){ console.log(`✗ ${f}：aliases 里有一项钉不成站内地址——${s0.bad}`); bad++; continue; }
+        for (const other of tax.aliases ?? []){
+          if (other !== raw && String(other) > String(raw) && aliasSlot(other).path === s0.path){ console.log(`· ${f}：aliases 里 "${raw}" 与 "${other}" 是同一枚地址 ${s0.path}（去掉首尾斜杠是同一种写法）——按一枚算`); break; }
+        }
+        const segs = s0.path.replace(/^\/|\/$/g, '').split('/');
+        const prev = seen.get(s0.path);
+        if (prev && prev !== slug){ console.log(`✗ 旧地址撞名（跨篇）：${s0.path} 同时被 ${prev} 与 ${slug} 声明——路由只会留名单里第一枚，另一篇的访客被悄悄改道。给其中一篇换一个旧地址`); bad++; }
+        else if (!prev) seen.set(s0.path, slug);
+        /* 静态资源那一层：public/ 顶层叫什么，那枚前缀就被谁占着——文件本身永远排在跳转页前面 */
+        if (PUBLIC_TOP.has(`/${segs[0].toLowerCase()}`)){
+          console.log(`✗ ${f}：aliases 里的 ${s0.path} 落在 public/${segs[0]}/ 那一层——托管先按文件找这一枚路径，跳转页永远轮不到被读到。换一个不属于静态资源目录的旧地址`);
+          bad++;
+        }
+        for (const r of ROUTES){
+          if (isAliasRoute(r) || !matches(r, segs)) continue;
+          if (!r.dynamic){ console.log(`✗ ${f}：aliases 里的 ${s0.path} 与站内固定路由撞上（${r.file} 就是那一枚地址的本家）——旧地址不许盖在 about / notes / essays 目录 / feed 这些页面上，那一页会整枚消失`); bad++; break; }
+          /* 「认得出的那一层」＝恰成 `essays/[slug]` 与 `categories|tags|series/[name]` 那一种形状（一枚字面段＋一枚参数段，
+             而参数段的值能从盘上现数出来）。别的那种动态路由——`card/pagination` 正在排的 `essays/page/[n]` 是第一个——
+             它生成的地址（分页码、将来的归档月页……）由那一页自己的算术决定，我在源码侧数不出来 ⇒ **整层都算被占着**：
+             这里宁可红一次让作者换个写法，也不留"看着不撞、下一轮那一张卡落地才撞"的假绿。 */
+          const enumerable = r.parts.length === 2 && r.parts[0].lit !== undefined && r.parts[1].param === true && ENUM[r.parts[0].lit];
+          if (!enumerable){ console.log(`✗ ${f}：aliases 里的 ${s0.path} 落在 ${r.file} 那一层——那一层生成哪些地址由它自己算（分页码那一类），我在源码侧数不出来；旧地址写到里面去，早晚与那一页抢同一枚地址`); bad++; break; }
+          if (!ENUM[r.parts[0].lit].has(s0.path)) continue;                     /* 这一层的其它地址（比如改名后的旧 slug）正是这一族要接的对象 */
+          if (s0.path === `/essays/${slug}/`){ console.log(`✗ ${f}：aliases 里的 ${s0.path} 就是这一篇自己的详情页——旧地址与真地址同名，跳转页会被详情页静默吃掉（实测 build 只 WARN 不红），而那枚旧地址本来要指的是"改名之前的那一枚"。删掉这一项，或者写成它真正替换掉的那枚旧路径`); bad++; break; }
+          console.log(`✗ ${f}：aliases 里的 ${s0.path} 已经是站上一枚真产物（${r.file} 会为它烘出页面）——两枚路由抢同一枚地址时 Astro 只打一行 WARN 就把跳转页丢了，build 与 check 之外没人知道旧地址没生效`); bad++; break;
+        }
+      }
+    }
+    console.log(`· 旧地址检查 ${aliasChecked} 项（${[...new Set([...seen.keys()])].length} 枚在册）：与固定路由／详情页／分类三族／静态资源层逐枚比过（0 项是今天签字的状态，不是这一格没跑——每一篇的 front matter 都被读过）`);
   }
   /* 数量直接 import 来数：site.js 是真模块，按文本猜格式会静默读成 0 */
   const { things, notes } = await import(pathToFileURL(DATA).href);

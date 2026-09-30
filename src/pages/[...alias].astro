@@ -1,0 +1,75 @@
+---
+/* [...alias].astro —— 旧地址接得住（第十七轮 `card/aliases`）
+   ── 这一枚文件存在的理由 ────────────────────────────────────────────────────
+   本站的 URL 是目录式 `/essays/<slug>/`，而 `slug` 就是 `src/content/posts/<slug>.md` 的文件名。
+   作者改文件名（换标题写法、修拼写）那天，所有外部分享过的旧地址当场断死，站内原先没有任何机制接得住。
+   front matter 的可选 `aliases: [/旧路径/, …]` 就是那一枚接口：**每条旧路径烘一枚真产物**，
+   让人从旧地址仍然走进这篇文章。不是"生成一份空页再藏起来"——§12"关掉之后不留活壳"那一格管的正是这个。
+
+   ── 路由层的形状（为什么是枚根层 catch-all，而 `src/pages/essays/[slug].astro` 一个字没动）────
+   alias 可以是任意深度的路径（`/2026/foo/` 也可能就是 `/foo/`），固定层级的路由文件表达不了"任意深度"，
+   所以这一族只能落在一枚根层 rest 参数上。两件事实测过（2026-09-30，astro 7.3.5，本机 `npm run build`）：
+     ① **它不抢任何一层**：rest 参数是优先级**最低**的路由，撞到更高优先级的路由时 Astro 打印
+        `[WARN] [build] Could not render \`/about\` from route \`/[...alias]\` as it conflicts with higher
+        priority route \`/about\`` 并**把这枚 alias 静默丢掉**（build 仍 exit 0、"N page(s) built" 照报）。
+        ⇒ 详情页那一层、`/essays/` 目录、about/notes/things、以及本轮正在排队的 `/essays/page/N/`
+          都不会被这一枚文件挡住；反过来，"我声明的旧地址被别的路由吃掉了"这件事 **build 不会红**，
+          所以它必须有产物级判据——那正是 `tools/alias-check.mjs` 的「漏生成」那一格。
+     ② 它只烘 `getStaticPaths` 交出来的那几枚路径：名单之外的任何地址在 `dist/` 里没有文件，
+        交回的就是真 404（`dist/404.html`），不是"能访问的壳"。
+
+   ── 跳转形态（实测读数，不是抄来的样板；详版在 §12 那一格与 §15 的 alias 那一格）──────────
+   `Astro.redirect(目标, 301)` 在这套产物里（预渲染、没挂 adapter、`astro.config.mjs` 里没有 `output` 键）
+   落成的是**一枚文件**：`dist/<旧路径>/index.html`，实测 306 枚字节，形状是
+   `<!doctype html><title>Redirecting to: <目标></title><meta http-equiv="refresh" content="0;url=<目标>">
+    <meta name="robots" content="noindex"><link rel="canonical" href="<绝对形式的目标>">
+    <body><a href="<目标>">Redirecting from <code>/旧路径/</code> to <code><目标></code></a></body>`
+   （模板本体在 `node_modules/astro/dist/core/routing/3xx.js`，`const delay = status === 302 ? 2 : 0`）。
+   ⚠️ 三条读数要钉死：**状态码没有任何落点**（不生成 `_redirects`，`dist/` 里也没有第二枚文件——
+      301 与 302 在产物里的**唯一**差别是 meta refresh 的秒数 0 与 2，所以这里写 301 买的是"零秒就走"，
+      不是"301 这条语义真的到了访客手里"）；noindex 与 canonical 由 Astro 自己写（正合"不进第二套真值"）；
+      页面里那枚 `<a href>` 是**指向目标**的，不是指向这一枚 alias 的。
+   为什么这种形态对我们的两种托管都自证：它就是一枚普通 HTML 文件，落在作者声明的那枚旧路径上，
+   Cloudflare Pages（直传 `dist/`）与 Vercel（从 GitHub 构建）拿到的都是"这个路径有文件"⇒ 回 200 加这页、
+   浏览器随即走掉。**不依赖 `_redirects`／`vercel.json` 这类只有某个平台才认的配置**，
+   也不依赖任何运行时（本站没有 runtime）。代价照实登记：访客拿到的是 200 而不是一枚真 301，
+   搜索引擎那一侧由 canonical＋noindex 说话，这是静态产物能买到的最好的一档。
+
+   ── 谁进名单（这一行是本卡最容易做歪的地方）──────────────────────────────────────
+   `getStaticPaths` 吃 **`visiblePosts()`**（滤草稿 **＋** 滤不列入），**不是** `publishedPosts()`：
+     · 目标必须是真地址——草稿的详情页根本不建，给一枚不存在的地址做跳转就是当场死锚（§12 那一族）。
+     · 不列入的那一篇**自己的地址是唯一入口**（§15 那一格）：给它再生成一枚旧地址入口，就是把那句话推翻，
+       而 `tools/runtime-check.mjs` 的全站 `<a href>` 扫描会因为这一枚 alias 页里的 `<a href="/essays/<id>/">`
+       当场红——两边指的是同一件事，所以路由这一侧根本不建它才是对的（产物回到真 404＝"不留活壳"）。
+     · `publishedPosts()` 的合法调用者名单（`tools/taxonomy-check.mjs` 第②格）因此一枚都不许多。
+   `aliases` 没填的那一篇 ⇒ 一枚都不生成；某一项写法不合格 ⇒ 也不生成（并且由 `--check` 与 alias-check
+   当面点名，不许静默）。**这一页不套 `Layout.astro`**：Astro 在渲染出任何 markup 之前就返回了那枚 Response，
+   产物里落的是它自己那枚模板 ⇒ 零新材质、零新 CSS、不占 §1 的常驻预算、导航与颗粒一个字节都不进来。
+ */
+import { visiblePosts } from '../lib/posts.js';
+import { aliasesOf } from '../lib/taxonomy.js';
+
+export async function getStaticPaths(){
+  const out = [];
+  const seen = new Set();
+  for (const post of await visiblePosts()){
+    for (const path of aliasesOf(post)){
+      /* 两篇文章抢同一枚旧地址：这里留第一枚（`visiblePosts()` 的顺序是"置顶最前、余按日期倒序"，
+         是确定的，不靠 getCollection 的返回顺序）——**不是**判据。撞名由两处各钉一次：
+         `tools/new-post.mjs --check`（源码级，红在人动手之前）与 `tools/alias-check.mjs`（产物级，
+         红在"这一枚文件的目标与名单里另一枚不一致"）。理由与 `taxSlug` 撞车那条相反那一族有关：
+         静默合并等于替作者决定旧地址该去哪一篇。 */
+      if (seen.has(path)) continue;
+      seen.add(path);
+      out.push({ params: { alias: path.replace(/^\/+|\/+$/g, '') }, props: { to: `/essays/${post.id}/` } });
+    }
+  }
+  return out;
+}
+/* 目标必须是盘上真存在的详情页产物——这一页不做任何"目标不在就画一枚提示"的事：
+   那样就是把死锚换成活壳，正是 §12 那一格禁的形状。目标地址的存活由 alias-check 在产物上逐枚验。 */
+const to = Astro.props.to;
+return Astro.redirect(to, 301);
+---
+<!-- 这一行不会进产物：Astro.redirect() 在上面就返回了 Response，静态构建把它烘成那枚跳转页模板。
+     留着这行只会让"关掉之后不留活壳"那一格多一枚读不懂的注释（§14 那条"注释里的地址访客走不到"同族）。 -->
