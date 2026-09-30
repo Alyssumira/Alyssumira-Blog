@@ -79,7 +79,7 @@
      --jobs=<n>            并发浏览器数（默认 4；每档每槽位一枚一次性 profile，共 2×jobs 枚，跑完删）
      --keep-profile        跑完不删临时 profile（调试用，会打印路径）
      --strict-site         占位域名从警告变红
-     --static-only         只跑不碰浏览器的六段（1b 结构／1c 不列入／1d 死锚点两侧对账／1e 订阅宣告／1f head 时间戳与卡面 alt／1g 三族索引的可见入口），
+     --static-only         只跑不碰浏览器的七段（1b 结构／1c 不列入／1d 死锚点两侧对账／1e 订阅宣告／1f head 时间戳与卡面 alt／1g 三族索引的可见入口／1h 正文配图的层叠胜负），
                            浏览器两档当众报"没跑"（`card/anchors` 当天本机 msedge 起不来才加的退路；
                            日常 `npm run gate` 不引用它，别把它读成绿）
 */
@@ -117,7 +117,7 @@ const JOBS = Math.max(1, Number(opt('jobs') || 4));
 const STRICT_SITE = flag('--strict-site');
 /* ⚠️ `--static-only` 是给"本机起不了 headless 浏览器"那一条环境退路（2026-09-30 `card/anchors` 当天撞上：
    msedge 无论 `--dump-dom` 还是 `--screenshot` 都**当场 exit 0、零 stdout、零 stderr**，连 about:blank 都不出图，
-   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的六段（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据／1g 三族入口），
+   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的七段（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据／1g 三族入口／1h 正文配图层叠），
    并且**当众打印"运行时 DOM 那一档没跑"**——它不是一条绿，是一次部分交付。
    `npm run gate` 一个字都没引用它；日常门禁仍然是两档 × 全站。 */
 const STATIC_ONLY = flag('--static-only');
@@ -1187,6 +1187,271 @@ const markSpansOf = html => {
     + `落点归属：非目录页宿主 ${strays.length} 处；盘上判决 ${units} 条 ＋ 内置自证 ${tried} 条 ＝ **${units + tried} 条断言**`);
 }
 
+/* ---------- 1h. 正文配图那一族的层叠胜负：产物级 CSS 真值（`card/framecascade`，§8.4 末那笔已还的债）----------
+   这一格钉的是 `docs/设计规范.md` §8.4 末登记的、**已经还了却没有任何机器尺子钉着**的那笔债：
+   共享底座给"内容位照片"写的是裁框（`mistwood.css:504-506` 那行名单里有 `.post-body img`，声明
+   `position:absolute; inset:0; width:100%; height:100%; object-fit:cover`），而详情页正文图版要的是
+   "走满栏宽不裁比例"（`essay.css:370` 的 `position:static`）。两条权重同为 (0,1,1) 时**谁赢取决于打包
+   顺序**，真产物上 `.frame` 因此塌成 2px；修法是把 essay 层就地升权重成 `article.post-body img`（(0,1,2)），
+   从此"靠权重赢，不靠打包顺序"（§8.8 那句"那是运气不是设计"是同一条）。
+   ⚠️ 为什么今天非要有这一格：全站正文配图 **0 枚**（`grep -c '!\[' src/content/posts/*.md` ＝ 0/0/0）⇒
+   谁把那枚多出来的 `article` 摘掉，`npm run check` 八项不红、`astro build` 不红、页面上也看不出问题
+   （没有图可看）。这一格读的是那两条规则**在产物里的胜负**，与稿件有没有配图无关，零载体也说话。
+   ⚠️ 为什么它是**产物级**而不是源码级：源码里两行都摆着，胜负却由"各自被并进哪一份 `_astro/*.css`"
+      ＋"那份 HTML 里 `<link rel=stylesheet>` 的先后"决定。`src/layouts/Layout.astro:2-3` 与
+      `src/pages/essays/[slug].astro:2` 的 import 顺序是本卡的禁区（换顺序会翻掉一批同权重平局，而规范
+      签的修法明写不靠它）——所以判据只能读 `dist/`，量的就是访客实际吃到的那一份层叠。
+   ⚠️ **认文件名不认哈希**：并行轮次改过打包，同名文件的哈希会变（§8.4 那格登记过 `CASlylm9` 换名一次）。
+      两枚对手按**角色**认：声明 `position:static` 的那一枚＝essay 那条（还债方），声明 `position` 而值
+      不是 `static` 的那一枚＝底座那条（裁框方）。整格一处 CSS 文件名都不写死，只 glob `_astro/*.css`。
+   断言（逐份详情页产物，层叠序列＝那份 HTML 的 `<link>` 顺序 × 各自表内出现先后）：
+     ① 两枚对手都必须在产物里找得到——少任何一枚是一条**点了名**的红（"没有对手"不许被读成"通过"）；
+     ② 命中形状却没声明 `position` 的规则不参与胜负；底座那一枚若只以"没声明 position"的形状在场同样红；
+     ③ 胜者的 `position` 必须是 `static`；
+     ④ 胜者不许靠打包顺序取胜：与任何对手同权重、同 `!important` 档 ⇒ 平局由出现先后裁决 ⇒ 红
+        （那正是这笔债本来的形状，赢也是运气）。
+   防空转（本仓那条老判据："扫了但没匹配到"和"扫了且全过"在两串输出里长同一副样子）：每一跑当众打印
+   吃了多少枚 CSS、命中几枚规则、胜者选择器**逐字**、它的 `position` 值与裁决依据。
+   ⚠️ 权重函数只管这一格用得上的那一档（`#`／`.`／`:` 类／`[]`／元素名；伪元素按真值算元素级、
+      `:where()` 零权重、`:not()`／`:is()` 吃参数那一层）。已知两处偏差：`:is(.a,.b)` 的多分支按累加算
+      （比真值偏高）、括号里再套括号之类不认。**没有引入第三方 CSS 解析器**，也没有顺手做成通用层叠引擎
+      ——它只回答"`img` 落在 `.post-body` 里时 `position` 归谁"这一问。
+   ⚠️ `@media`／`@supports`／`@layer` 里的规则照收（条件文本不求值）：一条 `(max-width:720px)` 里的
+      `position:absolute` 在窄屏上真的会压过 `static`，所以"收进来"是这一格的**朝宽侧**，不是过严。
+   ⚠️ 两侧都有格子的内置 fixture（口径照 1d 那两枚形状样本／1g 那两态"盘上零枚也照跑"）：尺子瞎的时候
+      needle 先红，而不是盘上那一跑悄悄绿。 */
+{
+  const ASTRO = join(DIST, '_astro');
+  const stripCss = txt => txt.replace(/\/\*[\s\S]*?\*\//g, ' ');   // 注释里的示例选择器不算一枚规则（口径照 1b／1d／1g）
+
+  /* ---- 收集器一：一份 CSS → 扁平的规则序列（大括号配深度找块尾，同 pixel-probe 抓 base.css 那一手）---- */
+  const findBlockEnd = (css, open) => {
+    let d = 0;
+    for (let i = open; i < css.length; i++) {
+      if (css[i] === '{') d++;
+      else if (css[i] === '}') { d--; if (!d) return i; }
+    }
+    return -1;
+  };
+  const parseRules = (raw, sheet) => {
+    const css = stripCss(raw);
+    const out = [];
+    (function into(start, end, at) {
+      let i = start;
+      while (i < end) {
+        const open = css.indexOf('{', i);
+        if (open < 0 || open >= end) break;
+        const close = findBlockEnd(css, open);
+        if (close < 0 || close > end) break;
+        const prelude = css.slice(i, open).trim().replace(/\s+/g, ' ');
+        if (/^@(media|supports|layer|container|document|scope)\b/i.test(prelude)) into(open + 1, close, at ? `${at} / ${prelude}` : prelude);
+        else if (!/^@/.test(prelude))                     // @font-face / @keyframes / @import：块里的不是"选择器 ⇄ 声明"，整块跳过
+          for (const sel of prelude.split(',')) if (sel.trim()) out.push({ sel: sel.trim().replace(/\s+/g, ' '), sheet, at, body: css.slice(open + 1, close) });
+        i = close + 1;
+      }
+    })(0, css.length, '');
+    return out;
+  };
+
+  /* ---- 收集器二：形状谓词——最后两枚复合单元是「带 `.post-body` 类的那一枚」后跟 `img` ----
+     ⚠️ `article.post-body img` 拆出来是 ['article.post-body','img']：那枚类**嵌在同一枚复合单元里**，
+        所以判据是"倒数第二枚单元里含 `.post-body` 这个类"，不是"倒数第二枚等于 `.post-body`"——
+        写窄了就会把还债的那一条整个漏掉（内置 needle 第一次跑就是这么抓出来的）。
+        前缀允许元素名／别的类／`]`／`)`（复合单元的合法前驱），唯独不认 `(` ⇒ `:not(.post-body) img`
+        这种"反过来"的写法不算命中（它说的是**不在**正文里的 img）。 */
+  const unitsOf = sel => sel.split(/[\s>+~]+/).filter(Boolean);
+  const BODY_CLS = /(?:^|[a-zA-Z0-9_)\]}-])\.post-body(?![\w-])/;
+  const isBodyImg = sel => {
+    const u = unitsOf(sel);
+    if (u.length < 2) return false;
+    return BODY_CLS.test(u[u.length - 2])
+        && /^img(\.[\w-]+|\[[^\]]*\]|:{1,2}[\w-]+(\([^()]*\))?)*$/.test(u[u.length - 1]);
+  };
+
+  /* ---- 权重三级：id ／ class·伪类·属性 ／ 元素名·伪元素（只管上面点名的那一档）---- */
+  const specOf = sel => {
+    let id = 0, cls = 0, type = 0;
+    for (const u of unitsOf(sel)) {
+      let i = 0;
+      const head = /^(\*|[a-zA-Z][a-zA-Z0-9-]*)/.exec(u);
+      if (head) { if (head[0] !== '*') type++; i = head[0].length; }
+      while (i < u.length) {
+        if (u[i] === '#') { const m = /^#[a-zA-Z][\w-]*/.exec(u.slice(i)); id++; i += m ? m[0].length : 1; continue; }
+        if (u[i] === '.') { const m = /^\.[a-zA-Z][\w-]*/.exec(u.slice(i)); cls++; i += m ? m[0].length : 1; continue; }
+        if (u[i] === '[') { const j = u.indexOf(']', i); cls++; i = j < 0 ? u.length : j + 1; continue; }
+        if (u[i] === ':') {
+          const m = /^::?[\w-]+(\((?:[^()]|\([^()]*\))*\))?/.exec(u.slice(i));
+          if (!m) { i++; continue; }
+          if (m[0][1] === ':') { type++; i += m[0].length; continue; }     // 伪元素按 CSS 真值算元素级
+          const name = m[0].slice(1).replace(/\(.*/, '');
+          const inner = /\(([^)]*)\)/.exec(m[0]);
+          if (name === 'where') { /* 零权重——那是它存在的理由 */ }
+          else if (inner && /^(not|is|matches|any)$/.test(name)) { const s2 = specOf(inner[1]); id += s2[0]; cls += s2[1]; type += s2[2]; }
+          else cls++;
+          i += m[0].length; continue;
+        }
+        i++;
+      }
+    }
+    return [id, cls, type];
+  };
+  const cmpSpec = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  const specTxt = s => `(${s[0]},${s[1]},${s[2]})`;
+
+  /* ---- 声明读数：块内最后一条 `position` 说话（同块重复以真值为准），`!important` 单记一档 ---- */
+  const declsOf = body => {
+    const out = [];
+    let cur = '', depth = 0, q = null;
+    for (const ch of body) {
+      if (q) { cur += ch; if (ch === q) q = null; continue; }
+      if (ch === '"' || ch === "'") { q = ch; cur += ch; continue; }
+      if (ch === '(') depth++;
+      else if (ch === ')') depth = Math.max(0, depth - 1);
+      if (ch === ';' && depth === 0) { out.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    if (cur.trim()) out.push(cur);
+    return out.map(d => d.trim()).filter(Boolean);
+  };
+  const positionOf = body => {
+    let pos = null, imp = false;
+    for (const d of declsOf(body)) {
+      const m = /^position\s*:\s*(.+)$/i.exec(d);
+      if (!m) continue;
+      let v = m[1].trim();
+      imp = /!\s*important\b/i.test(v);
+      v = v.replace(/!\s*important\b/i, '').trim();
+      pos = v.toLowerCase();
+    }
+    return { pos, imp };
+  };
+
+  /* ---- 那份 HTML 实际吃了哪几份表、按什么顺序（层叠的"先后"只能由它给，不是文件名字典序）---- */
+  const styleLinksOf = html => [...html.matchAll(/<link\b[^>]*>/gi)]
+    .filter(t => /rel=(?:"[^"]*\bstylesheet\b[^"]*"|'[^']*\bstylesheet\b[^']*')/i.test(t[0]))
+    .map(t => { const m = /href=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(t[0]); return m ? decodeURIComponent((m[1] ?? m[2] ?? m[3] ?? '').split('?')[0].split('#')[0]) : ''; })
+    .filter(Boolean)
+    .map(h => h.split('/').pop());
+
+  /* ---- 判决是纯函数（候选 ⇄ 红句），为了让内置 fixture 跑的是同一条代码而不是另写一份宽松版 ---- */
+  const judgeCascade = matched => {
+    const reds = [];
+    const withPos = matched.filter(m => m.pos !== null);
+    if (!matched.length) return { reds: ['命中 0 枚规则 ⇒ 这一格没有靶（形状谓词读不出"`.post-body` 后跟 `img`"的那两枚对手，判据空转不算过）'], winner: null, basis: null, withPos };
+    if (!withPos.length) return { reds: [`命中 ${matched.length} 枚规则却没有一枚声明 position ⇒ 这一格读不到"裁框 ⇄ 不裁框"这一问的答案（判据空转不算过）`], winner: null, basis: null, withPos };
+    const essay = withPos.filter(m => m.pos === 'static');
+    const base = withPos.filter(m => m.pos !== 'static');
+    if (!essay.length) reds.push('essay 那条不在：命中形状的规则里找不到声明 `position:static` 的那一枚 ⇒ 还债的那一手被摘掉了，正文配图重新落进裁框（`.frame` 塌成 2px 那一族的起手式，§8.4 末那笔债）');
+    if (!base.length) reds.push(`底座那条不在：命中形状的 ${matched.length} 枚规则里没有一枚声明非 static 的 position${matched.some(m => m.pos === null) ? `（${matched.filter(m => m.pos === null).map(m => '`' + m.sel + '`').join(' / ')} 在场却**没声明 position** ⇒ 它不是对手，"看着有两枚"不等于"真有两枚"）` : ''} ⇒ 量具失去了靶；"没有对手"不许被读成"通过"`);
+    const better = (x, y) => x.imp !== y.imp ? (x.imp ? 1 : -1) : (cmpSpec(x.spec, y.spec) || x.seq - y.seq);
+    const winner = withPos.reduce((a, b) => better(a, b) > 0 ? a : b);
+    const rivals = withPos.filter(m => m !== winner);
+    if (winner.pos !== 'static') reds.push(`胜者不是 static：\`${winner.sel}\`〔${winner.sheet}${winner.at ? ` ／ ${winner.at}` : ''}〕交回 \`position:${winner.pos}${winner.imp ? ' !important' : ''}\`，压住的是 ${rivals.map(m => `\`${m.sel}\`(${m.pos})`).join(' / ')} ⇒ 正文配图按裁框走，\`.frame\` 会塌、照片被 overflow:hidden 裁进 0 高内容盒`);
+    const tied = rivals.filter(m => m.imp === winner.imp && cmpSpec(m.spec, winner.spec) === 0);
+    if (tied.length) reds.push(`胜者靠的是打包顺序不是权重：\`${winner.sel}\` 与 ${tied.map(m => '`' + m.sel + '`').join(' / ')} 权重同为 ${specTxt(winner.spec)}、同 !important 档 ⇒ 谁赢只看这两份 _astro/*.css 在 HTML 里的先后（本仓签的修法明写"靠权重赢，不靠打包顺序"，§8.8 那句"那是运气不是设计"）`);
+    return { reds, winner, basis: winner.imp ? '!important' : (tied.length ? '打包顺序' : '权重'), withPos };
+  };
+
+  /* ---- 内置自证：两侧都有格子 ---- */
+  const broken = [];
+  let tried = 0;
+  const probe = (ok, msg) => { tried++; if (!ok) broken.push(msg); };
+  const M = (sel, pos, seq, sheet = 'S', imp = false) => ({ sel, pos, imp, seq, sheet, at: '', spec: specOf(sel) });
+
+  probe(isBodyImg('.post-body img') && isBodyImg('article.post-body img') && isBodyImg('.post-body > img') && isBodyImg('.post-body img.in') && isBodyImg('html body .post-body img'),
+    '收集器读不出 `.post-body img` 那一族的正样本（含 `article` 前缀／`>` 组合符／`.in` 后缀）⇒ 尺子已经不看形状了');
+  probe(!isBodyImg('.cover img') && !isBodyImg('.post-bodyx img') && !isBodyImg('.post-body .img') && !isBodyImg('.post-body p') && !isBodyImg('.post-body figure.shot img') && !isBodyImg('img') && !isBodyImg(':not(.post-body) img'),
+    '一枚不该命中的选择器被判成命中（`.cover img`／`.post-bodyx img`／`.post-body .img`／`.post-body p`／`.post-body figure.shot img`／裸 `img`／`:not(.post-body) img`）⇒ 判据宽到什么都不管');
+  probe(specOf('article.post-body img').join() === '0,1,2' && specOf('.post-body img').join() === '0,1,1',
+    `权重三级读错：essay 那条应当 (0,1,2)、底座那条应当 (0,1,1)，实测 ${specTxt(specOf('article.post-body img'))} / ${specTxt(specOf('.post-body img'))} ⇒ 胜负的地基本身是错的`);
+  probe(specOf('#a .post-body img').join() === '1,1,1' && specOf('[data-x] .post-body img').join() === '0,2,1'
+    && specOf('.post-body img:hover').join() === '0,2,1' && specOf('.post-body img::before').join() === '0,1,2'
+    && specOf('.post-body img:nth-child(2)').join() === '0,2,1' && specOf(':where(.z) .post-body img').join() === '0,1,1'
+    && specOf('.post-body :not(.x) img').join() === '0,2,1',
+    '权重函数在那几档上读错（`#`／`[]`／伪类／伪元素按元素级／带参伪类／`:where()` 零权重／`:not()` 吃参数）⇒ 它只对本格用得上的那一档负责，但那几档必须对');
+  {
+    const fx = parseRules('/* .post-body img{position:absolute} 注释里那枚不算 */@media (max-width:720px){.post-body img{position:absolute}}.cover img,.post-body img{filter:blur(2px)}article.post-body img{position:static !important}img{position:relative}', 'F');
+    const got = fx.filter(r => isBodyImg(r.sel)).map(r => ({ ...r, ...positionOf(r.body), spec: specOf(r.sel) }));
+    probe(fx.length === 5, `fixture 应当解析出 5 枚规则（注释里那枚不算），实测 ${fx.length} ⇒ 收集器把注释或 at-rule 前言数成了规则`);
+    probe(got.length === 3 && got.some(g => g.at.startsWith('@media') && g.pos === 'absolute') && got.some(g => g.pos === 'static' && g.imp) && got.some(g => g.pos === null),
+      `@media 里那条没收到／\`!important\` 没读出来／没声明 position 的那枚被读成了声明 ⇒ 尺子对产物形状的理解已经偏了（实测 ${got.map(g => `${g.sel}=${g.pos}${g.imp ? '!imp' : ''}@${g.at || '-'}`).join(' | ')}）`);
+  }
+  const jGood = judgeCascade([M('.post-body img', 'absolute', 2, 'Layout.css'), M('article.post-body img', 'static', 1, '_slug_.css')]);
+  probe(jGood.reds.length === 0 && jGood.winner.sel === 'article.post-body img' && jGood.basis === '权重',
+    `今天的合法态被误报（essay (0,1,2) 以权重压过底座 (0,1,1)，而它在 HTML 里排在**前面**）⇒ 判据朝窄侧失灵、真产物会恒红：${jGood.reds.join(' ')}`);
+  const jWide = judgeCascade([M('.post-body img', 'absolute', 2, 'Layout.css'), M('.post-body img', 'static', 1, '_slug_.css')]);
+  probe(jWide.reds.length >= 2 && jWide.winner.pos === 'absolute' && jWide.basis === '打包顺序',
+    '"摘掉 `article` 那枚权重"那一支没被判成红（胜者应为 absolute，且必须同时报"靠打包顺序取胜"）⇒ 这正是今天真实存在的静默回归，朝宽侧没有牙');
+  const jLucky = judgeCascade([M('.post-body img', 'absolute', 1, 'Layout.css'), M('.post-body img', 'static', 2, '_slug_.css')]);
+  probe(jLucky.reds.some(x => /打包顺序/.test(x)) && jLucky.reds.every(x => !/胜者不是 static/.test(x)),
+    '平局而运气好（static 恰好排在后面）时没红，或误报了"胜者不是 static" ⇒ ④ 那一支不成立：靠运气赢的这一族迟早被打包顺序翻掉');
+  probe(judgeCascade([M('article.post-body img', 'static', 1)]).reds.some(x => /底座那条不在/.test(x)),
+    '"底座那条消失了"没被判成红 ⇒ 把名单里的 `.post-body img` 摘掉会静默通过，而"没有对手"从来不是通过');
+  probe(judgeCascade([M('.post-body img', 'absolute', 1)]).reds.some(x => /essay 那条不在/.test(x)),
+    '"essay 那条消失了"没被判成红 ⇒ 还债的那一手被摘掉会静默通过');
+  probe(judgeCascade([M('.post-body img', null, 1), M('article.post-body img', 'static', 2)]).reds.some(x => /底座那条不在/.test(x) && /没声明 position/.test(x)),
+    '对手在场却没声明 position 时没红，或红句没点名"没声明 position" ⇒ ② 那一支没有牙（"看着有两枚"会被读成"真有两枚"）');
+  probe(judgeCascade([M('.post-body img', null, 1), M('.post-body img.in', null, 2)]).reds.some(x => /没有一枚声明 position/.test(x)),
+    '命中两枚而零枚声明 position，没被判成"判据空转"');
+  probe(judgeCascade([]).reds.length === 1 && /命中 0 枚/.test(judgeCascade([]).reds[0]),
+    '零命中没被判成红 ⇒ "扫了但没匹配到"会被读成通过');
+  probe(judgeCascade([M('.post-body img', 'absolute', 1, 'a', true), M('article.post-body img', 'static', 2)]).reds.some(x => /胜者不是 static/.test(x)),
+    '底座加一枚 `!important` 压过 (0,1,2) 的 static，没被判成红 ⇒ 权重之外的胜负通道没有读数');
+  probe(judgeCascade([M('.post-body img', 'absolute', 1), M('article.post-body img', 'static', 2, 'b', true)]).reds.length === 0,
+    'essay 侧用 `!important` 取胜被误报 ⇒ 这一格禁的是"靠打包顺序赢"，禁不了别的已签字写法');
+  for (const b of broken) problems.push(`1h 正文配图层叠 needle：${b} ⇒ 这把尺子已经坏了，下面那句"产物全过"从此不可信`);
+
+  /* ---- 盘上判决 ---- */
+  const sheets = existsSync(ASTRO) ? readdirSync(ASTRO).filter(n => /\.css$/i.test(n)).sort() : [];
+  if (!sheets.length) problems.push(`1h 正文配图层叠：${DIST}/_astro/ 里一枚 .css 都没读到 ⇒ 这一格没有对象（build 没产出样式表，或传了空的 --dist；"读不到"从来不算通过）`);
+  const parsed = new Map();
+  for (const n of sheets) {
+    let raw;
+    try { raw = readFileSync(join(ASTRO, n), 'utf8'); }
+    catch (e) { problems.push(`1h 正文配图层叠：读不开 ${n}（${e.message}）⇒ 打印的枚数不再等于全量，这一格的口径不完整`); continue; }
+    const all = parseRules(raw, n);
+    parsed.set(n, { total: all.length, matched: all.filter(r => isBodyImg(r.sel)).map(r => ({ ...r, ...positionOf(r.body), spec: specOf(r.sel) })) });
+  }
+  const ruleTotal = [...parsed.values()].reduce((s, v) => s + v.total, 0);
+  const matchedSheets = [...parsed.values()].reduce((s, v) => s + v.matched.length, 0);
+  const posSheets = [...parsed.values()].reduce((s, v) => s + v.matched.filter(m => m.pos !== null).length, 0);
+
+  const pages = routable.map(p => ({ id: p.id, file: join(DIST, 'essays', p.id, 'index.html') })).filter(t => existsSync(t.file));
+  if (!pages.length) problems.push(`1h 正文配图层叠：dist/essays/<id>/index.html 一份都没进到窗（可路由稿件 ${routable.length} 篇）⇒ 这一格没有载体，判据空转不算过`);
+  let judged = 0;
+  const verdicts = new Map();
+  for (const t of pages) {
+    const order = styleLinksOf(readFileSync(t.file, 'utf8'));
+    if (!order.length) { problems.push(`1h 正文配图层叠 ${t.id}：那份产物读不出任何 \`<link rel="stylesheet">\` ⇒ 层叠的"先后"没有依据，胜负算不出来（"读不到"从来不算过）`); continue; }
+    let seq = 0;
+    const cand = [];
+    for (const name of order) {
+      const v = parsed.get(name);
+      if (!v) continue;                                  // 这份表不是 _astro/*.css（外链样式／内联）：不参与本问
+      for (const m of v.matched) cand.push({ ...m, seq: seq++ });   // 序列就是访客吃到的先后
+    }
+    const v = judgeCascade(cand);
+    judged++;
+    for (const red of v.reds) problems.push(`1h 正文配图层叠 ${t.id}：${red}`);
+    const key = v.winner ? `${v.winner.sel} \u0000 ${v.winner.pos} \u0000 ${v.basis} \u0000 ${order.join(' ')}` : '∅';
+    if (!verdicts.has(key)) verdicts.set(key, { v, ids: [], order });
+    verdicts.get(key).ids.push(t.id);
+  }
+  if (verdicts.size > 1) problems.push(`1h 正文配图层叠：${judged} 份详情页算出 ${verdicts.size} 种胜负（${[...verdicts.values()].map(x => `${x.ids.join('、')}⇒${x.v.winner ? x.v.winner.sel + ':' + x.v.winner.pos + '/' + x.v.basis : '读不出'}`).join(' ｜ ')}）⇒ 同一族正文配图在不同稿子上归谁管不一致，这一族的真值不止一处`);
+  const best = [...verdicts.values()][0];
+  notes.push(`1h 正文配图层叠 needle·形状：${tried} 条内置自证${broken.length ? `（**红 ${broken.length} 条**）` : '全过'}`
+    + `（两侧都有格子：正样本 5 枚命中／负样本 7 枚不命中；权重七档逐枚核；好态（(0,1,2) 压 (0,1,1)）不许误红、摘 \`article\`⇒平局且胜者 absolute 必红、平局但运气好也必红、少任一枚对手必红、对手没声明 position 必红、\`!important\` 两向各必红）`);
+  if (best && best.v.winner) {
+    const w = best.v.winner;
+    notes.push(`1h 正文配图·层叠：吃了 **${sheets.length} 枚** CSS（${sheets.join(' / ')}，共 ${ruleTotal} 枚规则）`
+      + ` ⇒ 命中"正文里 img"这枚形状 **${matchedSheets} 枚**（其中声明 position **${posSheets} 枚**）；详情页进窗 ${judged}/${routable.length} 份`
+      + `，表序 ${best.order.map(n => n.replace(/\.css$/i, '')).join(' → ')}；`
+      + `胜者逐字 \`${w.sel}\`〔${w.sheet}${w.at ? ` ／ ${w.at}` : ''}〕\`position:${w.pos}${w.imp ? ' !important' : ''}\`，权重 ${specTxt(w.spec)}；`
+      + `对手 ${best.v.withPos.filter(m => m !== w).map(m => `\`${m.sel}\`(position:${m.pos}, ${specTxt(m.spec)}, ${m.sheet})`).join(' / ') || '∅'}`
+      + ` ⇒ **裁决依据：${best.v.basis}**${best.v.reds.length ? ` ⇒ 这一格**红 ${best.v.reds.length} 条**（逐份点名见上面的红句，别把这一行读成过了）` : ' ✓'}（全站正文配图 0 枚也照跑——这一格读的是产物里的层叠，不是稿子里有没有图）`);
+  } else notes.push(`1h 正文配图·层叠：${judged} 份详情页进窗而胜者读不出（红句已在上面点名）——这一格没有绿，别把它读成过了`);
+}
+
 /* ---------- 2. 浏览器 ---------- */
 /* "这轮用哪一枚"的判定只有站内一处：`tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）。
    ⚠️ 原来这一段是 `EDGE_CANDIDATES.find(existsSync)`——本机 msedge 交回 rc=0/0 字节那枚死法它挡不住：
@@ -1453,7 +1718,7 @@ async function runPhase(kind, profiles) {
 /* 每槽位一枚一次性 profile：N 个并发浏览器不能共用 user-data-dir（会互相抢锁） */
 if (STATIC_ONLY) {
   console.log('\n  ⚠️ --static-only：**浏览器两档一次都没跑**（内联隔离档 / 完整档 / 五枚属性 / 运行时 DOM 那一格目录⇄刻度 / phase 对账全部未断言）。');
-  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的六段（1b 结构对账、1c 不列入、1d 死锚点两侧对账、1e 订阅宣告对账、1f head 时间戳与卡面 alt 对账、1g 三族索引的可见入口对账）跑完了。');
+  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的七段（1b 结构对账、1c 不列入、1d 死锚点两侧对账、1e 订阅宣告对账、1f head 时间戳与卡面 alt 对账、1g 三族索引的可见入口对账、1h 正文配图那一族的层叠胜负）跑完了。');
   console.log('     日常门禁 `npm run gate` 不带这一枚开关；它存在的理由见上面定义处那条环境记录。');
 } else {
   await runPhase('isolate', Array.from({ length: JOBS }, (_, i) => newProfile(`iso${i}`)));
@@ -1546,6 +1811,6 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(STATIC_ONLY
-  ? `\n✓ 不碰浏览器的那六段跑完且全过（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据／1g 三族入口）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
+  ? `\n✓ 不碰浏览器的那七段跑完且全过（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告／1f head 元数据／1g 三族入口／1h 正文配图层叠）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
   : `\n✓ 运行时五枚属性全部落地：${KEYS.join(' / ')}（内联脚本在跑，打包脚本也在跑）`);
 process.exit(0);
