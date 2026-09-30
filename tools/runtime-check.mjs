@@ -2,8 +2,6 @@
    用法  npm run build && node tools/runtime-check.mjs
          npm run gate   （= check && build && 本脚本，规范 §16 登记的落点）
          node tools/runtime-check.mjs --strict-site    （把占位域名的警告升成红）
-         node tools/runtime-check.mjs --browser=<路径> （指定浏览器；旧名 --edge= 一样认，也可设环境变量 MISTWOOD_BROWSER。
-                                    用哪一枚本来由 tools/browser-bin.mjs 现场探，探不到靶 ⇒ 红，不降级不跳过）
 
    要堵的洞（规范 §16 那条待办的原文）：`Layout.astro` 里两段 `<script is:inline>` 之一被写成
    "语法完全合法但整段不执行"（`})();` → `});`，IIFE 变成定义出来再丢弃的函数表达式），
@@ -57,10 +55,8 @@
       "名单点名的产物不在盘上就红"的断言——窗口宽窄与"读没读到"是两件事，都得有格子看着。
 
    ── 取 DOM 的路线结论（写死在这里，下次不必再试）─────────────────────────────
-   路线 A 通：Chromium 系浏览器 `--headless=new --user-data-dir=<一次性目录> --virtual-time-budget=6000 --dump-dom <url>`，
+   路线 A 通：`msedge --headless=new --user-data-dir=<一次性目录> --virtual-time-budget=6000 --dump-dom <url>`，
    stdout 就是脚本执行后的 outerHTML。没退到路线 B（CDP + Node 24 全局 WebSocket）——B 一次都没用上，属未验到。
-   ⚠️ **用的是哪一枚不在本脚本里定**（2026-09-30 `card/browserbin`）：`tools/browser-bin.mjs` 现场选定，
-   判据是"探得到靶"而不是"文件在盘上"——msedge 交回 rc=0/0 字节那枚死法就是被 existsSync 放过去的。
    没用 `file:///`：那底下 localStorage/sessionStorage 常被禁，且 `base:'/'` 的资源引用会断。
    服务用本脚本自带的 `http://127.0.0.1:<随机端口>`（显式绑 127.0.0.1），绕开 §16 ① 那个
    "dev/preview 只听 [::1]，127.0.0.1 直接 ERR_CONNECTION_REFUSED" 的坑——不依赖 astro preview 的绑定习惯。
@@ -83,7 +79,7 @@
                            浏览器两档当众报"没跑"（`card/anchors` 当天本机 msedge 起不来才加的退路；
                            日常 `npm run gate` 不引用它，别把它读成绿）
 */
-
+import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, resolve, sep } from 'node:path';
@@ -94,9 +90,6 @@ import { tmpdir } from 'node:os';
    `posts.js` 反而拿不了——那一层只做"取集合 + 滤草稿 + 排序"，规则本身在这份里）。
    front matter 的读法同 `new-post.mjs --check` 那一份：两处各写一个 split 迟早对"什么算草稿"读成两种。 */
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
-import { resolveBrowser, browserCandidates, spawnBrowser } from './browser-bin.mjs';
-/* 第十七轮 `card/aliases`：旧地址那一族的归一化读法也吃 shipped 的那一份（页面与门禁不会两套） */
-import { aliasesOf } from '../src/lib/taxonomy.js';
 import { isDraft, isUnlisted, sortPosts, categoryOf, tagGroups, bySize, groupBy } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -263,7 +256,7 @@ for (const name of postFiles) {
   if (!parsed) { problems.push(`${slug}：front matter 不成形，这一格的可见性判据读不出它是草稿还是已发布（宁缺不假绿）`); continue; }
   const tax = readTaxonomy(parsed.fmText);
   if (tax.errors.length) { problems.push(`${slug}：front matter 的四枚新键读不过预检（${tax.errors[0]}）——--check 那一格本该先拦下`); continue; }
-  corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, aliases: tax.aliases, date: new Date(parsed.fm.date) } });
+  corpus.push({ id: slug, body: raw, data: { category: tax.category, tags: tax.tags, draft: tax.draft, pinned: tax.pinned, unlisted: tax.unlisted, date: new Date(parsed.fm.date) } });
 }
 /* 三份名单，各对一个"页面那侧的谁"，一枚都不许多出来（第十五轮 `card/unlisted` 起了中间那枚）：
    · `routable` ⇄ `publishedPosts()`（只滤草稿）——**这些页必须在 dist/ 里存在**，包括不列入的那几枚；
@@ -276,35 +269,15 @@ const routable = sortPosts(corpus.filter(p => !isDraft(p)));
 const visible = sortPosts(routable.filter(p => !isUnlisted(p)));
 const unlisted = routable.filter(p => isUnlisted(p));
 const drafts = corpus.filter(p => isDraft(p));
-/* 目录的页（本轮 `card/pagination`）：第 1 页 `dist/essays/index.html` ＋ `dist/essays/page/<n>/index.html`
-   （页码升序）。这两格（顺序⇄门牌、草稿泄漏）从此**按页序读整份目录**，理由各是一次真会踩的红：
-   ① 只读第 1 页 ⇒ 投稿量一超过每页容量，对账就自己红（名单 5 篇 ⇄ 产物 3 行），而那枚红报的是
-      "判据没跟上分页"不是"页面坏了"——一把随页数漂的尺子读不出东西（§16 那条）；
-   ② 草稿泄漏那一格同理：一篇草稿要是只出现在第 2 页，旧那份四文件名单读不到它 ⇒ 假绿。
-   ⚠️ 这里**不 import** `src/lib/pagination.js` 去算"该有几页"：本格要的是"盘上有几页就读几页"；
-      "盘上的页集等于名单 ÷ 容量"那一问由 `tools/pagination-check.mjs` 第②格判——两格各管一件事，
-      拿同一枚纯函数当两处期望值是 §16 那条"期望数不许由被测对象自己出"要躲开的位置。 */
-const cataloguePages = () => {
-  const out = [[1, join(DIST, 'essays', 'index.html')]];
-  const ns = join(DIST, 'essays', 'page');
-  if (existsSync(ns)) for (const e of readdirSync(ns, { withFileTypes: true })){
-    if (!e.isDirectory() || !/^[2-9]\d*$/.test(e.name)) continue;
-    const at = join(ns, e.name, 'index.html');
-    if (existsSync(at)) out.push([Number(e.name), at]);
-  }
-  return out.sort((a, b) => a[0] - b[0]);
-};
-const CAT = cataloguePages();
 /* ⚠️ 键里那四枚相对 DIST 而言**不带** dist/ 前缀——上一版把显示名和路径名混成一枚串，
    join(DIST, 'dist/essays/index.html') 得到 dist/dist/... ⇒ 四份产物一份都不存在、被 filter 静默丢掉，
    "草稿泄漏"那一格于是变成零对象的空转还照样 exit 0。本卡第一次喂进真草稿才把它撞出来（见下面那条红）。
-   现在 rel 只管给人看、parts 只管找文件，两件事分开写；第 2 页起的 rel 由 CAT 直接给全路径名。 */
+   现在 rel 只管给人看、parts 只管找文件，两件事分开写。 */
 const READABLE = [['dist/essays/index.html', ['essays', 'index.html']],
                   ['dist/index.html', ['index.html']],
                   ['dist/rss.xml', ['rss.xml']],
                   ['dist/atom.xml', ['atom.xml']]]
   .map(([rel, parts]) => ({ rel, path: join(DIST, ...parts), html: null }))
-  .concat(CAT.filter(([n]) => n > 1).map(([n, path]) => ({ rel: `dist/essays/page/${n}/index.html`, path, html: null })))
   .filter(t => existsSync(t.path));
 /* ⚠️ 这一格的"看得见"与"判据"同等重要（§16 那条老账：全绿却不打印数，就等于没人知道它跑没跑）：
    有草稿时逐枚点名"产物里没有它"，没草稿时点名"今天没有对象"，一份可读产物都找不到时算红而不是算过。 */
@@ -322,29 +295,24 @@ for (const p of drafts) {
   if (clean) gone.push(p.id);
 }
 if (gone.length) notes.push(`草稿对账：${drafts.length} 篇 draft（${drafts.map(d => d.id).join('、')}）——逐个回读 dist/essays/<id>/index.html 不存在、${READABLE.length} 份可读产物（${READABLE.map(t => t.rel).join(' / ')}）零提及 ✓`);
-/* 列表顺序 ⇄ 产物里各行的先后（本轮 `card/pagination` 起：目录可能不止一页 ⇒ 按页序把各页的行拼起来比）
-   ⚠️ 两处跟着变，各是一种坏法：
-   ① 行改吃 `data-slug` 而不是扫 `/essays/<id>/` 那种 href——第 1 页一旦挂上"下一页 → /essays/page/2/"，
-      旧写法会把 `page` 数成一枚稿子（假红），而翻页那一族本来就不在这份名单里；
-   ② 不再 dedupe：一枚 data-slug 就是一行，重复一行就是目录真的重复列了它（旧那份去重是为了盖掉
-      同一页里别处提到详情页地址的字节，换成 data-slug 之后那个理由不存在了）。 */
+/* 列表顺序 ⇄ 产物里各行的先后 */
 {
-  const rows = [], folios = [];
-  for (const [, f] of CAT){
-    const html = stripComments(readFileSync(f, 'utf8'));
-    rows.push(...[...html.matchAll(/data-slug="([^"]+)"/g)].map(m => m[1]));
-    folios.push(...[...html.matchAll(/class="folio">(\d{2})</g)].map(m => Number(m[1])));
+  const listPath = join(DIST, 'essays', 'index.html');
+  if (!existsSync(listPath)) problems.push('dist/essays/index.html 不在 ⇒ 顺序与草稿泄漏两笔判据都没了对象（这一格在空转）');
+  else {
+    const html = stripComments(readFileSync(listPath, 'utf8'));
+    const seen = [...html.matchAll(/\/essays\/([a-z0-9-]+)\//g)].map(m => m[1]);
+    const uniq = seen.filter((v, i) => seen.indexOf(v) === i);
+    const want = visible.map(p => p.id);
+    if (uniq.join(' ') !== want.join(' ')) problems.push(`/essays/ 里各行的先后是 ${uniq.join(' ')}，而 visiblePosts() 给的是 ${want.join(' ')} ⇒ 列表自己又排了一遍（或置顶没生效）——顺序只许住在 lib/posts.js`);
+    else notes.push(`列表顺序对账：产物 ${uniq.length} 行 ＝ visiblePosts() 的顺序（置顶在最前，其余按日期倒序）✓`);
+    /* 门牌必须连着数：置顶插到最前之后，folio 仍旧 01 02 03…（§15 那一格点名的就是这一条——
+       编号是从渲染顺序加出来的，不是从日期算的，所以它比"顺序对不对"更狠一点：漏一号也是红） */
+    const folios = [...html.matchAll(/class="folio">(\d{2})</g)].map(m => Number(m[1]));
+    const expect = want.map((_, i) => i + 1);
+    if (folios.join(' ') !== expect.join(' ')) problems.push(`/essays/ 的门牌读出来是 ${folios.join(' ')}，应该是 01…${String(want.length).padStart(2, '0')} 连续一号 —— 编号跨了分节就会断，断在那儿没人报告`);
+    else notes.push(`门牌对账：${folios.length} 号连续（01…${String(folios.length).padStart(2, '0')}）✓`);
   }
-  const want = visible.map(p => p.id);
-  if (!CAT.length || !existsSync(CAT[0][1])) problems.push('dist/essays/index.html 不在 ⇒ 顺序与草稿泄漏两笔判据都没了对象（这一格在空转）');
-  else if (rows.join(' ') !== want.join(' ')) problems.push(`目录各页（${CAT.map(x => x[0]).join('/')} 页）的行拼起来是 ${rows.join(' ') || '（零枚）'}，而 visiblePosts() 给的是 ${want.join(' ')} ⇒ 列表自己又排了一遍、置顶没生效、或者分页吞了/重了一枚——顺序只许住在 lib/posts.js`);
-  else notes.push(`列表顺序对账：${CAT.length} 页共 ${rows.length} 行 ＝ visiblePosts() 的顺序（置顶在最前，其余按日期倒序）✓`);
-  /* 门牌必须连着数：置顶插到最前之后仍旧 01 02 03…，且**跨页也连着加**（§15 那一格点名的就是这一条——
-     编号是从渲染顺序加出来的，不是从日期算的，所以它比"顺序对不对"更狠一点：漏一号也是红。
-     分页之后这一条从"跨年分节连号"扩成"跨年分节、跨页都连号"：门牌是"这份目录里第几行"，不是"这一页第几行"） */
-  const expect = want.map((_, i) => i + 1);
-  if (folios.join(' ') !== expect.join(' ')) problems.push(`目录的门牌跨页读出来是 ${folios.join(' ')}，应该是 01…${String(want.length).padStart(2, '0')} 连续一号 —— 编号跨了分节或跨了页就会断，断在那儿没人报告`);
-  else notes.push(`门牌对账：${folios.length} 号跨页连续（01…${String(folios.length).padStart(2, '0')}）✓`);
 }
 /* 关于页的篇数 ⇄ 可见稿件数（同一把尺子，§15） */
 {
@@ -556,14 +524,7 @@ const markSpansOf = html => {
      旧写法读不到后者，于是"给不列入的那一篇递一枚原文地址"会绿着过全站 href 扫描，
      而那正是这一族唯一要防的形状换了个文件名又来一次。`-next` 那枚反例钉住它没有放宽到"前缀像"：
      尾斜杠在比较串里是必须的，`/essays/x-next/` 落不进 `/essays/x/`。 */
-  /* ⚠️ 第十七轮 `card/aliases` 再扩一次：同一篇稿子现在可能有**第三种表示**——作者声明过的那几枚旧地址
-     （`/2026/foo/` 之类，`src/pages/[...alias].astro` 为它们各烘一枚跳转页）。旧地址算不算"指向这一篇"？
-     算。§15 那一格签的是"它自己的地址是唯一入口"，而一枚被人链过去的旧地址就是第二枚入口——
-     认不出它的那一版扫描会绿着放行"给不列入那一篇递一枚旧地址"，与上一轮那枚 `.md` 同址写法是同一族坏形状。
-     名单不在这里另算：它来自同一份 front matter 与 shipped 的 `aliasesOf()`（上面 `corpus` 那一份 data 里
-     带着 `aliases`），所以"哪些旧地址归谁"这一件事全站只有一处真值。第三枚参数就是那一枚名单，默认算出来是空的。 */
-  const aliasesOfId = id => { const p = corpus.find(x => x.id === id); return p ? aliasesOf(p) : []; };
-  const pointsTo = (h, id, alias = aliasesOfId(id)) => { const at = pathOf(h); return at.startsWith(`/essays/${id}/`) || alias.includes(at); };
+  const pointsTo = (h, id) => pathOf(h).startsWith(`/essays/${id}/`);
   const refsFrom = id => textArts.filter(t => !t.rel.startsWith(`/essays/${id}/`)).filter(t => hrefsOf(t.txt).some(h => pointsTo(h, id))).map(t => t.rel);
   /* 机器侧那五份产物：名字＝给人看的，parts＝找文件的（口径照上面 READABLE 那格——显示名与路径名分开写，
      混成一枚串就会得到 dist/dist/... 那种"一份都不存在、被 filter 静默丢掉"的空转） */
@@ -587,18 +548,10 @@ const markSpansOf = html => {
   probe(!pointsTo(`/essays/${NP}-next/`, NP), '一枚只是"前缀像"的地址被判成指向它 ⇒ 别稿的行会被数进这一枚的账，判据太宽');
   probe(!pointsTo(`/categories/${NP}/`, NP), '/categories/<同名>/ 被判成指向那一页 ⇒ 枚数会虚高');
   probe(!pointsTo(`/og/${NP}.png`, NP), '逐篇社交卡那枚文件名被判成指向这一篇 ⇒ 目录行与卡片同名的稿子会被自己那一页顶掉计数');
-  /* 第十七轮 `card/aliases` 那四枚：第三枚参数（这一篇声明过的旧地址）承重吗？两侧各有。
-     ⚠️ 这里喂的是 **fixture 名单**而不是按 corpus 算出来的那份：needle 那一枚 id（needle-probe）根本不是稿件，
-        拿"盘上真名单"（对它就是空集合）去断言"旧地址被判成指向它"就是永远断言不到——本仓为这一族写过
-        "在空集合上偷懒"那句（上面第三格的原话）。空名单那一枚钉的是反向：判据不许宽到把任何旧地址都算进来。 */
-  probe(pointsTo(`/2026/${NP}-old/`, NP, [`/2026/${NP}-old/`]), '作者声明过的旧地址没被判成指向这一篇 ⇒ 有人把不列入那一篇的旧地址链出去也不会红');
-  probe(pointsTo(`https://mistwood.example.com/2026/${NP}-old/`, NP, [`/2026/${NP}-old/`]), '绝对形式的旧地址没被判成指向它（feed 与 llms.txt 交的是绝对地址）');
-  probe(!pointsTo(`/2026/${NP}-old/`, NP, []), '名单为空时旧地址也被判成指向这一篇 ⇒ "0 处指向"会在每一枚旧地址上假红（判据太宽）');
-  probe(!pointsTo(`/2026/${NP}-old/`, 'other-post', [`/2026/other-old/`]), '另一篇的旧地址被判成指向这一篇 ⇒ 判据没有按"这一枚地址归谁"的名单比，一枚稿子的账会被别稿的旧地址撑大');
   probe(NOINDEX_RE.test('<meta name="robots" content="noindex">'), 'noindex 尺子读不到标准写法那一枚 meta');
   probe(!NOINDEX_RE.test('<meta name="description" content="noindex">'), 'noindex 尺子把别的 meta 也认了（判据太宽，会假绿在真正缺 meta 的那一页上）');
   for (const b of broken) problems.push(`不列入对账 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"0 处／0 次"从此不可信`);
-  notes.push(`不列入对账 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集 1、"算指向"正例 7、"不算指向"负例 5、noindex 2）；`
+  notes.push(`不列入对账 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}（href 收集 1、"算指向"正例 5、"不算指向"负例 3、noindex 2）；`
     + `窗口现扫 ${textArts.length} 份文本产物，在册 ${visible.length} 枚各验一次"<a href> 指得到"、机器侧 ${MACHINE.length} 份各验一次"读得到"`);
 
   /* ---- needle 之二／之三：盘上的正向见证物 ---- */
@@ -650,16 +603,14 @@ const markSpansOf = html => {
 }
 
 /* ---------- 2. 浏览器 ---------- */
-/* "这轮用哪一枚"的判定只有站内一处：`tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）。
-   ⚠️ 原来这一段是 `EDGE_CANDIDATES.find(existsSync)`——本机 msedge 交回 rc=0/0 字节那枚死法它挡不住：
-   文件在盘上就报"找到了浏览器"，而后面上面每一档 dump 拿到的是空串。现在"可用"的定义是**探得到靶**
-   （交回的 DOM 里带着只有 JS 跑过才存在的 `#probe→PROBE_OK`），探不到就是没有浏览器 ⇒ 照旧 die，不降级不跳过。 */
-const browserSkips = [];
-const BROWSER = await resolveBrowser({ flag: opt('browser') || opt('edge'), label: 'runtime-check', log: s => browserSkips.push(s.trim()) });
-const EDGE = BROWSER && BROWSER.bin;
-const EDGE_CANDIDATES = browserCandidates(opt('browser') || opt('edge')).map(c => c.bin);
-if (!EDGE) die(`没有一枚浏览器探得到靶（试过：${EDGE_CANDIDATES.join(' / ')}）\n${browserSkips.map(s => '    ' + s).join('\n')}`,
-  '  换浏览器传 --browser=<路径>（旧名 --edge= 也认）或设环境变量 MISTWOOD_BROWSER；这一条不降级、不跳过');
+const EDGE_CANDIDATES = [
+  opt('edge'),
+  process.env['PROGRAMFILES'] && join(process.env['PROGRAMFILES'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['PROGRAMFILES(X86)'] && join(process.env['PROGRAMFILES(X86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['LOCALAPPDATA'] && join(process.env['LOCALAPPDATA'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+].filter(Boolean);
+const EDGE = opt('edge') ? resolve(opt('edge')) : EDGE_CANDIDATES.find(p => existsSync(p));
+if (!EDGE || !existsSync(EDGE)) die(`找不到浏览器可执行文件（试过：${EDGE_CANDIDATES.join(' / ')}）`, '  换浏览器传 --edge=<路径>；这一条不降级、不跳过');
 
 /* ---------- 3. 一次性 profile（绝不碰用户真实 Edge 配置）---------- */
 function newProfile(tag) {
@@ -731,7 +682,7 @@ function dumpDom(url, profile) {
   launched++;
   return new Promise(res => {
     let child;
-    try { child = spawnBrowser(EDGE, [...FLAGS(profile), url], { cwd: EDGE_HOME, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    try { child = spawn(EDGE, [...FLAGS(profile), url], { cwd: EDGE_HOME, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
     catch (e) { return res({ fail: `spawn ${EDGE} 抛了：${e.message}` }); }
     const chunks = [];
     let size = 0, overflow = false, stderr = '', killed = false, done = false;
@@ -799,8 +750,6 @@ const tail = (s, n = 400) => (s || '').replace(/\s+/g, ' ').trim().slice(-n);
    同一阶段内并发是安全的：每个槽位一套自己的一次性 profile，不抢 user-data-dir 的锁。 */
 console.log(`  产物  ${DIST} —— ${PAGES.length} 份 HTML × 2 档 = ${PAGES.length * 2} 次浏览器`);
 console.log(`  浏览器 ${EDGE}`);
-console.log(`        为什么是它：${BROWSER.note}`);
-for (const s of browserSkips) console.log(`        ${s}`);
 console.log(`  服务  ${BASE}（一次性 profile ${JOBS * 2} 枚，跑完删）`);
 console.log('');
 

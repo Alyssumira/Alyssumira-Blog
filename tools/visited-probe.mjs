@@ -30,14 +30,13 @@
    （cli 档用它只为"等到渲染完"）；字形栅格化在两次出图之间会抖（§17 第 6 条，峰 |Δ|103）。
    ⚠️ 出图与 diff 一律落 %TEMP%，不进仓库（§17 第 5 条）。
 */
-
+import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join, dirname, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { inflateSync, deflateSync } from 'node:zlib';
-import { resolveBrowser, browserCandidates, spawnBrowser } from './browser-bin.mjs';
 
 const argv = process.argv.slice(2);
 const ROUTE = (argv.find(a => a.startsWith('--route=')) || '--route=cdp').slice(8);
@@ -63,15 +62,13 @@ function readTokens() {
 }
 const TK = readTokens();
 
-/* 用哪一枚浏览器不在这里判——站内唯一一处是 `tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）。
-   visited-probe 原来连 --edge= 都不认（只有三枚写死的 msedge 路径），现在命令行 --browser=／--edge=
-   与环境变量 MISTWOOD_BROWSER 由那一枚统一认。 */
-const browserSkips = [];
-const BROWSER = await resolveBrowser({ label: 'visited-probe', log: s => browserSkips.push(s.trim()) });
-const EDGE = BROWSER && BROWSER.bin;
-const EDGE_CANDIDATES = browserCandidates().map(c => c.bin);
-if (!EDGE) die(`没有一枚浏览器探得到靶（试过：${EDGE_CANDIDATES.join(' / ')}）\n${browserSkips.map(s => '  ' + s).join('\n')}`,
-  '  换浏览器传 --browser=<路径>（旧名 --edge= 也认）或设环境变量 MISTWOOD_BROWSER；这条不降级、不跳过');
+const EDGE_CANDIDATES = [
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  process.env['PROGRAMFILES'] && join(process.env['PROGRAMFILES'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['LOCALAPPDATA'] && join(process.env['LOCALAPPDATA'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+];
+const EDGE = EDGE_CANDIDATES.find(p => p && existsSync(p));
+if (!EDGE) die(`找不到 msedge（试过 ${EDGE_CANDIDATES.join(' / ')}）`, '  换浏览器传 --edge=<路径>；这条不降级、不跳过');
 
 /* 注入档只活在服务端内存里的那一次响应，仓库与 dist 一个字都不改（pixel-probe:22 同法）。
    canary 用 #FF00FF 是**故意违宪**的哨兵（§17 第 7 条"极端值自证"），不是要上线的色。
@@ -348,7 +345,7 @@ async function cdpOpen(profile) {
      ":visited 不画"到底是 headless 的历史服务缺席，还是 Blink 根本不画它。同一枚 Blink，只差 headless。 */
   const headless = flag('headed') ? null : '--headless=new';
   const extra = flag('headed') ? ['--window-size=1440,900', '--window-position=-4000,-4000', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling'] : [];
-  const browser = spawnBrowser(EDGE, [
+  const browser = spawn(EDGE, [
     ...(headless ? [headless] : []), `--user-data-dir=${profile}`, '--disable-gpu', '--hide-scrollbars',
     '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-background-networking',
     '--disable-sync', '--force-device-scale-factor=1', '--force-prefers-reduced-motion', '--remote-debugging-port=0',

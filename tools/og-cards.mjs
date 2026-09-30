@@ -33,10 +33,9 @@ import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, mkdtem
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
-import { resolveBrowser, browserCandidates, spawnBrowser } from './browser-bin.mjs';
 import { sortPosts, isDraft } from '../src/lib/taxonomy.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -150,14 +149,14 @@ function replaceOnce(src, re, to, what){
 }
 
 /* ---------- 4. 起浏览器（异步！runtime-check 文件头钉过的坑：spawnSync 冻住事件循环）---------- */
-/* 用哪一枚浏览器不在这里判——站内唯一一处是 `tools/browser-bin.mjs`（2026-09-30 `card/browserbin`）：
-   判据是**探得到靶**（交回的 DOM 里带着只有 JS 跑过才存在的标记），不是"msedge 的文件在不在盘上"。 */
-const browserSkips = [];
-const BROWSER = await resolveBrowser({ flag: opt('browser') || opt('edge'), label: 'og-cards', log: s => browserSkips.push(s.trim()) });
-const EDGE = BROWSER && BROWSER.bin;
-const EDGE_CANDIDATES = browserCandidates(opt('browser') || opt('edge')).map(c => c.bin);
-if (!EDGE) die(`没有一枚浏览器探得到靶（试过：${EDGE_CANDIDATES.join(' / ')}）\n${browserSkips.map(s => '  ' + s).join('\n')}`,
-  '  换浏览器传 --browser=<路径>（旧名 --edge= 也认）或设环境变量 MISTWOOD_BROWSER；这一条不降级、不跳过');
+const EDGE_CANDIDATES = [
+  opt('edge'),
+  process.env['PROGRAMFILES'] && join(process.env['PROGRAMFILES'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['PROGRAMFILES(X86)'] && join(process.env['PROGRAMFILES(X86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  process.env['LOCALAPPDATA'] && join(process.env['LOCALAPPDATA'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+].filter(Boolean);
+const EDGE = EDGE_CANDIDATES.find(p => existsSync(p));
+if (!EDGE) die(`找不到浏览器可执行文件（试过：${EDGE_CANDIDATES.join(' / ')}）`, '  换浏览器传 --edge=<路径>；这一条不降级、不跳过');
 
 let profiles = [];
 function newProfile(tag){
@@ -177,7 +176,7 @@ const FLAGS = (profile, budget) => [
 function runEdge(args){
   return new Promise(res => {
     let child;
-    try { child = spawnBrowser(EDGE, args, { cwd: dirname(EDGE), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    try { child = spawn(EDGE, args, { cwd: dirname(EDGE), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
     catch (e){ return res({ fail: `spawn ${EDGE} 抛了：${e.message}` }); }
     let out = '', err = '', done = false;
     child.stdout.on('data', d => { out = (out + d.toString('utf8')).slice(-400_000); });

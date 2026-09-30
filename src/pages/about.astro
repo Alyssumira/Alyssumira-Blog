@@ -12,7 +12,10 @@ import { intrinsicProps } from '../lib/image-dims.js';
    盒子由 `.portrait` 那枚 `width:220px; aspect-ratio:1/1`（:634）定，两枚属性从来不上屏（实测见规范 §8.4 那一格）。
    ⚠️ 说明写在 `---` 里而不是模板里：Astro 把 HTML 注释原样落进产物（`src/layouts/Layout.astro:21` 点过名）。 */
 import { visiblePosts } from '../lib/posts.js';
-import { fonts, notes } from '../data/site.js';
+import { fonts, notes, BIRTH_DATE } from '../data/site.js';
+/* 一生格子（`card/lifegrid`）：吃 `src/lib/lifegrid.js` 那三枚纯函数——与 `tools/lifegrid-check.mjs`
+   同一份实现（接法照 taxonomy.js：页面与门禁两处说了算的那种分叉，§16 记过）。 */
+import { parseBirth, lifeField, lifeFieldHtml } from '../lib/lifegrid.js';
 
 const EMAIL = 'mailto:chidanta_suki@qq.com';
 /* 站名与 GitHub 用户名是同一个字面量：这一行是全站唯一一处 github 地址（§13） */
@@ -22,6 +25,16 @@ const GITHUB = 'https://github.com/Alyssumira';
    "列表页与关于页必须是同一把尺子"讲的正是这一族；runtime-check 拿产物对这一笔账）。 */
 const f = siteFacts(await visiblePosts());
 const fontNames = fonts.map(x => x.name).join(' · ');
+
+/* 一生格子（`card/lifegrid`）：两枚输入——出生日与构建日，别的都不参与。
+   `f.now` 就是上面"构建于"那一行用的同一枚 `now`（§16 一页只许有一个构建时刻；取法见 src/lib/stats.js）。
+   ⚠️ 今天 `BIRTH_DATE` 是空串（`src/data/site.js` 里那一枚**没有默认值**的字段）⇒ `born` 是 false
+      ⇒ 这一片格子一格都不画，页面上只剩下面那句实话。不许退回"第 0 年"、也不许画一枚占位灰格
+      （§12:1000 那条"载入次数读不到时整行不出现"是同一条口径）。
+   ⚠️ 翻页／入场动效一格都不加（§1.2 一处动处处静）；这块也不进阅读区（§12「树影铺满子页」同族）。 */
+const birth = parseBirth(BIRTH_DATE);
+const life = birth ? lifeField(birth, f.now) : null;
+const born = !!life && life.weeks > 0;
 
 /* 仓库两头的日期同一天时不必写成一个区间——"2026.09.27 → 2026.09.27" 看起来像坏了 */
 const tended = !f.tended ? ''
@@ -104,7 +117,20 @@ const walk = notes[0];
             <dt>构建于</dt>
             <dd>{f.built}</dd>
           </div>
+          <!-- 一生格子这一行是那一块格子的**读数行**，也是它今天的空态（两种都由同一次求值给）：
+               出生日登记之后，这里出现的是"几格·每格一周·起点哪天"——三枚数摆在一起，
+               读者手里就有复算这一片格子的全部输入（构建日就在上一行）。
+               ⚠️ 拿不到的时候这里说的是"没有"，不是 0、不是"第 0 年"、也不是一串横线。 -->
+          <div>
+            <dt>一生格子</dt>
+            <dd>{born
+              ? `${life.weeks} 格 · 每格一周 · 起点 ${BIRTH_DATE}`
+              : '还没有可用的出生日，所以这一片格子一格都不画——每一格都得由出生日与构建日复算，起点没登记，就没有一格算得出来。'}</dd>
+          </div>
         </dl>
+        <!-- 数据到位那天才出现的格子：markup 由 src/lib/lifegrid.js 那一份渲染器给（页面与尺子同一份实现）。
+             aria-hidden：这一块是那一行读数的图形化，文字行已经把"几格"说给读屏的人了，这里不留第二句可打脸的话。 -->
+        {born ? <div class="life-grid" aria-hidden="true" set:html={lifeFieldHtml(birth, f.now)}/> : null}
         <!-- 年度弧（规范 §6 苔时弧那套画法的第二次使用，§15）：画的正是"构建这一刻，今年已经走完的这一段"。
              ⚠️ 只给形状、不给读数：这一行不写"第 N 天"也不写百分比，页面上出现的那个 dashoffset 是 `f.arc` 里
              算好的属性，读它的人只能读出"走过多少"这一件事。半径/圆心/视框与比值都来自 `src/lib/stats.js`
