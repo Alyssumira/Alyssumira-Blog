@@ -269,15 +269,35 @@ const routable = sortPosts(corpus.filter(p => !isDraft(p)));
 const visible = sortPosts(routable.filter(p => !isUnlisted(p)));
 const unlisted = routable.filter(p => isUnlisted(p));
 const drafts = corpus.filter(p => isDraft(p));
+/* 目录的页（本轮 `card/pagination`）：第 1 页 `dist/essays/index.html` ＋ `dist/essays/page/<n>/index.html`
+   （页码升序）。这两格（顺序⇄门牌、草稿泄漏）从此**按页序读整份目录**，理由各是一次真会踩的红：
+   ① 只读第 1 页 ⇒ 投稿量一超过每页容量，对账就自己红（名单 5 篇 ⇄ 产物 3 行），而那枚红报的是
+      "判据没跟上分页"不是"页面坏了"——一把随页数漂的尺子读不出东西（§16 那条）；
+   ② 草稿泄漏那一格同理：一篇草稿要是只出现在第 2 页，旧那份四文件名单读不到它 ⇒ 假绿。
+   ⚠️ 这里**不 import** `src/lib/pagination.js` 去算"该有几页"：本格要的是"盘上有几页就读几页"；
+      "盘上的页集等于名单 ÷ 容量"那一问由 `tools/pagination-check.mjs` 第②格判——两格各管一件事，
+      拿同一枚纯函数当两处期望值是 §16 那条"期望数不许由被测对象自己出"要躲开的位置。 */
+const cataloguePages = () => {
+  const out = [[1, join(DIST, 'essays', 'index.html')]];
+  const ns = join(DIST, 'essays', 'page');
+  if (existsSync(ns)) for (const e of readdirSync(ns, { withFileTypes: true })){
+    if (!e.isDirectory() || !/^[2-9]\d*$/.test(e.name)) continue;
+    const at = join(ns, e.name, 'index.html');
+    if (existsSync(at)) out.push([Number(e.name), at]);
+  }
+  return out.sort((a, b) => a[0] - b[0]);
+};
+const CAT = cataloguePages();
 /* ⚠️ 键里那四枚相对 DIST 而言**不带** dist/ 前缀——上一版把显示名和路径名混成一枚串，
    join(DIST, 'dist/essays/index.html') 得到 dist/dist/... ⇒ 四份产物一份都不存在、被 filter 静默丢掉，
    "草稿泄漏"那一格于是变成零对象的空转还照样 exit 0。本卡第一次喂进真草稿才把它撞出来（见下面那条红）。
-   现在 rel 只管给人看、parts 只管找文件，两件事分开写。 */
+   现在 rel 只管给人看、parts 只管找文件，两件事分开写；第 2 页起的 rel 由 CAT 直接给全路径名。 */
 const READABLE = [['dist/essays/index.html', ['essays', 'index.html']],
                   ['dist/index.html', ['index.html']],
                   ['dist/rss.xml', ['rss.xml']],
                   ['dist/atom.xml', ['atom.xml']]]
   .map(([rel, parts]) => ({ rel, path: join(DIST, ...parts), html: null }))
+  .concat(CAT.filter(([n]) => n > 1).map(([n, path]) => ({ rel: `dist/essays/page/${n}/index.html`, path, html: null })))
   .filter(t => existsSync(t.path));
 /* ⚠️ 这一格的"看得见"与"判据"同等重要（§16 那条老账：全绿却不打印数，就等于没人知道它跑没跑）：
    有草稿时逐枚点名"产物里没有它"，没草稿时点名"今天没有对象"，一份可读产物都找不到时算红而不是算过。 */
@@ -295,24 +315,29 @@ for (const p of drafts) {
   if (clean) gone.push(p.id);
 }
 if (gone.length) notes.push(`草稿对账：${drafts.length} 篇 draft（${drafts.map(d => d.id).join('、')}）——逐个回读 dist/essays/<id>/index.html 不存在、${READABLE.length} 份可读产物（${READABLE.map(t => t.rel).join(' / ')}）零提及 ✓`);
-/* 列表顺序 ⇄ 产物里各行的先后 */
+/* 列表顺序 ⇄ 产物里各行的先后（本轮 `card/pagination` 起：目录可能不止一页 ⇒ 按页序把各页的行拼起来比）
+   ⚠️ 两处跟着变，各是一种坏法：
+   ① 行改吃 `data-slug` 而不是扫 `/essays/<id>/` 那种 href——第 1 页一旦挂上"下一页 → /essays/page/2/"，
+      旧写法会把 `page` 数成一枚稿子（假红），而翻页那一族本来就不在这份名单里；
+   ② 不再 dedupe：一枚 data-slug 就是一行，重复一行就是目录真的重复列了它（旧那份去重是为了盖掉
+      同一页里别处提到详情页地址的字节，换成 data-slug 之后那个理由不存在了）。 */
 {
-  const listPath = join(DIST, 'essays', 'index.html');
-  if (!existsSync(listPath)) problems.push('dist/essays/index.html 不在 ⇒ 顺序与草稿泄漏两笔判据都没了对象（这一格在空转）');
-  else {
-    const html = stripComments(readFileSync(listPath, 'utf8'));
-    const seen = [...html.matchAll(/\/essays\/([a-z0-9-]+)\//g)].map(m => m[1]);
-    const uniq = seen.filter((v, i) => seen.indexOf(v) === i);
-    const want = visible.map(p => p.id);
-    if (uniq.join(' ') !== want.join(' ')) problems.push(`/essays/ 里各行的先后是 ${uniq.join(' ')}，而 visiblePosts() 给的是 ${want.join(' ')} ⇒ 列表自己又排了一遍（或置顶没生效）——顺序只许住在 lib/posts.js`);
-    else notes.push(`列表顺序对账：产物 ${uniq.length} 行 ＝ visiblePosts() 的顺序（置顶在最前，其余按日期倒序）✓`);
-    /* 门牌必须连着数：置顶插到最前之后，folio 仍旧 01 02 03…（§15 那一格点名的就是这一条——
-       编号是从渲染顺序加出来的，不是从日期算的，所以它比"顺序对不对"更狠一点：漏一号也是红） */
-    const folios = [...html.matchAll(/class="folio">(\d{2})</g)].map(m => Number(m[1]));
-    const expect = want.map((_, i) => i + 1);
-    if (folios.join(' ') !== expect.join(' ')) problems.push(`/essays/ 的门牌读出来是 ${folios.join(' ')}，应该是 01…${String(want.length).padStart(2, '0')} 连续一号 —— 编号跨了分节就会断，断在那儿没人报告`);
-    else notes.push(`门牌对账：${folios.length} 号连续（01…${String(folios.length).padStart(2, '0')}）✓`);
+  const rows = [], folios = [];
+  for (const [, f] of CAT){
+    const html = stripComments(readFileSync(f, 'utf8'));
+    rows.push(...[...html.matchAll(/data-slug="([^"]+)"/g)].map(m => m[1]));
+    folios.push(...[...html.matchAll(/class="folio">(\d{2})</g)].map(m => Number(m[1])));
   }
+  const want = visible.map(p => p.id);
+  if (!CAT.length || !existsSync(CAT[0][1])) problems.push('dist/essays/index.html 不在 ⇒ 顺序与草稿泄漏两笔判据都没了对象（这一格在空转）');
+  else if (rows.join(' ') !== want.join(' ')) problems.push(`目录各页（${CAT.map(x => x[0]).join('/')} 页）的行拼起来是 ${rows.join(' ') || '（零枚）'}，而 visiblePosts() 给的是 ${want.join(' ')} ⇒ 列表自己又排了一遍、置顶没生效、或者分页吞了/重了一枚——顺序只许住在 lib/posts.js`);
+  else notes.push(`列表顺序对账：${CAT.length} 页共 ${rows.length} 行 ＝ visiblePosts() 的顺序（置顶在最前，其余按日期倒序）✓`);
+  /* 门牌必须连着数：置顶插到最前之后仍旧 01 02 03…，且**跨页也连着加**（§15 那一格点名的就是这一条——
+     编号是从渲染顺序加出来的，不是从日期算的，所以它比"顺序对不对"更狠一点：漏一号也是红。
+     分页之后这一条从"跨年分节连号"扩成"跨年分节、跨页都连号"：门牌是"这份目录里第几行"，不是"这一页第几行"） */
+  const expect = want.map((_, i) => i + 1);
+  if (folios.join(' ') !== expect.join(' ')) problems.push(`目录的门牌跨页读出来是 ${folios.join(' ')}，应该是 01…${String(want.length).padStart(2, '0')} 连续一号 —— 编号跨了分节或跨了页就会断，断在那儿没人报告`);
+  else notes.push(`门牌对账：${folios.length} 号跨页连续（01…${String(folios.length).padStart(2, '0')}）✓`);
 }
 /* 关于页的篇数 ⇄ 可见稿件数（同一把尺子，§15） */
 {
