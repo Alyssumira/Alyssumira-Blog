@@ -12,14 +12,12 @@ import { intrinsicProps } from '../lib/image-dims.js';
    盒子由 `.portrait` 那枚 `width:220px; aspect-ratio:1/1`（:634）定，两枚属性从来不上屏（实测见规范 §8.4 那一格）。
    ⚠️ 说明写在 `---` 里而不是模板里：Astro 把 HTML 注释原样落进产物（`src/layouts/Layout.astro:21` 点过名）。 */
 import { visiblePosts } from '../lib/posts.js';
-import { fonts, notes, BIRTH_DATE, EMAIL } from '../data/site.js';
+import { fonts, notes, BIRTH_DATE } from '../data/site.js';
 /* 一生格子（`card/lifegrid`）：吃 `src/lib/lifegrid.js` 那三枚纯函数——与 `tools/lifegrid-check.mjs`
    同一份实现（接法照 taxonomy.js：页面与门禁两处说了算的那种分叉，§16 记过）。 */
 import { parseBirth, lifeField, lifeFieldHtml } from '../lib/lifegrid.js';
 
-/* 邮箱那枚字面量原来就是这一行（`const EMAIL = 'mailto:…'`）——第十八轮 `card/reading2` 把它收进
-   `src/data/site.js`（挨着 `AUTHOR`），因为详情页的"写信回应这一篇"也要吃它：两枚同一个地址、
-   两处各写一遍，就是 §13a 点名的"抄的那份改了没人知道"那一族。这一页现在是消费者，不是真值所在地。 */
+const EMAIL = 'mailto:chidanta_suki@qq.com';
 /* 站名与 GitHub 用户名是同一个字面量：这一行是全站唯一一处 github 地址（§13） */
 const GITHUB = 'https://github.com/Alyssumira';
 /* ⚠️ 站点档案那几个数（篇数 / 字数 / 通读分钟）必须和列表页同一把尺子——尺子就是 visiblePosts()：
@@ -86,10 +84,7 @@ const walk = notes[0];
 
       <div class="contact reveal">
         <nav class="contact-links">
-          <!-- 地址来自 `src/data/site.js` 的 `EMAIL`（第十八轮 `card/reading2` 收编，全站唯一一处；
-               详情页那一枚"写信回应"吃的是同一枚，两处不会各写一个邮箱）。
-               空着 ⇒ 这一枚锚点整枚不出现（§14"没填 ⇒ 不出现"：`href=""` 是一枚点了停在原地的活壳）。 -->
-          {EMAIL && <a href={EMAIL}>email</a>}
+          <a href={EMAIL}>email</a>
           <a href={GITHUB} target="_blank" rel="noopener noreferrer">github</a>
         </nav>
         <!-- 节气是手填位（§7）：空着就不显示。算出来的近似节气不配站在分钟级时钟旁边 -->

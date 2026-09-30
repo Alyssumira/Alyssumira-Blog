@@ -93,6 +93,16 @@ if (fonts.some(f => !f.self)) throw new Error(`fonts 清单里这些族没有 se
      没有内联脚本、不碰首帧那五枚显示属性的判定（下面那段是全站唯一的内联写者，理由钉在 §16 第四类门禁） -->
 <Seo siteName={SITE_NAME} canonical={canonical} ogImage={ogImage} title={title} desc={desc} type={type} here={here} revised={revised} date={date} />
 <link rel="alternate" type="application/rss+xml" title="mistwood" href="/rss.xml">
+{/* 机器那一路的订阅宣告（§20 F1 的姊妹格）：站建了两份 feed——`dist/rss.xml` 与 `dist/atom.xml`
+     吃的是同一枚 `visiblePosts()`——可 head 从前只宣告 rss，于是 Atom 那一份**在盘上、阅读器却发现不了它**。
+     ⚠️ 这一枚不是屏幕上那行字：§20 裁的"不给 Atom 并列第二枚"管的是首页 `.hero-log` 里那枚**可见入口**
+     （并排两枚字递给读者的不是两份内容，是同一份清单的两副地址），这一枚是 `<head>` 里给机器读的宣告；
+     两者不冲突，这一行也没有推翻那一条裁决——那句话的分界就画在这里。
+     `href` 只许站内相对：绝对地址的唯一出处是 `astro.config.mjs` 的 SITE（§13a 身份件一处真值）。
+     `title` 与上面那枚同值——同一族的两副地址读起来必须像一份身份。
+     牙在 `tools/runtime-check.mjs` 的 1e 段（每页各恰一枚 ⇄ 两枚 feed 文档真在盘上 ⇄ 没有一枚
+     `rel="alternate"` 指向不存在的文件）。这一段是模板注释（不是 HTML 注释），一个字节都不落进产物。 */}
+<link rel="alternate" type="application/atom+xml" title="mistwood" href="/atom.xml">
 <!-- 原生预取（零 JS）：把目标文档在悬停时就备好，跨页转场（§8.3）才不会因为新文档还没加载完
      而退化成瞬时导航。conservative = 有真实交互意图才预取，不会一进来就把五个页面全拉下来 -->
 <script type="speculationrules" is:inline>

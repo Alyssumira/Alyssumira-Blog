@@ -4,22 +4,13 @@ import Layout from '../../layouts/Layout.astro';
 import { renderArticle, fmtDate, strictHref } from '../../lib/markdown.js';
 import { visiblePosts, publishedPosts } from '../../lib/posts.js';
 import { categoryOf, tagsOf, taxSlug, isUnlisted } from '../../lib/taxonomy.js';
-import { seriesOf, seriesSiblings } from '../../lib/series.js';
-/* 相关阅读（第十八轮 `card/reading2`，F4）：判据全部住在 `src/lib/related.js` 那一份**纯**实现里
-   （不 import 'astro:content'，所以 `tools/reading-check.mjs` 吃的是同一个函数），这一页只做两件事：
-   把 `visiblePosts()` 那份数组交进去、把拿回的清单画成链接。规则（唯一的排序信号＝共享的真 token 枚数、
-   平票保持池子顺序、上限 3 枚、任一侧零 token ⇒ 整块不出现、草稿与不列入不可能在里面）
-   逐条钉在那份文件的头上，这里不重述第二遍——重述就是给同一件事立第二处真值。 */
-import { relatedPosts } from '../../lib/related.js';
+import { seriesOf } from '../../lib/series.js';
 import { crumbTrail } from '../../lib/nav.js';
 import { lastRevisionDate, whenLine } from '../../lib/revised.js';
 /* 字数向 stats.js 要，不在这一页重新数一遍（文件头那句"列表页与关于页的总计必须是同一把尺子"
    同样管详情页）：cjkCount / latinWords 是 readMinutes 与 siteFacts.words 已经在吃的同一对函数，
    所以每一篇报的字数与关于页那个总数逐篇相加一定对得上——第三把尺子从一开始就不许存在。 */
 import { cjkCount, latinWords } from '../../lib/stats.js';
-/* 写信回应（F6）：邮箱地址向 `src/data/site.js` 要，不在这一页抄第二份（§13a 那句"抄的那份改了
-   没人知道"管的就是这一族；关于页那一枚今天也改成吃同一份）。 */
-import { EMAIL } from '../../data/site.js';
 
 export async function getStaticPaths(){
   /* 这一格里**两枚读函数各管一件事**（第十五轮 `card/unlisted`，口径写在 `src/lib/posts.js` 头上那段），
@@ -37,33 +28,16 @@ export async function getStaticPaths(){
   const routable = await publishedPosts();
   const listed = await visiblePosts();
   const nb = new Map(listed.map((p, i) => [p.id, { prev: listed[i - 1], next: listed[i + 1] }]));
-  /* 相关阅读（F4）的池子＝**同一份** `listed`：名单不在这里再排一遍、也不换个读函数取
-     （`publishedPosts()` 那枚"含不列入"的建路读函数一旦被拿来算相关，不列入的那一篇立刻
-     出现在别人的"相关的几篇"里——与上面 prev/next 那一格是同一枚牙，`tools/reading-check.mjs`
-     在产物上逐枚扫 href 钉着）。逐枚在**构建期**算好放进 props，模板里一个字节都不再算：
-     ⚠️ 模板要是在这里问集合，就是给 `getCollection('posts')` 开第二处入口（taxonomy-check ① 红的那种形状）。
-     ⚠️ 不列入的那一篇自己也有一格：它的页面照常存在，而它指出去的那几枚全在 `listed` 里 ⇒
-        这一格只出不进，"站内任何一处都不指向它"那一条一个字不破（`runtime-check` 的"不列入对账"钉的是"进"）。 */
-  const rel = new Map(routable.map(p => [p.id, relatedPosts(listed, p)]));
-  /* 系列内的上一篇／下一篇（F5）：邻居只从 `src/lib/series.js` 的 `seriesGroups()` 那一枚顺序里取——
-     它与 `/series/<slug>/` 那一页列的是**同一枚数组**（整组都有 `seriesOrder` 就按它升序、缺一枚就整组
-     退回按 `date`），所以"这一串里的上一枚"在两页上必然是同一个答案；这里不再排第二遍（§15"顺序只住一处"）。
-     ⚠️ 对账在 `tools/reading-check.mjs`：它拿系列页产物里那排 `.row` 的地址顺序反查详情页这两枚链接，
-        两页哪天分叉，红的是那一格，不是这份注释。
-     ⚠️ 池子同样只准是 `listed`：拿 `publishedPosts()` 那枚"含不列入"的建路读函数去算邻居，
-        不列入的稿子就会坐进每一组的邻居位——与上面 prev/next、related 是同一枚牙。 */
-  const sn = new Map(routable.map(p => [p.id, seriesSiblings(listed, p)]));
   /* 「改于」向 git 要，不向 front matter 要（§15 详情页那一格）：一次并发问完，问不到的那篇退 undefined。
      ⚠️ 判据的来源是 post.filePath（glob loader 交的是"相对 config.root"的路径），不是从 slug 拼一串——
      拼出来的那串碰上子目录稿件就指到不相干的文件，宁可不显示也不许指错。 */
   const revised = await Promise.all(routable.map(p => lastRevisionDate(p.filePath)));
   return routable.map((p, i) => {
     const at = nb.get(p.id);
-    const s = sn.get(p.id);
-    return { params: { slug: p.id }, props: { post: p, prev: at?.prev, next: at?.next, related: rel.get(p.id) ?? [], seriesPrev: s?.prev, seriesNext: s?.next, revised: revised[i].date } };
+    return { params: { slug: p.id }, props: { post: p, prev: at?.prev, next: at?.next, revised: revised[i].date } };
   });
 }
-const { post, prev, next, related, seriesPrev, seriesNext, revised } = Astro.props;
+const { post, prev, next, revised } = Astro.props;
 /* 不列入（第十五轮 `card/unlisted`）：这一页对那一枚键只做两件事，**页面本身照常是它**——
    ① 给壳传 `noindex={isUnlisted(post)}`（条件那一行在 `src/layouts/Layout.astro`，§13a 记过的同一招），
    ② 拿不到邻居 ⇒ 下面那一整块 `.post-nav` 不出现（口径在上面 `getStaticPaths` 那一段）。
@@ -110,48 +84,6 @@ const hasTax = !!catSlug || tags.length > 0;
    不新开第二种材质。站内地址，因此**不挂 `target`**：上面 `tabAttrs` 那枚 `^https?:` 的条件天然不成立，
    这里也不重写第二份协议判据。 */
 const seriesName = seriesOf(post), seriesSlug = taxSlug(seriesName);
-/* 相关阅读（F4，`docs/美化建议.md` §11.3 那格预签的"第二批 P1"第一枚）：清单由 `getStaticPaths` 里
-   那份 `relatedPosts(listed, post)` 算好交下来（池子＝`visiblePosts()`，与上下篇、两枚 feed 同一份数组），
-   这一格只把它**画出来**。落点是 `.post-tail` 的末位——那块就是"读完这篇之后"的那一排，
-   而它下面紧挨着的就是上下篇那一块（`.post-nav`），所以这一格确实住在"上下篇附近"那一格里。
-   ⚠️ **零新 CSS、零新垂直槽位**（`card/permit`／`card/series` 那一招的第三次使用）：行是
-   `<p class="post-when">`（在册 14px／`--ink-2`／`margin-top:14px`），链接挂 `.post-act`
-   （在册那一条 mono 12px 声明），`src/styles/**` 一个字没改 ⇒ `gap-check` 那 142 枚与圆角那 30 枚一个不动。
-   ⚠️ **没填 ⇒ 整块不出现**：三篇稿子的 `category` 与 `tags` 今天全空着 ⇒ `related` 是空数组 ⇒
-   产物里这一行一个字节都没有（不是"出现一条空的"、也不留一行"还没有相关推荐"，§14 那条）。
-   ⚠️ 行首那枚拉丁标签 `related` 与中文标题分两层（§7"两层各管一种语言"，同 `series ·`／`← prev` 那一族）；
-   标签本身不是链接——它没有对应的页面（`/related/` 这种东西不存在，画出来就是 §12 的死锚点）。
-   ⚠️ 站内地址，因此不挂 `target`，与上面 `tabAttrs` 那枚 `^https?:` 的条件天然不成立；这里不重写第二份协议判据。 */
-const relatedSegs = (related ?? []).map(r => ({ href: `/essays/${r.id}/`, text: r.data.title }));
-/* 系列内的上一篇／下一篇（F5）：两枚邻居由 getStaticPaths 里那一次 `seriesSiblings(listed, post)` 交出，
-   顺序与 `/series/<seriesSlug>/` 那一页从上往下数的是同一枚数组（理由与两种排序档在 `lib/series.js` 头上）。
-   ⚠️ 与全站按日期的上下篇**分开住**，因为它们是两件事：那一块（`.post-nav`）说的是"这个站里比我早一篇／
-      晚一篇"，这一行说的是"同一串里我的上一枚／下一枚"。合并成一块就会让同一个位置说两件事——
-      读者点下去之前不知道该落到哪一串里（`docs/美化建议.md` F5 那句"并存但分开"钉的就是这个）。
-      形状上也分开：那一块是 22px 衬线大字 ＋ `← prev`／`next →`，这一行是 `.post-when` 那 14px 说明 ＋
-      `.post-act` 那 12px 等宽链接（与许可行／系列行／相关行同源）⇒ 零新 CSS、零新垂直槽位。
-   ⚠️ **不印序数**（没有「第 N 篇」）：`seriesOrder` 可以整组都没填，编一个 N 就是 §12 的假数字（§15 那条）。
-   ⚠️ 三种拿不到邻居的情形（没填系列／这一组只有一篇／这一篇不列入）都整块不出现，不留一条空的（§14）。
-   ⚠️ 行里的字面只两样：拉丁标签 `in series` 与中文方向词 `上一篇`／`下一篇`，中间夹的是**标题本身**——
-      标题与地址都由 `seriesSiblings()` 交回的那一枚 post 现取，不在这里抄第二份。 */
-const seriesNavSegs = [];
-if (seriesPrev) seriesNavSegs.push({ href: `/essays/${seriesPrev.id}/`, text: `← 上一篇 ${seriesPrev.data.title}` });
-if (seriesNext) seriesNavSegs.push({ href: `/essays/${seriesNext.id}/`, text: `${seriesNext.data.title} 下一篇 →` });
-/* 写信回应（F6，`docs/美化建议.md` §11.3 预签的"第二批 P1"第三枚）：文末一枚 mailto，
-   `subject` 预填这一篇的篇名，**正文留空**——回信写什么归读者，我们不替他起头（塞一句模板话进去
-   就是 §12 那种假语义：那几行字看起来像作者说的，其实谁都没说）。
-   ⚠️ 这是"评论"在纯静态下的正确形态，不是它的替身演员：没有评论区、没有 Webmention、没有统计、
-      没有后端（§12 那两条"评论区 / Webmention 不做"与"编一个访问量"在这一格都被绕开了——
-      回应走到信里，站上不留任何一枚我们拿不到的数）。
-   ⚠️ 地址只有一个出处：`src/data/site.js` 的 `EMAIL`（关于页那一枚吃的是同一枚；两页各抄一份邮箱
-      就是 §13a 点名的"抄的那份改了没人知道"）。那一枚空着 ⇒ 这一整行不出现（§14"没填 ⇒ 不出现"，
-      `href=""` 是一枚点了停在原地的活壳）。
-   ⚠️ subject 走 `encodeURIComponent`：今天三篇的篇名就带着中文与 ` · `，随时可能出现引号——
-      不编码的话 `#` 会被当成片段起点、`&` 会开出第二枚参数、`%` 会留下半截转义，
-      那封邮件到达时主题已经不是这一篇的名字（RFC 6068 里 mailto 的参数本来就必须百分号编码）。
-   ⚠️ 形状：`.post-act` 那一族的**文字链接**，与许可行／系列行／相关行同一条声明——不是胶囊、
-      不是第四种按钮形状（§9 那句"没有一枚是胶囊形"照旧成立，那一格的枚数账本轮跟着改）。 */
-const letterHref = EMAIL ? `${EMAIL}?subject=${encodeURIComponent(post.data.title)}` : '';
 /* 每篇字数：构建期从**渲染前的稿子**（post.body，那份 md 原文）数，数得出才写（§12 假数字那一格）。
    ⚠️ 入参与 siteFacts 数 `p.body` 同一份，不是渲染后的 HTML：标签里的字母会被数成字。
    ⚠️ 没有"约"、没有向上取整、没有估——它是一枚加法的结果，读者拿稿子自己数应当一模一样。 */
@@ -323,24 +255,6 @@ const crumb = crumbTrail(HERE);
       )}
       {seriesSlug && (
         <p class="post-when">series · <a class="post-act" href={`/series/${seriesSlug}/`}>{seriesName}</a></p>
-      )}
-      {seriesNavSegs.length > 0 && (
-        /* 系列内导航（F5）：挨着上面那一行"这一串叫什么、它的索引页在哪儿"，这一行是"这一串里的前一枚／后一枚"。
-           两行都只在填了 series 时才存在，而下面那块 .post-nav 说的是全站日期邻居——两种语义三处都不混。 */
-        <p class="post-when">in series · {seriesNavSegs.map((s, i) => <>{`${i > 0 ? ' · ' : ''}`}<a class="post-act" href={s.href}>{s.text}</a></>)}</p>
-      )}
-      {relatedSegs.length > 0 && (
-        /* 相关的几篇（F4）：共享的真 token 枚数在前、平票保持目录顺序、至多 3 枚——三条都在
-           `src/lib/related.js` 头上签字，这里只照它给的顺序画，不在此排第二遍（§15"顺序只住一处"）。
-           枚数不印在行首：那一串 `N 篇` 与 `/series/` 页头那枚是同一族"数得出的真值"，可这一行的
-           真值是**这几枚标题本身**，多印一个数就多一处"这行说了几篇"与"这行画了几篇"打架的地方。 */
-        <p class="post-when">related · {relatedSegs.map((s, i) => <>{`${i > 0 ? ' · ' : ''}`}<a class="post-act" href={s.href}>{s.text}</a></>)}</p>
-      )}
-      {letterHref && (
-        /* 写信回应（F6）：这一行是 `.post-tail` 的末位——"读完之后能做的最后一件事"。
-           href 的三枚零件（地址、?subject=、编码过的篇名）全部在上面的 `letterHref` 那一行算完，
-           这里不拼第二遍；地址那一个出处在 `src/data/site.js`。 */
-        <p class="post-when">letter · <a class="post-act" href={letterHref}>写信回应这一篇</a></p>
       )}
     </div>
 
