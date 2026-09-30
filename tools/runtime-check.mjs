@@ -79,7 +79,7 @@
      --jobs=<n>            并发浏览器数（默认 4；每档每槽位一枚一次性 profile，共 2×jobs 枚，跑完删）
      --keep-profile        跑完不删临时 profile（调试用，会打印路径）
      --strict-site         占位域名从警告变红
-     --static-only         只跑不碰浏览器的三段（1b 结构／1c 不列入／1d 死锚点两侧对账），
+     --static-only         只跑不碰浏览器的四段（1b 结构／1c 不列入／1d 死锚点两侧对账／1e 订阅宣告），
                            浏览器两档当众报"没跑"（`card/anchors` 当天本机 msedge 起不来才加的退路；
                            日常 `npm run gate` 不引用它，别把它读成绿）
 */
@@ -112,7 +112,7 @@ const JOBS = Math.max(1, Number(opt('jobs') || 4));
 const STRICT_SITE = flag('--strict-site');
 /* ⚠️ `--static-only` 是给"本机起不了 headless 浏览器"那一条环境退路（2026-09-30 `card/anchors` 当天撞上：
    msedge 无论 `--dump-dom` 还是 `--screenshot` 都**当场 exit 0、零 stdout、零 stderr**，连 about:blank 都不出图，
-   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的三段（1b 结构／1c 不列入／1d 死锚点），
+   profile 目录倒是建起来了 ⇒ 24 次浏览器一枚都读不到数）。它只跑不碰浏览器的四段（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告），
    并且**当众打印"运行时 DOM 那一档没跑"**——它不是一条绿，是一次部分交付。
    `npm run gate` 一个字都没引用它；日常门禁仍然是两档 × 全站。 */
 const STATIC_ONLY = flag('--static-only');
@@ -504,6 +504,186 @@ const markSpansOf = html => {
   }
   if (dead.length) problems.push(`死锚点扫描：${dead.length} 枚具名片段在本页产物里找不到同值的 id —— ${dead.slice(0, 6).join('、')}`);
   else notes.push(`死锚点扫描（全站 ${PAGES.length} 份 HTML）：具名片段 ${named} 枚全部在本页找到 id ✓；空片段 href="#" ${empty} 枚（只报不判，口径见上面 1d 那段：它是消毒坏地址的正文兜底形状）`);
+}
+
+/* ---------- 1e. 订阅宣告对账：`<head>` 里那些 <link rel="alternate"> ⇄ dist/ 里那两枚 feed 文档（`card/atomlink`）----------
+   这一格钉的是**机器看得见的那一枚入口**。要堵的洞是盘面事实本身：站建了两份 feed（`dist/rss.xml` 与
+   `dist/atom.xml`，同一枚 `visiblePosts()` 喂的，见 `src/pages/atom.xml.js` 头上那段），而 `<head>` 从前只
+   宣告 rss ⇒ Atom 那一份**字节在盘上、阅读器与抓取器却发现不了它**。这种坏法 build 与 `check` 原理上看不见
+   （它不是"没产出"，是"产出了没人说"），所以只能由读产物的判据来钉。
+   ⚠️ 它管的是 `<head>` 那枚宣告，**不是**屏幕上那行字：§20 裁的"不给 Atom 并列第二枚"约束首页 `.hero-log`
+      的**可见入口**（并排两枚字给读者的不是两份内容，是同一份清单的两副地址）。机器宣告没有推翻那一条——
+      这条分界登记在 §20 那一格，别把这里读成"裁决改了"。
+   ⚠️ 落在**不碰浏览器**那一段（与 1b 结构／1c 不列入／1d 死锚点同层）：这一族只需盘上字节，
+      §16 那条分层说的是依赖方向——读 `dist/` 的判据排在 build 之后，塞进 `check` 会在干净检出上红环境。
+   断言四件，逐页（外加两枚文件级）：
+     ① 那一页读得出 `<head>`——缺宿主交回 null 并算红，"读不到"从来不许长成"读到零枚"（口径照 1d 的收集器）；
+     ② 在册的两枚 feed 各**恰一枚**宣告：`type` 同值、`href` 是站内相对写法且逐枚等于在册那枚地址；
+        同型多一枚、冒出一枚册外的 `+xml` 型，同样算红——"exactly the two"两侧都要有牙；
+     ③ 两枚在册宣告的 `title` 同值且非空：它们是同一族的两副地址，一份写"mistwood"一份写别的，
+        递给读者的就是两份身份（§13a 那句"宁可少字段，不多出处"的反面）；
+     ④ 这一页每一枚 `rel="alternate"` 的**站内** href 都落在 `dist/` 里真存在的文件上——
+        死宣告是死锚点的 head 版：阅读器照地址去取，取回 404，而页面上一个字都没坏。
+        绝对地址那一问不归这格（域名那笔账住在 §16 的 SITE 普查窗口），交回 null 不判。
+   ⚠️ 零对象不许静默：进窗份数、读到的 `rel="alternate"` 枚数、判决条数每跑都当众印；
+      一份 HTML 都没进窗、或全站零枚 alternate ⇒ 红（"扫了但没匹配到"与"扫了且全过"不许长同一副样子）。
+   ⚠️ 内置自证（口径照 1c 的三枚 needle、1d 的两枚 fixture）：盘上形状哪天变了，收集器瞎了也会照样打印
+      "零枚 ⇄ 零条红"，所以先拿手写 fixture 自证判据还活着。其中**关键的一格是那个"合法的单 feed 态"**：
+      只宣告 rss 的那一页，对着"只有一枚 rss 的注册表"必须零红，对着本站这份两枚的注册表必须恰红一条并点名 atom。
+      这一对钉的是"这一格不是『枚数≠2 就红』"——否则将来真只发一份 feed 的那天它会假红，
+      而恒红/假红的门禁会让人绕着它走（§16 那条 SITE 的口径同一条）。 */
+{
+  /* 在册的两枚 feed（MIME ⇄ 站内相对地址 ⇄ dist/ 里那枚文件），**手写字面量住在门禁里**。
+     ⚠️ 期望侧不许由被测对象自己出（§16 那条"拿 Layout 的宣告去对 Layout 的宣告，两处一起漏就一起绿"）：
+        这一枚名单是裁决不是读数——Layout 宣告什么是它签字的事，撤掉一份 feed 要先改这一行。 */
+  const FEEDS = [
+    { mime: 'application/rss+xml', at: '/rss.xml', file: 'rss.xml' },
+    { mime: 'application/atom+xml', at: '/atom.xml', file: 'atom.xml' },
+  ];
+  const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+  const attrOf = (tag, name) => {
+    /* 双引号／单引号／不带引号三种写法都读得出来——判据不许把"注入侧恰好是那个顺序与那对引号"当前提（同 imgpipe 那条） */
+    const m = new RegExp(`(?:^|\\s)${name}=(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i').exec(tag);
+    return m ? (m[1] ?? m[2] ?? m[3] ?? '') : null;
+  };
+  const linkTagsOf = html => {
+    const h = /<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(html);
+    if (!h) return null;                              /* 缺宿主 ⇒ null，不是 0 枚 */
+    return [...h[1].matchAll(/<link\b[^>]*/gi)].map(x => x[0])
+      .filter(t => (attrOf(t, 'rel') || '').toLowerCase() === 'alternate');
+  };
+  /* 判决：alts ⇄ feeds，交回红话数组（零条 ⇒ 过）。feeds 是**参数**而不是常量，为了让上面那对
+     "合法单 feed 态"fixture 能用一枚只有 rss 的名单跑同一条代码（不是另写一份宽松版判据）。 */
+  const judgeFeeds = (alts, feeds) => {
+    const out = [];
+    const byMime = new Map();
+    for (const t of alts) {
+      const k = (attrOf(t, 'type') || '').toLowerCase();
+      byMime.set(k, [...(byMime.get(k) || []), t]);
+    }
+    for (const f of feeds) {
+      const got = byMime.get(f.mime) || [];
+      if (!got.length) { out.push(`缺宣告：<head> 里没有 type="${f.mime}" 那一枚 <link rel="alternate"> ⇒ 那份 feed 的字节在盘上、机器发现不了它`); continue; }
+      if (got.length > 1) { out.push(`重复宣告：type="${f.mime}" 读到 ${got.length} 枚 ⇒ 同一份 feed 两副地址，迟早一枚真一枚旧`); continue; }
+      const href = attrOf(got[0], 'href') || '';
+      if (SCHEME.test(href) || href.startsWith('//')) out.push(`绝对宣告：type="${f.mime}" 的 href 是 "${href}" ⇒ 站内宣告只许相对写法，域名的唯一真值是 astro.config.mjs 的 SITE（§13a）`);
+      else if (href !== f.at) out.push(`宣告地址不符：type="${f.mime}" 的 href 是 "${href || '∅（空串）'}"，在册的那枚是 "${f.at}"`);
+    }
+    for (const [k, list] of byMime) {
+      if (/\+xml$/.test(k) && !feeds.some(f => f.mime === k)) out.push(`册外的 feed 宣告：type="${k}" 共 ${list.length} 枚 ⇒ 这一格只认在册那两枚 MIME，多出来的第三份要先有人在这一行签字`);
+    }
+    const titles = feeds.map(f => (byMime.get(f.mime) || [])[0]).filter(Boolean).map(t => attrOf(t, 'title'));
+    if (titles.length === feeds.length) {
+      if (titles.some(t => t === null || t === '')) out.push(`一族缺名字：在册那 ${titles.length} 枚 feed 宣告里有 title 是空串或没写 ⇒ 阅读器列表里那一行没有身份`);
+      else if (new Set(titles).size > 1) out.push(`一族两个名字：${titles.length} 枚 feed 宣告的 title 读出 ${titles.map(x => JSON.stringify(x)).join(' / ')} ⇒ 同一族的两副地址递成两份身份`);
+    }
+    return out;
+  };
+  /* href ⇄ 盘上文件：目录写法补 index.html（trailingSlash 是 ignore，`/about` 与 `/about/` 都回 200 而盘上只有一份字节）；
+     相对到本页目录的写法按页解（站内约定是钉到根，这行只兜底）；绝对地址交回 null ⇒ 那一问不归这格。 */
+  const distFiles = new Set();
+  (function walkFeed(dir) {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) { walkFeed(p); continue; }
+      distFiles.add('/' + p.slice(DIST.length + 1).split('\\').join('/').toLowerCase());
+    }
+  })(DIST);
+  const candsOf = (pageUrl, href) => {
+    const raw = String(href).split('#')[0].split('?')[0];
+    if (!raw || SCHEME.test(raw) || raw.startsWith('//')) return null;
+    let at = raw;
+    try { at = decodeURIComponent(at); } catch { /* 坏百分号编码：按字面比，红话里点名原串 */ }
+    if (!at.startsWith('/')) {
+      const base = pageUrl.endsWith('/') ? pageUrl : pageUrl.slice(0, pageUrl.lastIndexOf('/') + 1);
+      at = base + at;
+    }
+    at = at.replace(/^\/+/, '').replace(/\/+$/, '');   /* 根那一枚归一成空串，免得拼出 '//index.html' 那种谁都不在的形状 */
+    return [`/${at}`, at ? `/${at}/index.html` : '/index.html'].map(x => x.toLowerCase());
+  };
+  const danglingOf = (pageUrl, alts) => {
+    const bad = [];
+    for (const t of alts) {
+      const href = attrOf(t, 'href');
+      if (href === null || href === '' || href === '#') { bad.push(`${pageUrl} → rel="alternate" href="${href ?? '∅（根本没有 href 属性）'}"`); continue; }
+      const cands = candsOf(pageUrl, href);
+      if (cands === null) continue;
+      if (!cands.some(c => distFiles.has(c))) bad.push(`${pageUrl} → rel="alternate" href="${href}"`);
+    }
+    return bad;
+  };
+
+  /* ---- 内置自证：盘上零枚也照跑 ----
+     ⚠️ 下面这些 fixture 一律从**注册表本身**拼（`alt(FEEDS[i])`），不抄字面量：抄的话将来有人按上面那行
+        注释的许可把注册表改成一枚，这些自证会集体假红——那是"判据在抖"不是"页面坏了"。
+        两处只在"注册表至少两枚"时才有对象的格子（缺一枚那一支、title 两个名字那一支）走 `onlyIf`：
+        不满足时**当众报"今天没有对象"**并从零红的计数里剔除，不许静默（§16 那条"扫了没匹配到"的口径）。 */
+  const alt = (f, over = {}) => `<link rel="alternate" type="${over.type ?? f.mime}" title="${over.title ?? 'mistwood'}" href="${over.at ?? f.at}">`;
+  const fullAlt = feeds => feeds.map(f => alt(f));
+  const last = FEEDS.length - 1;
+  const wrap = (...tags) => `<html><head>${tags.join('')}</head><body></body></html>`;
+  const KNOWN_ON_DISK = PAGES[0] ? PAGES[0].url : '/index.html';    /* 盘上一定有的一枚：由它保证"不存在的文件"那一侧不是空比 */
+  let tried = 0, skipped = 0; const broken = [];
+  const probe = (ok, msg) => { tried++; if (!ok) broken.push(msg); };
+  const onlyIf = (cond, ok, msg, why) => { if (!cond) { skipped++; notes.push(`1e 订阅宣告 needle：${why}`); return; } probe(ok, msg); };
+  const oneOf = (html, n) => { const a = linkTagsOf(html); return !!a && a.length === n; };
+  probe(oneOf(wrap(alt(FEEDS[0])), 1), '收集器从一枚标准双引号 <link rel="alternate"> 里读不到 1 枚 ⇒ 它已经不吃 <link> 了');
+  probe(oneOf(wrap(`<link rel='alternate' type='application/rss+xml' href='/rss.xml'>`), 1), '单引号写法的 alternate 读不到 ⇒ 判据把"注入侧恰好是双引号"当成了前提');
+  probe(oneOf(wrap(`<link rel=alternate type=application/rss+xml href=/rss.xml>`), 1), '不带引号的写法读不到 ⇒ 同一件事换种写法就静默放过');
+  probe(linkTagsOf('<p>这里没有 head</p>') === null, '缺 <head> 宿主时收集器交回了非 null ⇒ "读不到"会被当成"读到零枚"放过');
+  probe(linkTagsOf(wrap('<link rel="stylesheet" href="/a.css">')).length === 0, '非 alternate 的 <link> 被收进来了 ⇒ 枚数会虚高');
+  probe(judgeFeeds(linkTagsOf(wrap(...fullAlt(FEEDS))), FEEDS).length === 0, '每枚在册 feed 都齐全的好形状被误报 ⇒ 判据朝窄侧失灵');
+  probe(judgeFeeds(linkTagsOf(wrap(alt(FEEDS[0]))), [FEEDS[0]]).length === 0, '只宣告一枚的那一页对着"只有那一枚的注册表"仍然红 ⇒ 这一格其实是"枚数≠2 就红"的假判据，真只发一份 feed 的那天必假红');
+  onlyIf(FEEDS.length > 1, (() => { const miss = judgeFeeds(linkTagsOf(wrap(alt(FEEDS[0]))), FEEDS); return miss.length === 1 && miss[0].includes(FEEDS[1].mime); })(),
+    '只宣告第一枚的那一页对着两枚的注册表没有恰红一条 ⇒ "缺宣告"那一支没有牙',
+    '注册表今天只有一枚 ⇒「少宣告一枚」那一格没有对象（上面那格"单 feed 态 ⇄ 单 feed 注册表零红"就是它剩下的全部牙）');
+  probe(judgeFeeds(linkTagsOf(wrap(...fullAlt(FEEDS), alt(FEEDS[0]))), FEEDS).some(x => /重复宣告/.test(x)), `${FEEDS[0].mime} 的宣告重复一枚没被判成红 ⇒ 多出来的那一枚会静顶掉在册那枚`);
+  probe(judgeFeeds(linkTagsOf(wrap(...fullAlt(FEEDS), '<link rel="alternate" type="application/opml+xml" href="/subs.opml">')), FEEDS).some(x => /册外/.test(x)), '冒出一枚册外的 +xml 型宣告没被判成红 ⇒ "exactly the two"只剩一半');
+  probe(judgeFeeds(linkTagsOf(wrap(...FEEDS.map((f, i) => i === last ? alt(f, { at: `https://mistwood.example.com${f.at}` }) : alt(f)))), FEEDS).some(x => /绝对宣告/.test(x)), '绝对写法的 feed 宣告没被判成红 ⇒ 域名就会从这一行长出第二处真值（§13a）');
+  probe(judgeFeeds(linkTagsOf(wrap(...FEEDS.map((f, i) => i === last ? alt(f, { at: '/not-the-registered-address' }) : alt(f)))), FEEDS).some(x => /地址不符/.test(x)), 'href 换成一枚没在册的地址没被判成红 ⇒ 宣告可以指向一份不产出的地址');
+  onlyIf(FEEDS.length > 1, judgeFeeds(linkTagsOf(wrap(...FEEDS.map((f, i) => i === last ? alt(f, { title: '另一枚名字' }) : alt(f)))), FEEDS).some(x => /一族两个名字/.test(x)),
+    '两枚宣告的 title 不同值没被判成红 ⇒ 同一族递成两份身份',
+    '注册表今天只有一枚 ⇒ title"两个名字"那一格没有对象（少于两枚时无从比对）');
+  probe(judgeFeeds(linkTagsOf(wrap(...FEEDS.map((f, i) => i === last ? alt(f, { title: '' }) : alt(f)))), FEEDS).some(x => /缺名字/.test(x)), 'title 是空串没被判成红 ⇒ 阅读器列表里那一行没有身份也不会红');
+  probe(judgeFeeds(linkTagsOf(wrap(...fullAlt(FEEDS), '<link rel="alternate" type="text/markdown" href="/essays/x/index.md">')), FEEDS).length === 0, '非 feed 型（text/markdown）的 alternate 被判成了册外 ⇒ 判据宽到否决了这一族合法的 rel=alternate 用法');
+  probe(danglingOf('/essays/x/', [`<link rel="alternate" href="${KNOWN_ON_DISK}">`]).length === 0, `盘上真存在的那枚（${KNOWN_ON_DISK}）被判成死宣告 ⇒ 这一格会把合法地址一起抹红`);
+  probe(danglingOf('/essays/x/', [`<link rel="alternate" type="${FEEDS[last].mime}" href="/no-such-feed.file">`]).length === 1, 'href 指向盘上没有的文件没被判成死宣告 ⇒ 第 ④ 件断言根本没有牙');
+  probe(danglingOf('/essays/x/', [`<link rel="alternate" type="${FEEDS[last].mime}" href="">`]).length === 1, '空串 href 没被判成死宣告 ⇒ "取不到东西"会被数成"取到了"');
+  for (const b of broken) problems.push(`1e 订阅宣告 needle：${b} ⇒ 这一族的尺子已经坏了，下面那些"逐页全过"从此不可信`);
+
+  /* ---- 盘上判决：逐页四件 ＋ 两枚文件级 ---- */
+  let pagesIn = 0, units = 0, altTotal = 0, rssSeen = 0, atomSeen = 0;
+  const announced = [];
+  for (const { file, url } of PAGES) {
+    const html = stripComments(readFileSync(file, 'utf8'));   /* 注释里的地址访客与阅读器都读不到：口径照 1b／1c／1d */
+    units++;                                                  /* ① head 在场 */
+    const alts = linkTagsOf(html);
+    if (alts === null) { problems.push(`1e 订阅宣告 ${url}：产物里读不出 <head>…</head> ⇒ 这一页的宣告判据没有对象（"读不到"从来不算过）`); continue; }
+    pagesIn++; altTotal += alts.length;
+    units += FEEDS.length + 1;                                /* ② 每枚在册 feed 一件 ＋ ③ title 一族 */
+    for (const red of judgeFeeds(alts, FEEDS)) problems.push(`1e 订阅宣告 ${url}：${red}`);
+    units += alts.length;                                     /* ④ 每一枚 rel="alternate" 的站内 href */
+    for (const d of danglingOf(url, alts)) problems.push(`1e 死宣告：${d} —— 那一枚 rel="alternate" 指向的文件不在 ${DIST} 里 ⇒ 阅读器照宣告去取取回 404`);
+    if (alts.some(t => String(attrOf(t, 'type') || '').toLowerCase() === 'application/rss+xml')) rssSeen++;
+    if (alts.some(t => String(attrOf(t, 'type') || '').toLowerCase() === 'application/atom+xml')) atomSeen++;
+  }
+  for (const f of FEEDS) {
+    units++;
+    const p = join(DIST, f.file);
+    if (!existsSync(p) || !statSync(p).isFile()) { problems.push(`1e 订阅宣告：${f.at} 宣告在册，而 dist/${f.file} 不在盘上（或不是文件）⇒ 每一页的那一枚宣告都是死宣告`); continue; }
+    if (statSync(p).size === 0) { problems.push(`1e 订阅宣告：dist/${f.file} 是 0 字节 ⇒ 宣告指着一份空文档（内容对不对归 feed-check，这一格只问"有没有这份字节"）`); continue; }
+    announced.push(`${f.file} ${statSync(p).size}B`);
+  }
+  /* 零对象与"读到了几个数"当众交账（§16 那条"全绿也要看得见量到了哪几个数"） */
+  if (!PAGES.length) problems.push(`1e 订阅宣告：dist/ 里一份 HTML 都没有 ⇒ 这一格没吃到东西（不许算过）`);
+  else if (!pagesIn) problems.push(`1e 订阅宣告：${PAGES.length} 份 HTML 一份都没读进窗 ⇒ 判据空转（不许算过）`);
+  else if (!altTotal) problems.push(`1e 订阅宣告：${pagesIn} 份 HTML 的 <head> 里 rel="alternate" 读到 0 枚 ⇒ 两枚 feed 一枚都没宣告，这一格不许按"零条红"算过`);
+  else if (rssSeen !== pagesIn || atomSeen !== pagesIn) problems.push(`1e 订阅宣告：进窗 ${pagesIn} 页，逐页回读里 rss 有宣告的 ${rssSeen} 页、atom 有宣告的 ${atomSeen} 页 ⇒ 两枚的覆盖面不齐（上面逐页点名过是哪几页）`);
+  notes.push(`1e 订阅宣告 needle·形状：${tried} 条内置自证${broken.length ? `（红 ${broken.length} 条）` : '全过'}${skipped ? `，另有 ${skipped} 格今天没有对象（注册表少于两枚，上面逐格点名）` : ''}`
+    + `（收集器：三种引号形状／缺 <head> 交回 null／非 alternate 不收；判决：齐全零红、"合法单 feed 态对单 feed 注册表零红 ⇄ 对两 feed 注册表恰红一条"那一对、`
+    + `重复／册外／绝对／地址不符／title 两个名字／title 缺 各一枚红的反向格；死宣告：在盘上零枚／不在盘上一枚／空串一枚）`);
+  notes.push(`1e 订阅宣告：${pagesIn}/${PAGES.length} 份 HTML 进入，共读到 rel="alternate" **${altTotal} 枚**（rss 宣告 ${rssSeen} 页、atom 宣告 ${atomSeen} 页，在册 ${FEEDS.length} 枚 feed 各恰一枚）；`
+    + `feed 文档 ${announced.length}/${FEEDS.length} 枚在盘上（${announced.join(' / ') || '零枚'}）；盘上判决 ${units} 条 ＋ 内置自证 ${tried} 条 ＝ **${units + tried} 条断言**`);
 }
 
 /* ---------- 1c. 不列入（unlisted）的产物级对账——本卡的心脏 ----------
@@ -915,7 +1095,7 @@ async function runPhase(kind, profiles) {
 /* 每槽位一枚一次性 profile：N 个并发浏览器不能共用 user-data-dir（会互相抢锁） */
 if (STATIC_ONLY) {
   console.log('\n  ⚠️ --static-only：**浏览器两档一次都没跑**（内联隔离档 / 完整档 / 五枚属性 / 运行时 DOM 那一格目录⇄刻度 / phase 对账全部未断言）。');
-  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的三段（1b 结构对账、1c 不列入、1d 死锚点两侧对账）跑完了。');
+  console.log('     这一行不是绿，是一次部分交付——只有不碰浏览器的四段（1b 结构对账、1c 不列入、1d 死锚点两侧对账、1e 订阅宣告对账）跑完了。');
   console.log('     日常门禁 `npm run gate` 不带这一枚开关；它存在的理由见上面定义处那条环境记录。');
 } else {
   await runPhase('isolate', Array.from({ length: JOBS }, (_, i) => newProfile(`iso${i}`)));
@@ -1008,6 +1188,6 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(STATIC_ONLY
-  ? `\n✓ 不碰浏览器的那三段跑完且全过（1b 结构／1c 不列入／1d 死锚点）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
+  ? `\n✓ 不碰浏览器的那四段跑完且全过（1b 结构／1c 不列入／1d 死锚点／1e 订阅宣告）。⚠️ 运行时五枚属性与两档 DOM **本轮没有断言**——这一行不等于"gate 过了"。`
   : `\n✓ 运行时五枚属性全部落地：${KEYS.join(' / ')}（内联脚本在跑，打包脚本也在跑）`);
 process.exit(0);
