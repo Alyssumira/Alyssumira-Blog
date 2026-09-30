@@ -251,7 +251,12 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 @keyframes nav-in{ to{ opacity:1; transform:translate(-50%,0); } }
 .theme-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
-  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
+  /* `card/hairline`（2026-09-30）：发丝线从 `border:1px solid` 换成 inset `box-shadow`——显式 30×30
+     在 border-box 下外框两种写法逐位相同（实测 rect 30x30 不变、`.nav-links` 270.48/367.97 不动），
+     差别只在内容盒 +2px（钮里那枚 15px svg 仍居中，圆心不漂）。
+     ⚠️ `border:0` 不是可有可无：<button> 的 UA 默认框是 2px outset，撤掉作者 border 它会复活——
+     实测漏写这一句时 clientWidth 从 30 掉回 **26**（30−2×2），那圈灰疙瘩就是它。 */
+  border:0; box-shadow:inset 0 0 0 1px var(--glass-border); background:transparent; cursor:pointer;
   color:var(--ink-2);
   transition:color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
 }
@@ -291,7 +296,8 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
    按下那一下 `.98` 走 §8.1 回弹档（它唯一的合法用途就是"按下"）。
    ⚠️ 字号与字距**不写**：`font:inherit` 让它吃宿主那一行（`.sec-label` 13px/.14em、`.hero-log` 13px/.12em），
    于是这一枚字与它所在的那一行是同一副度量——这正是"同族语言、不是新材质"的意思。
-   ⚠️ 为什么它不是第三枚圆钮：胶囊里那两枚（主题 / 滑杆）都是 30px 圆 + 1px 玻璃描边，第三枚同形
+   ⚠️ 为什么它不是第三枚圆钮：胶囊里那两枚（主题 / 滑杆）都是 30px 圆 + 1px 发丝影（`card/hairline` 起线画在
+   `box-shadow` 上，盒宽不占），第三枚同形
    就是把 §11 那笔账再撞一遍；而站内"有面板可开的那一枚字"早就有先例，不需要新形状。 */
 .search-toggle{
   background:none; border:0; padding:0; cursor:pointer; font:inherit; color:var(--moss-ink);

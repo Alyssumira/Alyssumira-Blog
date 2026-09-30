@@ -154,7 +154,9 @@ html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:
 .display{ position:relative; display:flex; }
 .settings-toggle{
   display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
-  border:1px solid var(--glass-border); background:transparent; cursor:pointer;
+  /* `card/hairline`：与 `base.css` 那枚主题钮同族同换法（显式 30×30、外框不漂；
+     `border:0` 压 UA 的 2px outset 复活，实测依据见 base.css 那一格）。 */
+  border:0; box-shadow:inset 0 0 0 1px var(--glass-border); background:transparent; cursor:pointer;
   color:var(--ink-2);
   transition:color .3s cubic-bezier(.22,1,.36,1),background-color .3s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);
 }
@@ -179,10 +181,7 @@ html[data-theme="dark"][data-moon="full"] .dayring{ stroke:var(--moon); opacity:
   /* 原点在"那枚按钮的圆心"：面板像是从手上长出来的，不是原地出现的一块东西。
      横向 100%−15px（按钮宽 30、与面板右缘对齐），纵向 −29px（面板顶在按钮下方 14px，按钮中心在自身下方 15px） */
   transform-origin:calc(100% - 15px) -29px;
-  /* `card/transparency` 半 B：与 `.thing-bar` 同一笔——这枚玻璃平时 visibility:hidden，
-     开着它切主题时背景与描边瞬时到位、与 body/.nav 的 .8s 批失同步；开合那三条一个字不动，
-     只在名单末尾并入同批的两枚（§8.3"背景/文字同批 0.8s"）。 */
-  transition:opacity .18s cubic-bezier(.22,1,.36,1),transform .18s cubic-bezier(.22,1,.36,1),visibility 0s .18s,background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
+  transition:opacity .18s cubic-bezier(.22,1,.36,1),transform .18s cubic-bezier(.22,1,.36,1),visibility 0s .18s;
 }
 /* 收起时行本身也退回原位，展开时逐行错落跟上（§8.1 只有吐纳这一档可用：
    回弹那档 §8.1 明写"只给按下"，不许拿来做面板入场） */
@@ -433,13 +432,18 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 
 .cover{
   position:relative; overflow:hidden; border-radius:16px;
-  border:1px solid var(--glass-border);
   background:linear-gradient(150deg,var(--bg-top),var(--glass));
-  /* 第九轮：这块面以前一根影都没有——它有 1px 玻璃描边、有雾底，却和纸**一样平**，
+  /* 第九轮：这块面以前一根影都没有——它有雾底，却和纸**一样平**，
      读起来是"印在纸上"而不是"一片贴在纸上"。给它接触影（贴着底边那一线），不给环境影
      （目录行是文字版面，卡底散开一圈影会让 92px 的缩略图像要飞起来），也不给厚度边
-     （它不是能看穿的面，`--glass` 在这里只是占位雾）。 */
-  box-shadow:var(--shadow-contact);
+     （它不是能看穿的面，`--glass` 在这里只是占位雾）。
+     `card/hairline`（2026-09-30）：描边换 **外向** 1px 发丝影（Nook 的 `0 0 0 1px` 形状）。
+     ⚠️ 不用 inset：这格里 `img` 是 `position:absolute; inset:0` 铺满 padding box 的子内容，
+     inset 影画在子内容**之下**——真图一进格，发丝线就被图盖掉（静默丢描边）。外向影画在盒外，
+     img 永远盖不住它。几何账（1440 实测）：外框 92×69 逐位不变（`width:92px` + aspect-ratio 吃
+     border-box），padding box 90×67 → 92×69（+2）——线本身从"占 1px 盒"变成"画在盒外 1px"，
+     92px 那笔在册读数是外框，没漂；photo 面积 +2px 一事登记在这里。contact 影在前、发丝在后。 */
+  box-shadow:var(--shadow-contact),0 0 0 1px var(--glass-border);
 }
 .row .cover{ flex:none; width:92px; aspect-ratio:4/3; align-self:center; border-radius:10px; }
 
@@ -551,14 +555,6 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
      这里不给环境影（`--shadow`）——它离卡面只有几像素，散开的那一圈会从条子底下溢到卡边外面，
      读起来像那块玻璃在照片上悬着；而"薄板贴着面"要的正是接触影那一下。 */
   box-shadow:var(--shadow-contact),var(--glass-edge);
-  /* `card/transparency` 半 B：主题切换中间帧实测（`/things/` 1440×900，rAF 逐帧 rgb）——
-     body 底与 .nav 玻璃在 .8s 里同批走（t=116ms 进度 .48/.42），这一枚却 p=1 **瞬时到位**：
-     中途"夜玻璃压在午底上"，与 §8.3 签的"背景/文字同批 0.8s 吐纳"失同步。
-     修法是把它钉进同一批（与上面 `.nav:92` 逐字符同一条声明），不是 Twilight 式掐掉全局过渡——
-     后者把日斜压成亮度突跳，撞 §1 表末那行已签的保留 .2s，否。box-shadow 不进来：§8.8:815
-     已裁决影子是离散改值。`prefers-reduced-motion` 下 base.css:483-484 那条 !important
-     把它收进 .2s 名单，同向。 */
-  transition:background-color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1);
 }
 .thing-bar h3{ font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif; font-size:17px; font-weight:600; }
 .thing-bar span{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-3); white-space:nowrap; }
@@ -787,30 +783,16 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 }
 
 /* ============ 系统要求"减少透明度"：玻璃退回实面，位置与层级一概不变 ============ */
-/* 只处理真正依赖身后内容的**常驻**模糊面；`.post-body code` 那类半透明填充不是透明材质问题，保留。
-   ⚠️ 名单这一轮补上 `.settings`：显示设置抽屉与搜索面板共用这一枚类（`base.css` 的
-   `.settings.search-panel` 是它的定位变体），它是 `mistwood.css:173-174` 那条 blur(18px) 的宿主、
-   全站第三块常驻透视玻璃——上一轮漏它没有理由，纯粹是当时只点了"看得见在模糊"的两处。
+/* 只处理真正依赖身后内容的两处模糊面；`.post-body code` 那类半透明填充不是透明材质问题，保留。
    !important 不是偷懒：首页的 .nav 另有一条 backdrop-filter 在 home.css 里，现在靠 Astro 把
    Layout.css 排在页面 CSS 之后才赢下级联——那是运气不是设计。用户偏好覆盖作者样式本就该用
-   !important（MDN 明确列为正当场景），这样无论样式表顺序怎么变都不会静默失效。
-   ⚠️ `--glass-edge` 那一对在**这一档整体撤**（不是只做上沿、不是拆开留半条）：
-   面退成实面后它俩的合成值算得出来——亮色上沿 rgba(250,251,248,.85) 压在 `--surface` #F7F8F5
-   （`base.css:47-48`）上 Δ≈+3（看不见）、下沿 rgba(35,43,37,.07) 合成 Δ≈−15；暗色同理
-   （`base.css:76-77` 压 `mistwood.css:23` #141A14）Δ≈−2 / −9。成对退化成"只剩下面那道暗线"，
-   正是 §12:929 点名的"只做下沿就是纸边上的一道脏印子"——留着它才是违反那枚机器牙的语义。
-   先例与公式都照 `mistwood.css:688-693`（≤720 把 .thing-bar 改实面时同一裁决、同样整体撤，
-   实面条的影就是 `--shadow-contact,--shadow` 那对——作者为"实面 thing-bar"已签的那一份）。 */
+   !important（MDN 明确列为正当场景），这样无论样式表顺序怎么变都不会静默失效。 */
 @media (prefers-reduced-transparency:reduce){
-  .nav,.thing-bar,.settings{
+  .nav,.thing-bar{
     background:var(--surface) !important;
     -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
-    box-shadow:var(--shadow-contact),var(--shadow) !important;
   }
   /* 开场那条雾带是半透明的"气"，这里没有"退回实面"的解法——实面就是一块白板。
      它是氛围不是信息，所以直接撤掉：绝对定位，撤了不改一行版面、不改一次换行。 */
   .page-head::before{ display:none; }
-  /* ⚠️ 首页雾带的 `blur(28px)`（`home.css:174`）**不在这一档的名单里**，这是裁决不是漏网：
-     §1.4 签的是"背景雾化"，不是玻璃材质——它不透视身后内容、没有"实面"可退；
-     它与 `prefers-reduced-transparency` 不同向，只有 `prefers-reduced-motion` 那档管它。 */
 }
