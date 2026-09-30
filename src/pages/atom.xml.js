@@ -15,6 +15,8 @@
      RSS 那一侧今天也没有 author。等 head 卡或身份卡立了那枚常量，两边一起接。 */
 import { visiblePosts } from '../lib/posts.js';
 import { feedTerms } from '../lib/taxonomy.js';
+import { feedHtml } from '../lib/feed.js';
+import { renderMd } from '../lib/markdown.js';
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const attr = s => esc(s).replace(/"/g, '&quot;');
@@ -22,6 +24,13 @@ const attr = s => esc(s).replace(/"/g, '&quot;');
 const stamp = d => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 
 export async function GET(context){
+  /* ⚠️ 与 `rss.xml.js` 同一条：这一枚 feed 里绝对地址的消费者从"link/id 两枚"涨成"外加整篇正文里的
+     每一枚 href/src"。site 空 ⇒ 当场抛，不许静默发相对路径——订阅者拿到的会是坏图与没有 host 的链接，
+     而那副样子在阅读器里读起来像"这篇稿子本来就缺图"。 */
+  if (!context.site) {
+    throw new Error('atom.xml 生成不了：context.site 是空的。条目正文里的每一枚 href/src 都必须是绝对地址，'
+      + '而绝对地址的唯一出处是 astro.config.mjs 的 site（PUBLIC_SITE）。不许退回相对路径、也不许在这里抄一枚域名。');
+  }
   const site = new URL(context.site);
   const abs = p => new URL(p, site).href;
   const posts = await visiblePosts();                 /* 草稿不进 feed：和列表页、详情页同一个 filter */
@@ -31,14 +40,23 @@ export async function GET(context){
     const url = abs(`/essays/${p.id}/`);
     const terms = feedTerms(p);                       /* 分类在前、标签在后；一个都没写 ⇒ 零枚 <category> */
     const summary = p.data.excerpt || p.data.title;
+    /* 整篇正文走 `<content type="html">`（`<summary>` 仍旧是那枚 excerpt，两枚字段两个读者：
+       列表里扫一眼的人读 summary，在自己机器上读完这一篇的人读 content）。
+       净化与绝对化吃 `src/lib/feed.js` 那一份，与 RSS 同一枚函数——两份 feed 各写一份白名单，
+       迟早有一处漏掉 `data-*` 或忘了把图钉成绝对地址。 */
+    const content = feedHtml(renderMd(p.body), { abs, page: url });
     return [
       '  <entry>',
       `    <title>${esc(p.data.title)}</title>`,
       `    <id>${esc(url)}</id>`,
       `    <link href="${attr(url)}" />`,
+      /* 原文 Markdown（`/essays/<slug>/index.md`）：Atom 有正字段说"这条目的另一种表示"，
+         所以 rel=alternate + 那枚 RFC 7763 的类型 `text/markdown`。RSS 侧的同一件事走 `<atom:link>`（那边没有这个字段）。 */
+      `    <link rel="alternate" type="text/markdown" href="${attr(abs(`/essays/${p.id}/index.md`))}" />`,
       `    <updated>${stamp(p.data.date)}</updated>`,
       `    <published>${stamp(p.data.date)}</published>`,
       `    <summary>${esc(summary)}</summary>`,
+      `    <content type="html">${esc(content)}</content>`,
       ...terms.map(t => `    <category term="${attr(t)}" />`),
       '  </entry>',
     ].join('\n');
