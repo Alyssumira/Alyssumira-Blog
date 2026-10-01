@@ -15,3 +15,26 @@ gh-tok
 
 # 外部编辑器的状态目录（Obsidian 把库开在 src/content/posts/ 里就会长这一枚）：那是作者的设置，不是站点内容
 .obsidian/
+
+# 作者的内容不进仓库（2026-10-01 晚点名「GitHub 仓库只留网站模板，我写的文章和小东西这些不要同步」，
+# 随后一轮把「手记」也归进同一层：「GitHub 上只留文章手记小东西的模板，我自己发的不要提交」）。
+# 这座仓库交的是骨架＋三篇样例稿；你自己写的每一篇、每一条手记、每一张小东西卡，以及它们用的素材，
+# 从此在 git 眼里不存在——误用 `git add -A` 也卷不进去。三枚 `!` 是把上一轮你点头留作样例的那三篇
+# **留在**仓库里；两枚 `*.md` 只掐掉作者写的那一层，所以目录旁的 `.gitkeep` 仍能入库（glob loader
+# 的 base 指向一枚不存在的目录时 astro build 会红在配置上，而不是红在"这个作者还没写手记"上）。
+src/content/posts/*
+!src/content/posts/fog-debugging.md
+!src/content/posts/forest-blog.md
+!src/content/posts/slow-frontend.md
+src/content/notes/*.md
+src/content/things/*.md
+public/assets/posts/
+public/assets/things/
+
+# 逐篇社交卡是**派生文件**：`npm run og` 按每篇的标题画出 `public/og/<slug>.png`。作者那一篇的卡
+# 上写着他的标题，所以它跟着内容那一层走，而不是跟着骨架走。三枚 `!` 留的是样例稿的卡——
+# 站点级母卡 `public/og.png` 住在上一层，不在这个目录里，不受这几行影响。
+public/og/*
+!public/og/fog-debugging.png
+!public/og/forest-blog.png
+!public/og/slow-frontend.png

@@ -598,7 +598,7 @@ a.row:visited{ color:var(--ink-visited); }
 .density-wrap{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin-top:22px; }   /* 尺身全宽 ⇒ 图例落到下一行：单值 gap 换行后自己兼作 row-gap ⇒ 零枚新垂直槽位（在册那两枚 gap:14px / margin-top:22px 的值·属性名·档位都没动） */
 .density{ position:relative; display:block; width:100%; height:60px; }   /* 带高仍旧 60、轴线仍旧 y=46，柱与标签的偏移都按这两枚数摆；首尾柱心各探出 2px 是刻意的——轴线必须与 .essay-index 同宽，左右各出一点走 translateX 不走负 margin（先例见 :329 那枚 .row::before 的 left/right）。⚠️ 探出的口径是"柱探出 2px、标签不探出（首尾两枚换成贴栏缘，`head`／`tail`，见下面那两条）"：柱的位置是数据、居中才落在真实刻度上，所以那 2px 是买轴线同宽付的、已签；标签是文字，跟着居中就会把左缘探出栏外、切断全站那条左对齐线，所以它不享有这 2px。 */
 .density::before{ content:""; position:absolute; left:0; right:0; top:46px; height:1px; background:var(--line); }   /* 原来那枚 <line class="axis" stroke-width:1>：1px、--line、横向铺满；crispEdges 不迁，HTML 这一枚本来就是整像素 */
-.density .tick{ position:absolute; bottom:14px; width:4px; transform:translateX(-50%); background:var(--moss); opacity:.55; }   /* 柱高 6+(c/peak)*30、空月 3 由模板按数据给：那是数据不是样式。原 SVG 那枚 rx="1" 没迁——圆角只住在 §4 那根 11 档梯子上（gap-check 在册 30 枚／12 种写法，一枚都不许多） */
+.density .tick{ position:absolute; bottom:14px; width:4px; transform:translateX(-50%); background:var(--moss); opacity:.55; }   /* 柱高 6+(c/peak)*30、空月 3 由模板按数据给：那是数据不是样式。原 SVG 那枚 rx="1" 没迁——圆角只住在 §4 那根 11 档梯子上（gap-check 在册 31 枚／12 种写法，一枚都不许多） */
 .density .tick.nil{ background:var(--ink-3); opacity:.22; }
 .density .tick.now{ background:var(--moss); opacity:.95; }   /* 当前月那一根：写没写过都是 moss——它说的是"你在这儿"，不是"这个月有货"（§12 不造假语义） */
 .density .d-lab .short{ display:none; }   /* 平时只露长形式：带年的那一格（窗口起点与年份边界）说 2025.10／2026.01，窄屏在下面那档换回短形式 */
@@ -1037,6 +1037,11 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    ⚠️ 名单这一轮补上 `.settings`：显示设置抽屉与搜索面板共用这一枚类（`base.css` 的
    `.settings.search-panel` 是它的定位变体），它是 `mistwood.css:173-174` 那条 blur(18px) 的宿主、
    全站第三块常驻透视玻璃——上一轮漏它没有理由，纯粹是当时只点了"看得见在模糊"的两处。
+   ⚠️ 2026-10-02（规范 §2.6）再补 `.hero-cta`：首页那枚主行动从深苔实心面退成玻璃胶囊之后，它是**第四块**
+   常驻透视玻璃。这一格从"漏"变成"必须认"：实心面那档本来就不在这份名单的职责范围内（它不透视），
+   换成 `--glass` 之后如果不同名补进来，要求减少透明度的用户拿到的还是一块压在照片上的透视面。
+   退成的实面是 `--surface`：`--ink` 压它两档都 ≥12，比它玻璃态那一枚字还稳（2026-10-02 在屏上按
+   `prefers-reduced-transparency` 模拟档实读过两档）。
    !important 不是偷懒：首页的 .nav 另有一条 backdrop-filter 在 home.css 里，现在靠 Astro 把
    Layout.css 排在页面 CSS 之后才赢下级联——那是运气不是设计。用户偏好覆盖作者样式本就该用
    !important（MDN 明确列为正当场景），这样无论样式表顺序怎么变都不会静默失效。
@@ -1048,7 +1053,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    先例与公式都照 `mistwood.css:688-693`（≤720 把 .thing-bar 改实面时同一裁决、同样整体撤，
    实面条的影就是 `--shadow-contact,--shadow` 那对——作者为"实面 thing-bar"已签的那一份）。 */
 @media (prefers-reduced-transparency:reduce){
-  .nav,.thing-bar,.settings{
+  .nav,.thing-bar,.settings,.hero-cta{
     background:var(--surface) !important;
     -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
     box-shadow:var(--shadow-contact),var(--shadow) !important;

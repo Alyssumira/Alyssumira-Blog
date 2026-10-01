@@ -2,7 +2,7 @@
 import '../styles/home.css';
 import Layout from '../layouts/Layout.astro';
 import SearchEntry from '../components/SearchEntry.astro';
-import { things, notes } from '../data/site.js';
+import { allNotes, allThings } from '../lib/personal.js';
 import { fmtDate, inlineMd } from '../lib/markdown.js';
 import { intrinsicProps } from '../lib/image-dims.js';
 /* 首屏那两张照片上的 `width`/`height` 由构建期读真文件头发来（`src/lib/image-dims.js`），两句口径写在这里而不是
@@ -20,9 +20,15 @@ const pad = n => String(n).padStart(2, '0');
 /* 只准走 visiblePosts()：草稿不进首页那三篇、也不进 .hero-log 那个数（一处 filter＝六处同一个口径）。
    顺序由 lib 给：置顶在最前，其余按日期倒序——首页那三篇吃的就是这个数组的前三个。 */
 const posts = await visiblePosts();
+/* 手记与小东西各取一次，顺序住在 `src/lib/personal.js`（首页、`/notes/`、`/things/`、关于页吃同一枚答案）。
+   `.hero-log` 那三个数从这里来：`00 things`／`00 notes` 与页面上真的有几枚是同一把尺子量出来的，
+   不是手写的一行字——数字与内容不同源那天，它就是关于页那一格禁的"拿不到的数字"（§13）。 */
+const notes = await allNotes();
+const things = await allThings();
 const counts = { essays: posts.length, things: things.length, notes: notes.length };
 /* 首页下半段只是"最近三篇"，不是第二个 /essays/：超过三条就把尾巴剪掉，宁缺不挤 */
 const recent = posts.slice(0, 3);
+/* 收尾那一句是最新一条手记；零枚手记时它是 `undefined`，下面那一块整块不画（不是退回一句假话）。 */
 const walk = notes[0];
 /* 「读最近一篇」那一枚主行动（二轮 §4.1，规范 §9）指的就是**目录的第一行**：上面那枚 `posts` 是
    `visiblePosts()` 排好的（置顶在最前、其余按日期倒序），`recent[0]` 与首页下面那三篇的第一篇、
@@ -65,11 +71,11 @@ const newest = recent[0];
   <main class="hero">
     <p class="hero-name">Alyssumira</p>
     <h1 class="hero-title">
-      <span class="line"><span class="w" style="--i:0"><span>在森林</span></span><span class="w" style="--i:1"><span>与代码</span></span><span class="w" style="--i:2"><span>之间，</span></span></span>
-      <span class="line"><span class="w" style="--i:3"><span>收集</span></span><span class="w" style="--i:4"><span>微风、</span></span><span class="w" style="--i:5"><span><em>light</em></span></span><span class="w" style="--i:6"><span>和</span></span><span class="w" style="--i:7"><span>好文章。</span></span></span>
+      <span class="line"><span class="w" style="--i:0"><span>在森林</span></span><span class="w" style="--i:1"><span>与网络</span></span><span class="w" style="--i:2"><span>之间，</span></span></span>
+      <span class="line"><span class="w" style="--i:3"><span>收集</span></span><span class="w" style="--i:4"><span>微风、</span></span><span class="w" style="--i:5"><span><em>light</em></span></span><span class="w" style="--i:6"><span>和</span></span><span class="w" style="--i:7"><span>文字。</span></span></span>
     </h1>
-    {/* 全站唯一一枚实心面（二轮 §4.1）：深苔底 + 反白字，指向目录第一行那一篇文章。
-        材质、悬停那一族、配额与打印的账都在规范 §9 那一格与 `home.css` 的注释里；
+    {/* 首屏唯一的那枚可点面（二轮 §4.1 立项、规范 §2.6 于 2026-10-02 退成玻璃胶囊）：导航那副材质 + 墨字，
+        指向目录第一行那一篇文章。材质、读数、悬停那一族、配额与打印的账都在 §2.6 与 `home.css` 的注释里；
         这一行不落 HTML 注释（上面 frontmatter 那段说清了为什么）。 */}
     {newest && <a class="hero-cta" href={`/essays/${newest.id}/`}>read — 读最近一篇</a>}
     <!-- 观察日志：数字 = 构建期真实条数。⚠️ 搜索入口挂在**这一行末尾**（裁决与账在 §11 的"导航"那一整格：
@@ -127,11 +133,16 @@ const newest = recent[0];
     </ol>
 
     <!-- 最后一句交给 notes：这一页以作者真写过的一句话收尾，"再走回雾里"那一拍由它承担（§5）。
-         句子走 inlineMd，和 /notes/ 上同一份文本同一个解析口径——两处两种渲染迟早会分叉。 -->
-    <a class="home-note reveal" href="/notes/">
-      <time>{walk.date}</time>
-      <p class={tone(walk.text)} set:html={inlineMd(walk.text)}></p>
-    </a>
+         句子走 inlineMd，和 /notes/ 上同一份文本同一个解析口径——两处两种渲染迟早会分叉。
+         ⚠️ 零枚手记（`src/content/notes/` 空着——那一层的文件不进仓库，模板出厂就是这一档）时这一块
+            **整块不出现**，不许留一行 `<time></time>` 的空壳（§14 那条"没填 ⇒ 不出现"，与首页
+            「读最近一篇」那枚按钮同一条：`posts` 为空时它一个字节都不落）。 -->
+    {walk && (
+      <a class="home-note reveal" href="/notes/">
+        <time>{fmtDate(walk.data.date)}</time>
+        <p class={tone(walk.body)} set:html={inlineMd(walk.body.trim())}></p>
+      </a>
+    )}
   </section>
 </Layout>
 
