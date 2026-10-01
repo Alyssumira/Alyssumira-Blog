@@ -495,6 +495,25 @@ html[data-tier="lost"] .page-head::after{
   font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; font-weight:500; letter-spacing:.14em;
   color:var(--ink-2); margin-bottom:6px;
 }
+/* 季度分节（一轮 §B2，宿主在 `EssayIndex.astro` 的年块里、只在整年 ≥12 篇时才存在）。四条口径：
+   ① 它比年标**轻一档**而不是重一档：字号从 13 收到 12、墨从 `--ink-2` 收到 `--ink-3`（§3.4 已判过 `--ink-3`
+      是"元信息／装饰"那一档，`.folio`／`.sec-label`／`.thing-bar span` 都在用，零新墨）、**不写 `font-weight`**
+      ——宿主是 `<div>` 不是 `<h3>`，正是为了这一行不必声明字重（§3.4 那张字重落点表一个新格子都不添）；
+   ② 那道线是 `border-top:1px solid var(--line)`——`--line` 在册（`.density::before` 那根轴线与
+      `.essay-index li` 那对透明 border 用的都是它）、1px 是全站发丝线的唯一档、`border` 不在
+      `tools/gap-check.mjs` 的拆值名单里 ⇒ 零枚新垂直槽位；不加背景、不加第二枚记号（提案原话"只一条发丝线＋季度名"）；
+   ③ 线与字之间那 6px 不是一枚 margin，是 `line-height:2` 给这行 12px 等宽买到的**上半档半行距**
+      （12 × 2 = 24 的行盒，字占 12 ⇒ 上下各 6）：与 `.year-mark` 在册那枚 `margin-bottom:6px` 同一个光学量级，
+      而它跟行盒走（§4 的 B 档口径），改字号它跟着变、改 8 的网格它不许动，所以它归"行距派生"那一族、
+      不进纯块间距的账——这是判断不是口味：**这一族枚数与登记值一个都不动**。
+      字下面那半档 6px 加上行自己那 20/26px 内垫，就是季度名与第一行之间的距离，不必再写第二枚数；
+   ④ 窄屏三档零分支：线是横向铺满（跟宿主盒走）、名是两个字符（`q1`…`q4`，340 档也占不到半栏），
+      两样都不依赖视口宽度 ⇒ §11 那一格登记"零新行"。打印上不上纸见 §19.1 新增那一行。 */
+.q-mark{
+  border-top:1px solid var(--line);
+  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; line-height:2; letter-spacing:.14em;
+  color:var(--ink-3);
+}
 .essay-index{ list-style:none; margin:0 0 24px; padding:0; }
 .essay-index li{ position:relative; border-top:1px solid transparent; }
 .essay-index li:last-child{ border-bottom:1px solid transparent; }
@@ -592,6 +611,30 @@ a.row:visited{ color:var(--ink-visited); }
    ④ 高度由模板按 em 给（宿栏自己那枚 12px 字号的一档与三分之一档），所以这里不写 height，
       gap-check 那 142 枚垂直槽位与 30 枚圆角一个都不动（`flex`／`width`／`background`／`opacity` 都不在它那两把尺上）。 */
 .row-tick{ flex:none; width:4px; background:var(--moss); opacity:.55; }
+/* 密度自适应的目录行（一轮 §B1）：两档、离散、构建期由 `EssayIndex.astro` 枚一枚 `data-density` 到
+   `<ol class="essay-index">` 上（为什么不落 `<body>`／`<main>`：那格的理由全文在模板 `---` 上面，
+   其中一条是 `tools/pagination-check.mjs` 第 ③ 格钉死了 `<main class="wrap"><header …>` 那串开口字节）。
+   sparse 那一档**一条声明都不写**——它就是盘上现值（`.row` 上下内垫 26px／摘要两行 3.4em），
+   不写才证明"≤6 保持现状"那句是真的保持现状，而不是把旧值抄了一遍再改回去。
+   compact 这两条的数为什么是这两个：
+   ① `padding:20px 0` —— 不是新值。目录行的上下内垫在盘上只有四枚在册档：26（子页宽屏）／20（子页窄屏）／
+      18（首页）／16（首页窄屏）。20 是"同一枚元素、同一个属性、已经在册的那一档呼吸"，
+      本轮只是让它在宽屏的 compact 档也说话；一行的高度因此从 145.8px 收到 108.3px（−26%，
+      算式是 §4 那格记的那条：内垫×2 ＋ h3 24×1.45 ＋ 摘要 margin-top 8 ＋ 摘要行盒）。
+      为什么不是 18 或 16：那两枚是**首页那三行**的档（`home.css` 的 `.home-lower .row`），
+      首页的宿主与这一页的行宽不同，拿过来就是"替另一页做决定"，而且它会把在册的四枚档挤成一套连续缩放。
+   ② `-webkit-line-clamp:1` ＋ `min-height:1.7em` —— 摘要收到一行，占位收成正好**一枚行盒**
+      （15px × 1.7 就是 `.row-ex` 自己那行行盒，与 sparse 那枚 3.4em ＝ 两行同源）；
+      留白由 2 行降到 1 行而**不是 0**，因为 §8.8 那条"悬停不许重排"要求摘要常驻自己的位置，
+      砍掉占位就等于让悬停重新排一次版。`line-clamp` 与 `em` 都不在 gap-check 的拆值口径里 ⇒ 零枚新固定 px。
+   ⚠️ 权重：`.essay-index[data-density="compact"] .row` 是 (0,3,0)，压过裸 `.row`（宽屏 26px 那一档）与
+      `@media (max-width:720px)` 里那枚裸 `.row`（(0,1,0)）——两者都是 20px，所以窄屏这一档**读起来是零变化**，
+      这不是巧合而是认领：窄屏的行本来就已经紧了一档，本轮不需要为它再发明第二个数。
+   ⚠️ 降级三档都零新行：`prefers-reduced-motion` 不管它（这一档没有 `animation`、没有过渡，只是几何），
+      显示设置抽屉那三个旋钮不管它（它是编排层不是材质层），打印跟着屏幕同一档（§19.1 新增那一行签的是
+      "纸上也用同一把尺"，不为纸重开第二套密度）。 */
+.essay-index[data-density="compact"] .row{ padding:20px 0; }
+.essay-index[data-density="compact"] .row-ex{ -webkit-line-clamp:1; min-height:1.7em; }
 
 /* 密度尺：最近 12 个月每月一根，构建期算好画成 HTML。空月也画刻度——一把尺子比三根柱子诚实。
    ⚠️ 尺身不能是 SVG 拉宽：viewBox 是**等比放大整张画**，宽度换 100% 会连字带轴一起放大、`height:auto` 按 5:1 把带高长到 224px＝一次垂直大改；320px 档旧版实测整张缩到 135.31px 宽（柱 4→1.8、空月 3→1.35、标签字盒 13→6px）。换算与结论在 §15 那一格。已有的数一枚没改：柱宽 4、柱高 6+(c/peak)*30、空月 3、带高 60、轴 y=46、标签 10px mono .06em、三档 opacity .55/.22/.95。 */

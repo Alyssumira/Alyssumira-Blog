@@ -126,6 +126,66 @@ for (const p of items) {
   if (!g) byYear.push(g = { y, items: [] });
   g.items.push(p);
 }
+
+/* ── 密度自适应的目录行（一轮 §B1，本卡）：两档都是**离散**的构建期档，不是连续缩放 ──
+   ⚠️ 阈值吃**整份 `posts`**、不吃本页 `items`：与上面那两把尺同一条口径（一页一把尺子＝随页数漂的假尺）。
+      拿本页数的话这一档今天是死的——每页 3 行永远 ≤6，`compact` 那一档一次都切不过来，
+      而一枚永远读不到的判据不该签进产物。
+   ⚠️ 落点是 `<ol class="essay-index">`，不是提案字面写的 `<body>`／也不是 `<main>`，三条理由：
+      ① `tools/pagination-check.mjs` 第 ③ 格钉死了 `<main class="wrap"><header class="page-head reveal head-essays">`
+         这一整串开口字节（那枚 `head-essays` 是 §2.1 雾线族的宿主锚）——往 `<main>` 上加属性就是
+         让一把已签字的尺去读一枚新东西，本卡不许动它；
+      ② 这一档管的只有目录行，而 `.row` 全部住在 `<ol>` 里 ⇒ 宿主选窄不选宽
+         （与 §3.4 那格"可继承的声明开在哪一层"同一条判据）；
+      ③ `<body>` 住在 `src/layouts/Layout.astro`，全站九页共用它——为 /essays/ 的一档行距去改全站地板，
+         代价是每一页的字节都动，收益是零。
+   ⚠️ 两档的值（都是签过字的，一枚新 px 都不许多写）：
+      · sparse ＝ 盘上现值，一条声明都不写：`.row` 上下内垫 26px（在册 X）＋ 摘要两行（`line-clamp:2`／`min-height:3.4em`）；
+      · compact ＝ `.row` 上下内垫收到 20px——**这一枚不是新值**，它就是 `@media (max-width:720px)` 里 `.row`
+        已经在册的那枚 20px（同元素·同属性·同档），本轮只是让它在宽屏的 compact 档也说话；
+        摘要收到一行走 `-webkit-line-clamp:1` ＋ `min-height:1.7em`（＝摘要自己那一行行盒 15px × 1.7 的整数倍），
+        `line-clamp` 与 `em` 都不在 `tools/gap-check.mjs` 的拆值口径里 ⇒ 零枚新固定 px。
+      两档之间没有中间态：阈值只比一次大小，CSS 只有两条规则，没有 `clamp()`／没有随宽度连续收。
+   ⚠️ 整行仍旧可点：这一档只改 `.row` 自己的上下内垫与摘要占的行数，`<a class="row">` 的 DOM 与
+      `padding` 的横向值一个字节没动 ⇒ §8.3 那枚"悬停目录行"的铺面（`.row::before` 走 `top/bottom:0`）
+      跟着新行高自己长，不需要也不许为它开第二档。 */
+const DENSITY_COMPACT_AFTER = 6;   /* 提案 §B1 的阈值：文章数 ≤6 保持大留白，>6 自动紧一档 */
+const density = posts.length > DENSITY_COMPACT_AFTER ? 'compact' : 'sparse';
+
+/* ── 季度分节（一轮 §B2，本卡）：某一年在**整份名单**里 ≥12 篇时，那一年内部再出一道更轻的分节 ──
+   三条口径：
+   ① 判据数的是整份 `posts` 里那一年的枚数（`totalByYear`），不是本页那几行——与上面那枚 density 同一个理由：
+      每页 3 行时"本页某年 ≥12"是一枚永远不成立的死判据。
+   ② 分节只长在**已有的那只年块里**（`.year-block` → 若干 `<ol class="essay-index">`），
+      不长第三套时间分节系统：页头那只尺架里已经有两把尺（12 月刻度尺／写作年轮横条，§15 与 §13b），
+      按年分节是这一块的骨架，季度只是同一副骨架的**下一层**——一条 `--line` 发丝线 ＋ 一枚 `--ink-3` 的名字，
+      零背景、零新材质、零枚新垂直槽位（线走 `border-top`、名走 `line-height` 自己那半档行距，两枚都不在拆值口径里）。
+   ③ 名字走全站那层"拉丁小写标签"（§7 与 §12 禁大写标签那一族）：`q1`…`q4`，
+      与它上面那枚年标（`2026`，IBM Plex Mono）同一副嗓子；季度**由月份算出来**（`getUTCMonth()` ÷ 3 向下取整），
+      不替作者起名、不编第二个数——同一份日期数据在这一页只多画一道"归属"，不多画一份统计。
+   ⚠️ 切法用**连续段**、不用上面 `byYear` 那枚 `.find()` 的同名合并：行序＝名单序是硬口径
+      （`tools/pagination-check.mjs` 第②格钉"各页的行按页序拼起来 ⇄ 整份名单逐枚相同"），
+      置顶那篇会带着它自己那一季度的几行走在最前面，同名合并会把后面的行提上来 ⇒ 那一格就红了。
+      代价是同一年的同一季度理论上可能出现第二段（只有置顶跨季度时读得出来），那是"这一段属于哪几个月"的事实。 */
+const QUARTER_MIN = 12;   /* 提案 §B2 的阈值：某年 ≥12 篇才分季度，一年三四篇时画它就是噪音 */
+const totalByYear = new Map();
+for (const p of posts) {
+  const y = String(p.data.date.getUTCFullYear());
+  totalByYear.set(y, (totalByYear.get(y) || 0) + 1);
+}
+const quarterOf = p => Math.floor(p.data.date.getUTCMonth() / 3) + 1;
+/* 一年那几行摊成"要画的块"：整年不到 12 篇 ⇒ 一枚无名块（就是今天的样子，一个字节都不多）；
+   够了 ⇒ 按连续季度切成几枚带名的块。`q: 0` 是"这一枚块没有季度名"那个哨兵，不是第一季度。 */
+function chunksOf(g) {
+  if ((totalByYear.get(g.y) || 0) < QUARTER_MIN) return [{ q: 0, items: g.items }];
+  const out = [];
+  for (const p of g.items) {
+    const q = quarterOf(p);
+    if (!out.length || out[out.length - 1].q !== q) out.push({ q, items: [] });
+    out[out.length - 1].items.push(p);
+  }
+  return out;
+}
 /* 门牌是**整份目录**里第几行，不是这一页第几行 ⇒ 起点是本页在全局的偏移，跨页连号（01 02 03 | 04 05）。
    与跨年分节连号同一条口径，判据在 `tools/runtime-check.mjs` 的门牌对账那一格（本轮已扩到跨页）。 */
 let folio = at.from;
@@ -188,8 +248,12 @@ const browse = [
     {byYear.map(g => (
       <section class="year-block reveal">
         <h2 class="year-mark">{g.y}</h2>
-        <ol class="essay-index">
-          {g.items.map(p => {
+        {/* 一轮 §B1＋§B2 的两处落点都在这一层：`data-density` 只写在 `<ol class="essay-index">` 上（理由在 `---` 上面那一格），
+            季度名只在整年 ≥12 篇时才存在；不足那一格 `chunksOf()` 交回一枚 `q:0` 的无名块 ⇒ 产物里连那个 `<div>` 都没有。 */}
+        {chunksOf(g).map(c => (<>
+          {c.q ? <div class="q-mark">q{c.q}</div> : null}
+          <ol class="essay-index" data-density={density}>
+          {c.items.map(p => {
             const n = ++folio;
             const d = p.data.date;
             /* 封面那枚 `<img>` 上的 width/height/decoding 与 `src/components/PostRow.astro` 同一口径
@@ -216,7 +280,8 @@ const browse = [
               </li>
             );
           })}
-        </ol>
+          </ol>
+        </>))}
       </section>
     ))}
 
