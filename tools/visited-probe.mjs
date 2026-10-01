@@ -1,6 +1,6 @@
 /* visited-probe.mjs —— 读 `:visited` 到底画不画得出像素的量具（规范 §12 那句"墨色差"的第 0 问）
    为什么只能走像素：Blink/WebKit 出于反指纹，`getComputedStyle()` 对 `:visited` 返回**未访问值**
-   ⇒ "读 computed color 证明它生效了"这条路原理上走不通；§12:982 那条"凡'跑一遍某把尺子'式的验收，
+   ⇒ "读 computed color 证明它生效了"这条路原理上走不通；§12·「判据级的教训」 那条"凡'跑一遍某把尺子'式的验收，
    必须先证明那把尺子读得到被测对象"在这里直接适用。剩下能读它的只有绘制结果 ⇒ 出图比像素。
 
    用法  node tools/visited-probe.mjs selftest                     # 先自证 PNG 解码与判读函数（口径抄 pixel-probe）

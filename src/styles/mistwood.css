@@ -841,7 +841,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    谁先谁后都不改读数——这正是这次归并要买的东西。 */
 @media (prefers-reduced-motion:reduce){
   .nav{ opacity:1; transform:translate(-50%,0); }
-  /* ⚠️ `.lightbox img` 在这儿一起点名（§1:31 那句"凡是随输入更新的样式都要单独问一句它退成什么"的答）：
+  /* ⚠️ `.lightbox img` 在这儿一起点名（§1 那句"凡是随输入更新的样式都要单独问一句它退成什么"的答）：
      灯箱那张大图的"散雾"是一枚 **transition**（filter），不是 animation，所以 base.css 那条全局
      `*{animation:none}` 管不到它；真正掐住它的是两件事叠在一起——① base.css 同档里那条
      `transition-property:color,background-color,border-color,text-decoration-color,opacity !important`
@@ -866,7 +866,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    面退成实面后它俩的合成值算得出来——亮色上沿 rgba(250,251,248,.85) 压在 `--surface` #F7F8F5
    （`base.css:47-48`）上 Δ≈+3（看不见）、下沿 rgba(35,43,37,.07) 合成 Δ≈−15；暗色同理
    （`base.css:76-77` 压 `mistwood.css:23` #141A14）Δ≈−2 / −9。成对退化成"只剩下面那道暗线"，
-   正是 §12:929 点名的"只做下沿就是纸边上的一道脏印子"——留着它才是违反那枚机器牙的语义。
+   正是 §12·「玻璃只做上沿」 点名的"只做下沿就是纸边上的一道脏印子"——留着它才是违反那枚机器牙的语义。
    先例与公式都照 `mistwood.css:688-693`（≤720 把 .thing-bar 改实面时同一裁决、同样整体撤，
    实面条的影就是 `--shadow-contact,--shadow` 那对——作者为"实面 thing-bar"已签的那一份）。 */
 @media (prefers-reduced-transparency:reduce){

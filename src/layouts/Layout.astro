@@ -9,7 +9,7 @@ import { NAV } from '../lib/nav.js';
 import { fonts } from '../data/site.js';
 /* 「写于 / 改于」那两枚日历日在全站只有一把尺子（§13a 结构化数据那一格）：`Seo.astro` 的 JSON-LD
    `datePublished` / `dateModified` 吃的就是下面这两枚函数，head 里那两枚 `article:*` meta 现在也吃它们。
-   ⚠️ 这里不许出现第二种 `getUTC*` 拼法、也不许 `revised ?? date` 那种回落——§13a:1092 把 `dateModified`
+   ⚠️ 这里不许出现第二种 `getUTC*` 拼法、也不许 `revised ?? date` 那种回落——§13a·「dateModified」 把 `dateModified`
       登记成"这一格里唯一不许回落的字段"，head 那两枚 meta 与它读的是同一枚字段，回落一次就是同一件事
       在两处各说一套（页面上那行「改于」走的是 `whenLine()` → 同一个 `revisedOn`，三枚消费者一把尺子）。 */
 import { publishISO, revisedOn } from '../lib/revised.js';
@@ -57,19 +57,19 @@ const SITE_NAME = 'mistwood';
    那两枚函数的返回值——**不重算、不换格式、不回落**。
    `publishISO()` 交回空串（这一页没有一枚合法的日历日）与 `revisedOn()` 交回 `undefined`
    （git 问不到改动型提交，或改动那天不晚于发布那天）两种情形都落成**这一行根本不写**，
-   而不是写一枚空 content、也不是拿发布日期顶上：§13a:1092 那句「`revised ?? date` 是最危险的假语境」
+   而不是写一枚空 content、也不是拿发布日期顶上：§13a·「dateModified」 那句「`revised ?? date` 是最危险的假语境」
    管的正是这一族——机器读成"这篇后来改过"，而盘上从来没有那次改动。少一项不是错，多一项才是。
    ⚠️ 今天三篇稿子都没有改动型提交（`git log --diff-filter=M -- src/content/posts` 实测 0 行），
       所以 `article:modified_time` 在**每一份产物上都不存在**——那是正确的读数，不是漏了一行。
    ⚠️ 两枚都只在 `og:type` 为 `article` 的那几页出现：这一族说的是"这一篇文章的时间"，
       首页／目录页／404 领一枚就是假语境；这道门同时让"非文章页一枚都不许有"那一问在结构上成立。
       判据在 `tools/runtime-check.mjs` 的 **1f 段**：它对着 front matter 的 `date` 与 `git log` **独立**复算
-      一遍期望值（不复用这两枚函数，否则尺子走的就是被测物自己——§13a:1092 那格立的口径），
+      一遍期望值（不复用这两枚函数，否则尺子走的就是被测物自己——§13a·「dateModified」 那格立的口径），
       再与 head 那两枚 meta、JSON-LD 那两枚字段三方对账。 */
 const artPub = type === 'article' ? publishISO(date) : '';
 const artMod = type === 'article' ? (revisedOn(date, revised) || '') : '';
 /* `og:image:alt`：alt 要说的是"这张图上写着什么"，而这张图上写的就是**两句站里本来就有的字面量**
-   （§13a:1076 那一格：纯排版方案、没有用照片）。两档卡的第二行不同，alt 也跟着分两档，不许一句话糊过去：
+   （§13a·「OG 卡 1200×630」 那一格：纯排版方案、没有用照片）。两档卡的第二行不同，alt 也跟着分两档，不许一句话糊过去：
      · 逐篇卡（`/og/<slug>.png`）＝ eyebrow 那行站名身份 ＋ 这一篇的题名（出图时注进文案槽的就是 title，
        `tools/og-check.mjs` ④ 那一格逐枚对账"清单题面 ⇄ 当前 front matter"）；
      · 站点级那张（`/og.png`）＝ 同一行站名身份 ＋ **首页 H1 那句**（`tools/og-cards.mjs` 给站点级那张传的

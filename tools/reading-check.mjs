@@ -554,7 +554,7 @@ function judgeTop(html, exp){
   const rows = topRowsOf(html);
   if (!exp.required){
     if (hasTail(html)) red.push(`${exp.slug} 不是详情页却带着 .post-tail 那一族 ⇒ ⑤ 判"这一族只住在详情页"这一档没了参照`);
-    if (rows.length) red.push(`${exp.slug} 不是详情页，产物里却有 ${rows.length} 枚 top 钮 —— §15:1353 那一格给的是详情页文末那一族，别的页没有靶可指`);
+    if (rows.length) red.push(`${exp.slug} 不是详情页，产物里却有 ${rows.length} 枚 top 钮 —— §15·「回到顶部」 那一格给的是详情页文末那一族，别的页没有靶可指`);
     return red;
   }
   const span = tailSpanOf(html);
@@ -641,7 +641,7 @@ cell('⑤', '回到这一篇的开头那枚文字钮：每份详情页恰好一�
   const tpl = codeOnly(read('src/pages/essays/[slug].astro'));
   assert.ok(/const TOP_ID = 'post-head';/.test(tpl), '⑤ 模板里 `const TOP_ID = \'post-head\'` 那枚字面没了 —— 靶与 href 的唯一真值搬走，那枚钮与本篇的头就会开始各说一套');
   assert.ok(/<header class="post-head reveal" id=\{TOP_ID\}>/.test(tpl), '⑤ 模板里那枚 `<header class="post-head">` 不再吃 TOP_ID 当靶 —— 产物里那枚钮指的就是它，两边一断就是死锚点');
-  assert.ok(/<a class="post-act" href=\{`#\$\{TOP_ID\}`\}>回到这一篇的开头<\/a>/.test(tpl), '⑤ 模板里那枚 top 钮不再吃 `.post-act` 那同一条声明、或片段值不再由 TOP_ID 拼 —— §15:1353 那句"同一条声明，零新形状"就是这一行');
+  assert.ok(/<a class="post-act" href=\{`#\$\{TOP_ID\}`\}>回到这一篇的开头<\/a>/.test(tpl), '⑤ 模板里那枚 top 钮不再吃 `.post-act` 那同一条声明、或片段值不再由 TOP_ID 拼 —— §15·「回到顶部」 那句"同一条声明，零新形状"就是这一行');
   assert.ok(!/onclick/.test(tpl), '⑤ 模板里出现了 onclick —— 这一枚是无 JS 的真链接，加上脚本就多了第五类运行时（§17）');
   const sj = codeOnly(read('src/scripts/site.js'));
   assert.ok(!/post-head/.test(sj), '⑤ site.js 里出现了 post-head —— 那枚钮本来不需要脚本；§17 运行时普查的四类（主题／时钟／入场／目录）就此多了一处');

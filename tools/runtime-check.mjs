@@ -704,12 +704,12 @@ const markSpansOf = html => {
    ⚠️ 期望侧**不由被测对象自己出**（§16 那条"拿 Layout 的宣告去对 Layout 的宣告，两处一起漏就一起绿"）：
       · 发布日从 front matter 的 `date` 字面量独立复算（`splitFm` ＋ `unquote` 那份工具侧唯一读法），
         字面量本来就是 `YYYY-MM-DD` 时直接用它，写成带时刻的形式才按 UTC 拼日历日——**不 import `publishISO()`**，
-        否则尺子走的就是被测物自己（§13a:1092 那格量具立的同一条口径）。
+        否则尺子走的就是被测物自己（§13a·「dateModified」 那格量具立的同一条口径）。
       · 改动日由本格**自己**问一次 `git log -1 --diff-filter=M --format=%cd --date=short -- <稿件>`，
         再套一遍"改于晚于发布日才算改"的规则（也是现写的，不 import `revisedOn()`）。
       · 于是"三篇都没有改动型提交 ⇒ 全站 0 枚 `article:modified_time`"这一句是**对账**出来的，不是照抄产物。
    ⚠️ 零枚不许静默：进窗份数、文章页数、两枚时间戳各自的枚数、`og:image` 与 `og:image:alt` 各几枚，每跑都当众印；
-      `article:modified_time` **今天 0 枚是合法态**（§13a:1092），所以这一格不要求它大于零——它要求的是
+      `article:modified_time` **今天 0 枚是合法态**（§13a·「dateModified」），所以这一格不要求它大于零——它要求的是
       "枚数被印出来"且"每一枚都能对上 git 里真有的那一次改动"。反过来若一份 HTML 都没进窗、或文章页一枚
       时间戳都没领到 ⇒ 红（"扫了但没匹配到"与"扫了且全过"不许长同一副样子）。
    ⚠️ 内置自证（口径照 1c 的三枚 needle、1d/1e 的两枚 fixture）：先拿手写 fixture 自证这五支判据都还有牙，
@@ -780,7 +780,7 @@ const markSpansOf = html => {
     if (f.altCount === 1 && String(f.alt).trim() === '') out.push(`og:image:alt 是空串 ⇒ 有那枚属性、没有那句话（` + 'href="" 那一族的近亲：看着有、读出来什么都没有）');
     if (!exp.article) {
       if (f.pub.length) out.push(`这一页的 og:type 是 ${q(f.type)}（不是 article），产物里却写着 article:published_time=${q(f.pub[0])} ⇒ 首页／目录页／404 领一枚文章时间戳就是假语境`);
-      if (f.mod.length) out.push(`这一页的 og:type 是 ${q(f.type)}（不是 article），产物里却写着 article:modified_time=${q(f.mod[0])} ⇒ 这一篇的"后来改过"从来没有发生过（§13a:1092）`);
+      if (f.mod.length) out.push(`这一页的 og:type 是 ${q(f.type)}（不是 article），产物里却写着 article:modified_time=${q(f.mod[0])} ⇒ 这一篇的"后来改过"从来没有发生过（§13a·「dateModified」）`);
       if (f.ld && f.ld !== 'bad' && (f.ld.published || f.ld.modified)) out.push(`og:type 是 ${q(f.type)}，JSON-LD 那侧却带着 datePublished=${q(f.ld.published)} / dateModified=${q(f.ld.modified)} ⇒ head 与机器两处同时长回文章字段`);
       return out;
     }
@@ -801,14 +801,14 @@ const markSpansOf = html => {
     if (f.ld && f.ld !== 'bad' && (f.pub.length > 0) !== !!ldPub) out.push(`同一页两枚说法：head 的 article:published_time ${f.pub.length ? `=${q(f.pub[0])}` : '不存在'} ⇄ JSON-LD 的 datePublished ${ldPub ? `=${q(ldPub)}` : '不存在'} ⇒ 两条发射链只补了一侧`);
     else if (f.ld && f.ld !== 'bad' && f.pub.length && ldPub && f.pub[0] !== ldPub) out.push(`同一页两枚日期：article:published_time=${q(f.pub[0])} ⇄ datePublished=${q(ldPub)} ⇒ 发布日在抓取器眼里成了两枚`);
     /* ② 改动日：head ⇄ JSON-LD 永远要对齐；git 问得到的那一侧只在问得到时才比对（问不到当众报，不静默） */
-    if ((f.mod.length > 0) !== !!ldMod) out.push(`同一页两枚说法：head 的 article:modified_time ${f.mod.length ? `=${q(f.mod[0])}` : '不存在'} ⇄ JSON-LD 的 dateModified ${ldMod ? `=${q(ldMod)}` : '不存在'} ⇒ 只补了一侧（§13a:1092 那一格管的就是这一枚字段不许回落）`);
+    if ((f.mod.length > 0) !== !!ldMod) out.push(`同一页两枚说法：head 的 article:modified_time ${f.mod.length ? `=${q(f.mod[0])}` : '不存在'} ⇄ JSON-LD 的 dateModified ${ldMod ? `=${q(ldMod)}` : '不存在'} ⇒ 只补了一侧（§13a·「dateModified」 那一格管的就是这一枚字段不许回落）`);
     else if (f.mod.length && ldMod && f.mod[0] !== ldMod) out.push(`同一页两枚改动日：article:modified_time=${q(f.mod[0])} ⇄ dateModified=${q(ldMod)} ⇒ 页面上那行「改于」与机器读的日期各说一套`);
     if (exp.modKnown) {
       if (exp.mod) {
         if (f.mod.length !== 1) out.push(`git 里问得到这一次改动（${exp.mod}），产物里 article:modified_time 却读到 ${f.mod.length} 枚 ⇒ 页面上有「改于」而 head 没宣告（或宣告了两遍）`);
         else if (f.mod[0] !== exp.mod) out.push(`head 与 git 分叉：article:modified_time=${q(f.mod[0])}，而 git 里最后一次改动型提交是 ${exp.mod}`);
       } else if (f.mod.length) {
-        out.push(`article:modified_time=${q(f.mod[0])}，可 git 里对这个文件**没有一枚改动型提交**（--diff-filter=M 实测空）⇒ 这就是 \`revised ?? date\` 那一族假语境：机器会读成"这篇后来改过"，而盘上从来没有那次改动（§13a:1092）`);
+        out.push(`article:modified_time=${q(f.mod[0])}，可 git 里对这个文件**没有一枚改动型提交**（--diff-filter=M 实测空）⇒ 这就是 \`revised ?? date\` 那一族假语境：机器会读成"这篇后来改过"，而盘上从来没有那次改动（§13a·「dateModified」）`);
       }
     }
     return out;
@@ -917,7 +917,7 @@ const markSpansOf = html => {
     + `缺字段／两把尺子分叉／重复枚数／非文章页带时间戳／alt 空串／有面没话／有话没面 各一枚红的反向格）`);
   notes.push(`1f head 元数据：${pagesIn}/${PAGES.length} 份 HTML 进入，其中文章页 **${artPages} 枚**；`
     + `article:published_time **${pubTotal} 枚**、article:modified_time **${modTotal} 枚**（今天零枚是合法态：git 里对这些稿件没有一枚改动型提交，`
-    + `写了就是 §13a:1092 那句"revised ?? date 是最危险的假语境"）${modSeen.length ? `；实际写到的是：${modSeen.join(' / ')}` : ''}；`
+    + `写了就是 §13a·「dateModified」 那句"revised ?? date 是最危险的假语境"）${modSeen.length ? `；实际写到的是：${modSeen.join(' / ')}` : ''}；`
     + `og:image ${imgTotal} 枚 ⇄ og:image:alt ${altTotal} 枚；源码侧期望 ${expectBySlug.size} 篇独立复算（git 侧：${gitState}${unknownGit ? `、${unknownGit} 篇问不到 ⇒ 那几页只判 head⇄JSON-LD 一致` : ''}${gitFailed ? `、失败 ${gitFailed} 次` : ''}）；`
     + `盘上判决 ${units} 条 ＋ 内置自证 ${tried} 条 ＝ **${units + tried} 条断言**`);
 }

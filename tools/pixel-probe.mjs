@@ -299,7 +299,7 @@ function maskAndStats(plain, hidden, inkHex, band) {
   return { ratios: Float64Array.from(ratios).sort(), bgLum: Float64Array.from(bgLum).sort(), inBand, condSkip, covHi, xMin, xMax, d };
 }
 
-/* 横向三分（§5:289 那张表就是在这一刀上量的，它当时只在 531 成立、并明写"没在宽屏量过之前不许
+/* 横向三分（§5·「标题右半压在最亮的雾上」 那张表就是在这一刀上量的，它当时只在 531 成立、并明写"没在宽屏量过之前不许
    按这条挪遮罩"）。这一档就是那条待账的宽屏版：标题背后那片底按左/中/右三分各多亮、字形像素的
    对比度各是多少、弱的一侧在哪。只出数，不动 `--scrim-text` 的 22% 60%。 */
 function thirds(outDir, pass, vp, theme, band) {

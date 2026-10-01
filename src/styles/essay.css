@@ -108,8 +108,8 @@ html[data-focus="1"] .wrap::before{ display:none; }
 #toc a.on::before{ background:var(--moss); width:10px; }
 /* H3 在目录里是二级条目：只往**缩进**那一格走，不新造记号。
    14 是一级条目自己的左缘（`#toc a` 那条 padding-left），再加的那 12 就是这一列自己的行距档
-   （`#toc` 的 gap:12px，同一份表里已有的数）——不是新档位，也不是一枚新符号（§9:722 刚为
-   "同一个符号表达两种状态"改过一次，§12:810 又点名目录不许再加一枚竖线）。
+   （`#toc` 的 gap:12px，同一份表里已有的数）——不是新档位，也不是一枚新符号（§9·「当前页的记号」 刚为
+   "同一个符号表达两种状态"改过一次，§12·「目录"当前章"再给一条左侧竖线」 又点名目录不许再加一枚竖线）。
    短线记号（`::before` 那枚 6px）一级二级都用它：它说的是"这是一条目录条目"，深度由左缘读。 */
 #toc a.sub{ padding-left:26px; }
 @media (max-width:1240px){ #toc{ display:none; } }
@@ -127,7 +127,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
    **两层光的合成**按"铺满全页"的最坏假设再复算一遍同一批地板（读数与判据登记在 §2.3 末那一格）。
    ⚠️ 静态：零 `animation`、零 `filter`、零新模糊半径（§1.4 那三种一个都没多）、**不是第二层噪点**
    （§12 那条"颗粒是全屏唯一纹理"照旧有效——这一层是光，没有顺手加 turbulence/纹理来"增强质感"）。
-   ⚠️ **它不随输入更新**，所以 §1:31 那句"凡是随输入更新的样式都要单独问一句它在减弱偏好下退成什么"
+   ⚠️ **它不随输入更新**，所以 §1 那句"凡是随输入更新的样式都要单独问一句它在减弱偏好下退成什么"
       对它的答是 **"不退"**——白纸黑字写在这里，不靠"它没动所以不用管"：
       值钉在正文自己的坐标系里（`background-attachment` 用默认的 `scroll`，**不是 `fixed`**），
       没有任何一枚由 JS 写的自定义属性参与它（同一条 `.post-body` 上那枚 `--read-fog` 才是滚动驱动的，
@@ -382,7 +382,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 /* 图版可点（灯箱）：`cursor:pointer` 是一枚提示，不是一枚权限——没有它这一张图也一样能被 Tab 到、
    被 Enter 按下（`site.js` 给图版补的是 tabindex/role/键盘，触屏点的是这一整块）。
    ⚠️ 零 hover 属性变化：§8.3 的预算给的是"每个可点元素 1 个主反馈"，而这里的"反馈"是**打开大图**这件事
-      本身；再叠一层悬停就是拿材质换提示，而 §12:788 那条教训禁的恰恰是"只有悬停才看得见"。 */
+      本身；再叠一层悬停就是拿材质换提示，而 §12·「把 404 的地址藏起来让人找」 那条教训禁的恰恰是"只有悬停才看得见"。 */
 .post-body figure.shot.zoomable{ cursor:pointer; }
 
 /* ===== 正文配图灯箱（§15）===== */
@@ -395,10 +395,10 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
       灯箱里的图是它新增的第五个使用点，数值一处真值）。
    ② **键盘与触屏都到得了**：原生 `<dialog>` + `showModal()` ⇒ 焦点陷阱与 Esc 是浏览器给的；
       收起钮是 `.post-act` 那一族的文字钮（§9 那句"没有一枚是胶囊形"照旧成立），点图版外那片雾也收。
-   ③ **减弱偏好下退成什么**（§1:31 那句"凡是随输入更新的样式都要单独问一句"）：答在 `mistwood.css`
+   ③ **减弱偏好下退成什么**（§1 那句"凡是随输入更新的样式都要单独问一句"）：答在 `mistwood.css`
       那条 `@media (prefers-reduced-motion:reduce)` 的名单里——大图**直接实**（起手态那枚 blur 一起撤，
       而 `filter` 也早被 base.css 同档那条 `transition-property !important` 请出了可过渡名单），不演散雾；
-      面板、遮罩、开关、图注全没有 `animation`，因此也没有 `infinite` 可留（§12:875 那一族）。
+      面板、遮罩、开关、图注全没有 `animation`，因此也没有 `infinite` 可留（§12·「还留着 infinite」 那一族）。
    ⚠️ 面板 `padding:16px` 与内部 `gap:14px` 两枚垂直槽位都在 `tools/gap-check.mjs` 的注册表里认领了
       （16 走 C 档＝代码面那枚同一个数，14 走 X 档＝图注/副题那一族的既有数），没有新开档位。 */
 .lightbox{

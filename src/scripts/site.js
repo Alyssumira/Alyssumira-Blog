@@ -622,7 +622,7 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     block.appendChild(btn);
     btn.addEventListener('click', async () => {
       /* 回执是**同一枚字位换成另一种字**，不是新增一块图形：成了＝copied，没成＝那句真话。
-         与 focus 那枚钮 '只看字' / '退出专注' 同一个做法（§9:722 判的是"同一个符号表达两种状态"，
+         与 focus 那枚钮 '只看字' / '退出专注' 同一个做法（§9·「当前页的记号」 判的是"同一个符号表达两种状态"，
          这里一格只表达一种状态，翻页靠字本身）。不做"1.7s 之后自己淡回 copy"——那是给一行
          已经说过的收据装定时器，盖章那行 `盖于…` 也没这么办。 */
       btn.textContent = (await copyText(code.textContent)) ? 'copied' : '没能复制';
@@ -634,7 +634,7 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
        `<dialog>`（本站最一致的那条模式——"没填 ⇒ 整块不出现"，不是 `display:none` 留着）。
        脚本这一侧再兜一道：`#lightbox` 不在 ⇒ 整段不跑，也不给任何图版装可点语义。
      ⚠️ 用原生 `<dialog>` + `showModal()`：焦点陷阱与 Esc 是浏览器给的，不是我们模仿的。
-       图版本身靠 `tabindex`+`role=button`+键盘 Enter/Space 补齐——§12:788 那条教训（"光标接近才浮现"
+       图版本身靠 `tabindex`+`role=button`+键盘 Enter/Space 补齐——§12·「把 404 的地址藏起来让人找」 那条教训（"光标接近才浮现"
        对键盘/触屏不是降级而是页面失效）在这儿反着用：能点开的东西必须也能 Tab 到、也能按下去。
      ⚠️ 放大件是**新建的一枚 `<img>`**，src 从被点的那张取：图版在正文里已经走完 §8.4 那条链，
        再复用同一个节点就是让大图"没有载入却演一次散雾"——那是假反馈。新节点真走一次 load/error，

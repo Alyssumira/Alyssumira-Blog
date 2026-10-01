@@ -111,7 +111,7 @@ cell('①', '真产物：出生日没登记 ⇒ 0 枚格子 + 那句实话在场
     '① src/data/site.js 里那行 `export const BIRTH_DATE =` 不在了（改名/挪走 ⇒ 页面与尺子读的不是同一枚输入，这一格必须先红）');
   if (!birth){
     const cells = cellsOf(html);
-    assert.equal(cells.length, 0, `① 出生日没登记（BIRTH_DATE = ${JSON.stringify(raw)}），产物里却画了 ${cells.length} 枚格子——没起点的那一格连"第 0 年"都不该有（§12:1000 那条"载入次数读不到时整行不出现"同口径）`);
+    assert.equal(cells.length, 0, `① 出生日没登记（BIRTH_DATE = ${JSON.stringify(raw)}），产物里却画了 ${cells.length} 枚格子——没起点的那一格连"第 0 年"都不该有（§12 那条"载入次数读不到时整行不出现"同口径）`);
     assert.ok(!hasGridBox(html), '① 出生日没登记，产物里却出现了 .life-grid 那个盒子（哪怕里面是空的）——空态不许留一枚占位灰格');
     assert.ok(/还没有可用的出生日[^<]*一格都不画/.test(html), '① 那句实话不在产物里：读不到起点时页面必须当面说"没有"，不许沉默、也不许退回 0');
     assert.equal(rowsOf(html).length, 0, '① 出生日没登记却扫到行');
