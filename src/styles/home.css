@@ -123,7 +123,11 @@ html[data-theme="dark"] .bg-photo::after{
 }
 /* 八格：2 主题 × 4 phase，只有强度（opacity）在动，角度/色相都不动。
    清晨最亮 → 正午收起 → 傍晚偏暖（暖度由 --bg-top 的时段值自己带）→ 夜里消失。
-   夜林整体比亮色收一档（无月之夜没有太阳），且 night 两主题一起归零。 */
+   夜林整体比亮色收一档（无月之夜没有太阳），且 night 两主题一起归零。
+   ⚠️ 这八格是 §5.1 那张签过字的表，二轮 §2.1 重开了它——重开的**只有强度读数**：下面那四格是在
+   同一枚 `.bg-photo::after` 上再加两档"强姿态"，八格自己的八个数一个没改，"其余时段一字不动"
+   就是照这句签的。角度（65deg）、渐变 stops、色相、`--mist` 的空气透视那一层，全都没动；
+   §1.4 那三种模糊的半径一个字节没碰（这一格本来就不是 blur()，上面 :106 那句"零新模糊"照旧成立）。 */
 html[data-phase="dawn"][data-theme="light"]  .bg-photo::after{ opacity:.50; }
 html[data-phase="day"][data-theme="light"]   .bg-photo::after{ opacity:.18; }
 html[data-phase="dusk"][data-theme="light"]  .bg-photo::after{ opacity:.38; }
@@ -132,6 +136,23 @@ html[data-phase="dawn"][data-theme="dark"]   .bg-photo::after{ opacity:.30; }
 html[data-phase="day"][data-theme="dark"]    .bg-photo::after{ opacity:.12; }
 html[data-phase="dusk"][data-theme="dark"]   .bg-photo::after{ opacity:.20; }
 html[data-phase="night"][data-theme="dark"]  .bg-photo::after{ opacity:0; }
+
+/* 晨昏各一小时：看得见的斜（二轮 §2.1，规范 §5.1）。写者只有 `site.js` 的 tick：
+   `data-shaft` 是同一根时钟上的**子区间**，`data-phase` 那四档一枚没加（判据在 `src/lib/phase.js`
+   的 `shaftAt`：清晨 07:00–07:59 要 dawn 在场、傍晚 17:00–17:59 要 dusk 在场）。
+   倍数照提案那一条带取值，逐格写在下面，**不是随手抬的**：
+     亮/dawn .50 → .95 ＝ ×1.90   亮/dusk .38 → .76 ＝ ×2.00
+     暗/dawn .30 → .54 ＝ ×1.80   暗/dusk .20 → .36 ＝ ×1.80
+   ⚠️ 暗色两档取带子的**下沿**（×1.8），理由是 §5.1 那格自己的量法："压暗周围"在 .12–.30 这一组里
+   量到过"所有暗格 Δ 落在噪声内"；再往上抬就进了没量过的区间（这一格仍然欠屏上复量，窗口写在 §5.1 末）。
+   亮色 .95 那格离 opacity 的上限 1 只剩 .05——留的就是这一格。
+   选择器权重：这一档是 (0,4,2)（html ＋ 三枚属性 ＋ .bg-photo ＋ ::after），上面那八格是 (0,3,2)
+   （少一枚属性）⇒ 高一级，盖得住它们；night 两格没有对应的强档块（窗口本来就要求 dawn/dusk 在场，
+   而 night 那一格两主题都是 0，抬不动也不该抬——§5.1："夜里消失"）。 */
+html[data-shaft="rise"][data-phase="dawn"][data-theme="light"] .bg-photo::after{ opacity:.95; }
+html[data-shaft="set"][data-phase="dusk"][data-theme="light"]  .bg-photo::after{ opacity:.76; }
+html[data-shaft="rise"][data-phase="dawn"][data-theme="dark"]  .bg-photo::after{ opacity:.54; }
+html[data-shaft="set"][data-phase="dusk"][data-theme="dark"]   .bg-photo::after{ opacity:.36; }
 
 /* 纱罩：统一色调 + 保证文字可读 + 底部溶入正文底色 */
 /* 灯的"开合度"要能插值，所以注册成数字属性：mask 里的颜色stops本身不可过渡，

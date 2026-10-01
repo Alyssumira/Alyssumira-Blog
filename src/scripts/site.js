@@ -3,7 +3,7 @@
 /* ⚠️ 这四个档位的判定（几点算 dawn、几点算 dusk）在 ../lib/phase.js，是纯函数：
    浏览器跑它、`tools/phase-check.mjs` 也跑它，差值表里的数和访客看到的档子是同一份代码出的。
    搬去别处写（尤其是搬进 CSS 之外的运行时自定义属性）会拆掉 palette-check 的方向光复算——见 §2.3 末。 */
-import { phaseAt, tableBounds, sunOverride } from '../lib/phase.js';
+import { phaseAt, tableBounds, sunOverride, shaftAt } from '../lib/phase.js';
 /* 搜索的检索口径与构建期那份是**同一份代码**（`lib/search.js` 文件头第①条讲的三处同跑），
    这里只吃它两个函数：比对、以及标出字面连续的那几枚字。 */
 import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.js';
@@ -316,6 +316,17 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
       root.setAttribute('data-phase', p);
       if (weatherEl) weatherEl.textContent = weatherWord[p];
       announce();
+    }
+    /* 光柱的"晨昏各一小时"（二轮 §2.1，规范 §5.1）：同一根时钟上的**子区间**，写成 `data-shaft`。
+       ⚠️ 上面 :3 那格警告的是"别把色温/方向光搬进运行时自定义属性"——这一枚不碰那三枚：
+       `--lit` / `--lit-at` / `--lit-r` 与暗色三段色温仍旧只住在 CSS 的 `html[data-phase=…]` 条件块里，
+       palette-check 复算读的还是那些块。这里搬出去的是 `.bg-photo::after` 的 **opacity**，
+       而 §5.1 签的是"opacity 是普通属性、不进色板闸"——它今天本来就没有尺子在读（欠量登记在 §5.1）。
+       ⚠️ 不 `announce()`：这一枚属性只有 CSS 吃，广播一次会把 `hero.js` 的萤火那一族 innerHTML 清掉重排
+       （惊起路径的随机位与节律白丢一次），而它要的只是"到点换一档 opacity"。 */
+    const sh = shaftAt(now, p);
+    if ((root.dataset.shaft || null) !== sh){
+      if (sh) root.setAttribute('data-shaft', sh); else root.removeAttribute('data-shaft');
     }
   }
 
