@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import Seo from '../components/Seo.astro';
 import { ROOT } from '../lib/stats.js';
 import { NAV } from '../lib/nav.js';
-import { fonts } from '../data/site.js';
+import { fonts, AUTHOR, EMAIL } from '../data/site.js';
 /* 「写于 / 改于」那两枚日历日在全站只有一把尺子（§13a 结构化数据那一格）：`Seo.astro` 的 JSON-LD
    `datePublished` / `dateModified` 吃的就是下面这两枚函数，head 里那两枚 `article:*` meta 现在也吃它们。
    ⚠️ 这里不许出现第二种 `getUTC*` 拼法、也不许 `revised ?? date` 那种回落——§13a·「dateModified」 把 `dateModified`
@@ -243,6 +243,22 @@ if (fonts.some(f => !f.self)) throw new Error(`fonts 清单里这些族没有 se
 </header>
 
 <slot />
+
+{/* 屏幕页脚（二轮 §6.1，规范 §2.5 那一格）：一整块深苔地面——一页从上往下读，本来就是从树冠走到地面。
+   两档反白字的分工：主档＝站名＋作者名（两枚都取自单处真值：SITE_NAME 在本文件上面那行、AUTHOR 在
+   src/data/site.js:39），次档＝订阅与写信那两枚链接，吃全站"小字宽字距"那一族（IBM Plex Mono 12px／.12em，
+   与 .post-act／.post-meta 同一档）。材质、对比度、打印怎么退回、404 那一档的账，都在规范 §2.5 与 §19.1。
+   ⚠️ 这一段是模板注释、不是 HTML 注释：后者会跟着每一页原样进 dist/（上面 noindex 那一格为同一件事记过），
+      而 tools/font-subset.mjs 的码点并集读的就是产物里的每一个字符（distUnion()）——注释里冒出的新汉字会在
+      gate 那一步报成域外字，代价是重切两枚子集。
+   ⚠️ 写信那枚吃 EMAIL（src/data/site.js:51）：邮箱字面量全站只有那一处，这里不许抄第二份；它为空时
+      分隔点与链接一起不落，半枚死锚点都不留（§12）。 */}
+<footer class="site-foot">
+  <div class="foot-in">
+    <p class="foot-id">{SITE_NAME} <span class="sep">·</span> {AUTHOR}</p>
+    <p class="foot-acts"><a class="foot-act" href="/rss.xml">rss — 订阅</a>{EMAIL && <span class="sep">·</span>}{EMAIL && <a class="foot-act" href={EMAIL}>letter — 写信</a>}</p>
+  </div>
+</footer>
 
 </body>
 </html>

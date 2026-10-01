@@ -553,6 +553,46 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
   .reveal{ opacity:1; transform:none; }
 }
 
+/* ============ 屏幕页脚（二轮 §6.1，规范 §2.5）：一块深苔地面 ============ */
+/* `--moss-solid` 的第二枚载体，也是 §9 那条「页脚已撤（2026-09-27）」被作者重开的那一块。
+   四条口径钉在这里，读代码的人不必再去规范里找：
+   ① **面**：全宽、`background:var(--moss-solid)`，整块不透明——它坐在页面流的最末，不是浮层，
+     所以不需要 z-index、不需要描边、不需要任何一层影（§19.1 那一族"纸上不留一层面"在纸上的退回见下面
+     `@media print` 里那一行；屏幕这一侧它就是地面）。
+   ② **字两档**：主档吃**当档的纸**——亮档 `--bg-base` 压 `#2E4331` ＝ palette-check 亮色表
+     `--moss-solid` 那一行现印的 **9.07**；夜档 `--ink` 压 `#20261F` ＝ C1 签在 §2.2 那一行的 **12.43**。
+     次档是主档那枚字的 `opacity:.8`（不是新色、不是新配比来源——同一页上 `.sep{opacity:.5}` 早就在用
+     透明度当"次一档"使）：按 `palette-check` 那套 toLin/lum/ratio 现算，合成值亮档 `#C5CBC3`＝**6.47**、
+     夜档 `#BCC1B9`＝**8.44**，两档都在 §2.4 的 4.5 地板之上，主档两枚都在 7 之上。
+     ⚠️ 提案那格给的 **60%** 没采用：`#EBEDE8` α.6 合成到 `#2E4331` 只有 **4.41**，跌破次要档地板——
+     这一格是"提案给的方向对上已签地板时以地板为准"的形状，账写在规范 §2.5 第三节。
+     ⚠️ 在册 `--ink-2` 压夜档面是 **4.75**（地板 4.5、余量只剩 0.25），本卡**一枚字都没往它上面放**——
+     页脚要长期住在每一页的最底下，不该把一笔账压在只剩 0.25 的那一侧。
+   ③ **形状**：`border-radius` 一条不写（方角，与上面 `.hero-cta` 同一判据：`gap-check` 那把圆角尺子
+     现值 30 枚／12 种写法，逐档枚数与登记一致才绿，本卡不许改那张注册表）。
+   ④ **间距**：竖向全走 `em`（跟着页脚自己那行 12px 的行盒派生＝§4 的 B 档口径），`gap-check` 文件头
+     「百分比不认领」那一档因此一个不动；横向那两枚（`8vw` 在第二值位、`margin:0 8px` 的 `0` 在第一值位）
+     它本来就不看——同一形状的先例是上面 `.search .sep`（`margin:0 8px`）与 `mistwood.css:570` 那格。
+   字族与字距复用「小字宽字距」那一族（`.post-act`／`.post-meta`／`.stamp-note` 都是 IBM Plex Mono 12px／.12em），
+   链接的下划线走 §8.3 已签的"加深＋变粗 1px→2px"、40% 那枚 `color-mix` 配比也是现成的——
+   悬停只动 `text-decoration-color` 与 `text-decoration-thickness` **两枚**内容属性（§1 上限 3），
+   按下 `.98` 用 §8.1 那档回弹（它的唯一合法用途就是按下）。 */
+.site-foot{ background:var(--moss-solid); color:var(--bg-base); }
+html[data-theme="dark"] .site-foot{ color:var(--ink); }
+.foot-in{ max-width:1120px; margin:0 auto; padding:2.6em 8vw; }
+.foot-id,.foot-acts{
+  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em;
+}
+.foot-acts{ margin-top:1.2em; opacity:.8; }
+.site-foot .sep{ margin:0 8px; opacity:.5; }
+.foot-act{
+  text-decoration-line:underline; text-decoration-thickness:1px; text-underline-offset:3px;
+  text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);
+  transition:text-decoration-color .3s cubic-bezier(.22,1,.36,1),text-decoration-thickness .3s cubic-bezier(.22,1,.36,1);
+}
+.foot-act:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; }
+.foot-act:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+
 /* ============ 纸上一页脚（§19.5）：屏幕上它不存在 ============ */
 /* ⚠️ `display:none` 不是"藏起来备着"——它在屏幕上**一个像素都不占**，所以 §9 那条"页脚已撤（2026-09-27）"
    没有被翻案：这一行只在纸上出现，说的是"这张纸出自哪儿、是哪一篇"，不是屏幕上那块纯色收尾。
@@ -602,14 +642,28 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 
   /* ---- §19.1 撤场清单：氛围层与控件 ---- */
   /* 颗粒 / 玻璃导航 / 进度线与章节刻度 / 右侧目录 / 首页那两张照片底与纱罩与雾带与灯与萤火 /
-     方向光与那层气 / 盖章按钮 / 上下篇。每一行的理由在 §19.1 那张表里，这里不重抄。 */
+     方向光与那层气 / 盖章按钮 / 上下篇。每一行的理由在 §19.1 那张表里，这里不重抄。
+     ⚠️ 本轮添一行：`html .site-foot`（二轮 §6.1 那块深苔地面）。撤的是**整块**，不是只撤那层颜色——
+     两条理由任一条都够：① 纸上不留一层面（§19.1 开头那句，本卡给它新添的那一行就住在那张表里），
+     `print-color-adjust` 仍旧不用 `exact`（§19.4 那句"让 exact 没东西可管"照旧成立，靠的就是这一撤）；
+     ② 它里面那两枚链接指向的是 `/rss.xml` 与 `mailto:`——纸上既点不动、也不是读者能核对的东西，
+     与 19.1 撤玻璃导航同一理由（"一条没有 href 目标可去的胶囊导航印在每页顶部是纯噪音"）。
+     纸上那句出处仍然只有 `html footer.print-foot` 那一行管（下面那格），`--paper-ink` 那一族一个字不搬它。 */
   html .grain,
   html header.nav, html .settings, html .display,
   html #progress, html #progress-marks, html #toc,
   html .scene, html .bg-gradient, html .bg-photo, html .scrim, html .mist-band,
   html .lantern-rim, html .lantern-glow, html .firefly,
   html .post-tail, html .post-nav,
+  html .site-foot,
   html .wrap::before, html .page-head::before{ display:none; }
+
+  /* 主行动那一枚实心面（二轮 §4.1，规范 §2.5）在纸上也整体撤掉：它落在首页 `.hero` 之内，
+     而 `.hero` 那一屏在纸上只剩 `--photo-look` 撤掉之后的字——一枚印在纸上的深苔方块既点不动、
+     又不带任何"这张纸出自哪儿"的信息（那是 print-foot 的职责），留着它就正好是 §19.2 禁的那类噪音。
+     ⚠️ 这一行单独存在是因为它的宿主不在上面那一串里：`.hero-cta` 挂在 `.hero`，而 `.hero` 在纸上不撤
+     （首页的标题与日志照旧上纸）。 */
+  html .hero-cta{ display:none; }
 
   /* 详情页本轮那两枚**条件件**在纸上也不存在（§19.1 那条口径："以后任何一层新东西落地那天，
      必须同时回答它在 19.1 是哪一行"）：
