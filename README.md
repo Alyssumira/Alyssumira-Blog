@@ -28,12 +28,12 @@ npm run new-post -- fog-debugging "雾天调试法" --date 2026.09.27 --excerpt 
 
 正文是受限的 Markdown：只认在册的那批形状（段落、`##`／`###`、**粗体**、`*斜体*`、行内代码、围栏代码块、链接、站内图片、列表、引用、脚注、表格）。想加新语法要先动渲染器和规范，不然写了不上屏。两个外部编辑器常写、而这里不认的形状：`# 一级标题`（标题在 front matter 的 `title` 里，正文只从 `##` 起；写 `#` 会原样显示成带井号的一行），以及贴进来的原始 HTML（`<u>`、`<br>` 之类会被转义成字面文字）。
 
-front matter 里除 `title`／`date` 之外全部可空，**没填的那一行整行不出现**——不会留一个空位给你看。写成空键也算没填（`cover:` 后面什么都不放，编辑器替你补的那一行不用删）：
+front matter 里除 `title`／`date` 之外全部可空，**没填的那一行整行不出现**——不会留一个空位给你看（下表里两枚是例外：`cover` 空着退回站点默认那张图，`excerpt` 空着那一行就是不画摘要）：
 
 | 键 | 用途 |
 |---|---|
 | `excerpt` | 列表页那两行摘要 |
-| `cover` | 卡片封面（站内路径，指到 `public/` 下的真文件） |
+| `cover` | 卡片封面（站内路径，指到 `public/` 下的真文件）。**空着就用站点默认那张**（晨雾松林那幅，1200×675），不用你填 |
 | `category` / `tags` / `series` | 分类、标签、系列（`/categories/`、`/tags/`、`/series/` 三族页面的数据源） |
 | `draft` | `true` ⇒ 不进产物、不进 feed、不进搜索索引 |
 | `pinned` | 列表置顶 |
@@ -45,6 +45,39 @@ front matter 里除 `title`／`date` 之外全部可空，**没填的那一行�
 图片放进 `public/assets/posts/<slug>/`，正文里用站内路径引用：`![alt](/assets/posts/my-post/photo.jpg "图注")`。构建期会把固有宽高读进 `<img>`，所以不必手写 `width`／`height`；文件不在盘上则 `npm run check` 当场点名，不会让你带病上线。
 
 从外部编辑器（Obsidian、Typora）贴进来的绝对路径常常多一层 `public/`——`![]( /public/assets/posts/my-post/photo.jpg )` 这种。这一种也认：开头那层 `public/` 在构建时被剥掉，落到站上还是 `/assets/posts/my-post/photo.jpg`，两种拼法指同一处文件。它只对第一层有效，写在中间的 `public` 原样保留（`/assets/public/a.png` 就还是那个地址）。
+
+## 写一条手记
+
+手记是那种短到不值得单独成篇的观察，一条一个文件，放在 `src/content/notes/`。文件名随便起，日期写在文件头里：
+
+```markdown
+---
+date: 2026-10-01
+weather: fog
+---
+今天把网站的雾灯做出来了。
+```
+
+`weather` 可空，空着页面上就不显示。这句话同时出现在 `/notes/`、首页收尾那一条，和关于页的 `last walk`，所以日期与顺序只有一处说了算（`src/lib/personal.js`）。
+
+## 登记一件小东西
+
+`/things/` 那一页收的是自己造的小工具，一件一个文件，放在 `src/content/things/`：
+
+```markdown
+---
+name: 白噪声收音机
+tag: tool
+link: https://example.com/
+shot: /assets/things/radio.jpg
+order: 1
+```
+
+`link` 要么写成带协议头的完整地址，要么留空。留空时那张卡就是一块不可点的图鉴，这是设计不是坏了；写成 `example.com/` 那种不带协议的，它会变成一枚点开 404 的活锚，`npm run check` 会拦你。`shot` 空着退回站点默认那张封面。
+
+## 你写的内容不进仓库
+
+`src/content/` 下你新写的稿件、手记、小东西，以及 `public/assets/posts/`、`public/assets/things/` 里的素材，都在 `.gitignore` 里；留在仓库中的只有三篇样例稿。这座仓库交的是骨架，这一层靠构造而不是靠记性。
 
 ## 改动过之后先跑这两个
 
@@ -70,7 +103,7 @@ PUBLIC_SITE=https://你的域名 npm run build
 src/pages/       路由与机器侧产物（rss.xml / atom.xml / search.json / llms.txt / robots.txt / sitemap）
 src/lib/         纯函数：稿件读取、分类、分页、搜索切词、feed 净化、时段与月相……判据的期望值也从这里要
 src/styles/      四层样式表，色板只在 base.css 一处
-src/content/     稿件
+src/content/     稿件、手记、小东西（你写的这几层不进仓库，只留三篇样例稿）
 tools/           门禁尺子与新稿脚手架，一把尺子一个文件
 public/          原样进 dist/：字体子集、图片、逐篇社交卡
 ```

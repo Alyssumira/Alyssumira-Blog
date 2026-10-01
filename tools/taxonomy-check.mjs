@@ -141,17 +141,25 @@ const codeOnly = (input) => {
 };
 
 /* ---------- ① 唯一入口 ---------- */
-cell('①', '读 posts 的唯一入口（别的调用点一律红；两枚读函数的 filter 各在其位）', () => {
+cell('①', '读集合的唯一入口（别的调用点一律红；两枚读函数的 filter 各在其位）', () => {
   const lib = 'src/lib/posts.js';
   const hits = [];
+  /* 手记与小东西从 2026-10-01 晚起也是 content collection（`src/content/notes/`、`src/content/things/`），
+     它们的唯一入口是 `src/lib/personal.js`——那一格管的是**顺序只许算一遍**：首页收尾那一条、`/notes/`、
+     关于页的 last walk 与 `now` 那一列吃的是同一枚排序，页面里各排一次就是四枚真值。 */
+  const personalHits = [];
   for (const p of SRC){
     const f = rel(p);
     const src = codeOnly(readSrc(p));
     for (const m of src.matchAll(/\bgetCollection\s*\(\s*['"]posts['"]\s*\)/g)) hits.push({ f, at: src.slice(0, m.index).split('\n').length });
-    /* 别的集合名不在此列（things/notes 是 src/data/site.js，不是 content collection）；
-       出现 `getCollection(变量)` 这种写法的也抓不到——照实登记在未验到，不假装它不存在 */
+    for (const m of src.matchAll(/\bgetCollection\s*\(\s*['"](?:notes|things)['"]\s*\)/g)) personalHits.push({ f, at: src.slice(0, m.index).split('\n').length });
+    /* 第三枚集合名（将来若再多一层内容）不在此列，两枚名单之外的会静默漏过——照实登记在未验到；
+       出现 `getCollection(变量)` 这种写法的同样抓不到，也登记在未验到，不假装它不存在 */
   }
   const bypass = hits.filter(h => h.f !== lib);
+  const personalBypass = personalHits.filter(h => h.f !== 'src/lib/personal.js');
+  for (const h of personalBypass) problems.push(`① ${h.f}:${h.at} 直接 getCollection('notes'|'things') —— 顺序就有了第二处真值：`
+    + `首页那一条、/notes/、关于页的 last walk 与 now 那一列会各自排一次序（改的是 src/lib/personal.js 那一枚读函数）`);
   for (const h of bypass) problems.push(`① ${h.f}:${h.at} 直接 getCollection('posts') —— 草稿过滤绕开了 lib/posts.js 那一份，`
     + `于是会出现"列表里没有、详情页照样能访问 / 订阅源里还带着它"那一族假完成：改成 await visiblePosts()`);
   const inLib = codeOnly(readFileSync(join(ROOT, 'src', 'lib', 'posts.js'), 'utf8').replace(/\r\n/g, '\n'));
@@ -164,8 +172,16 @@ cell('①', '读 posts 的唯一入口（别的调用点一律红；两枚读函
   assert.ok(/export async function publishedPosts\(/.test(inLib), '① src/lib/posts.js 里没有 publishedPosts() —— 建路那一半的入口没了（详情页要么拿整份集合自己 filter、要么根本烘不出不列入的页）');
   assert.ok(/!isUnlisted\(/.test(inLib), '① src/lib/posts.js 里不再滤不列入（找不到 !isUnlisted(）—— unlisted 那枚键形同虚设，稿子照旧进列表与 feed');
   assert.ok(bypass.length === 0, `① 有 ${bypass.length} 处绕开唯一入口（上面逐条点名了）`);
-  notes.push(`① 扫了 ${SRC.length} 份源码，getCollection('posts') 共 ${hits.length} 处，全在 ${lib}`);
-  return 5 + (hits.length ? 1 : 0);
+  /* 手记/小东西那一族的三枚牙，形状与上面 posts 的同一条：先钉"入口自己在"（删掉入口就绿是假绿），
+     再钉"没有第二处"。今天 `src/content/things/` 零枚卡、`src/content/notes/` 三条——**这两枚牙与语料有几枚无关**，
+     它们读的是源码里的调用点，所以作者那一层的文件不进仓库也不会把这一格读空。 */
+  const inPersonal = codeOnly(readFileSync(join(ROOT, 'src', 'lib', 'personal.js'), 'utf8').replace(/\r\n/g, '\n'));
+  assert.ok(/getCollection\s*\(\s*['"]notes['"]\s*\)/.test(inPersonal), '① src/lib/personal.js 里没有 getCollection(\'notes\') —— 手记的唯一入口自己没了，"没有第二处"是删出来的假绿');
+  assert.ok(/getCollection\s*\(\s*['"]things['"]\s*\)/.test(inPersonal), '① src/lib/personal.js 里没有 getCollection(\'things\') —— 小东西的唯一入口自己没了，同上');
+  assert.ok(personalBypass.length === 0, `① 有 ${personalBypass.length} 处绕开 src/lib/personal.js 读 notes/things（上面逐条点名了）`);
+  notes.push(`① 扫了 ${SRC.length} 份源码，getCollection('posts') 共 ${hits.length} 处，全在 ${lib}；`
+    + `getCollection('notes'|'things') 共 ${personalHits.length} 处，全在 src/lib/personal.js`);
+  return 8 + (hits.length ? 1 : 0);
 });
 
 /* ---------- ② 九个调用点点名 ＋ publishedPosts 的调用者名单 ---------- */

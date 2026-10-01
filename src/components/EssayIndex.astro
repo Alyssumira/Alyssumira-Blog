@@ -1,7 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import SearchEntry from './SearchEntry.astro';
-import { fmtDate, root } from '../lib/markdown.js';
+import { fmtDate } from '../lib/markdown.js';
+import { coverSrc } from '../lib/covers.js';
 import { intrinsicProps } from '../lib/image-dims.js';
 import { readMinutes } from '../lib/stats.js';
 import { essaysPerPage, pageRanges, pageHref } from '../lib/pagination.js';
@@ -138,12 +139,13 @@ const browse = [
             const d = p.data.date;
             /* 封面那枚 `<img>` 上的 width/height/decoding 与 `src/components/PostRow.astro` 同一口径
                （属性被 `.cover img{position:absolute;inset:0}` 完全覆写 ⇒ 已签字的 92×69 一格不动；
-               root() 调两次是绕开 `tools/media-check.mjs` 第 ④ 格那枚字面绊线，理由写在那一卡的注释里）*/
+               coverSrc() 调两次是绕开 `tools/media-check.mjs` 第 ④ 格那枚字面绊线，理由写在那一卡的注释里。
+               2026-10-01 晚这一行与 PostRow 同一批从"有封面才画"改成"没填也画"——退路只有一枚函数，两处各 import 它）*/
             return (
               <li>
                 <a class="row" href={`/essays/${p.id}/`} data-slug={p.id}>
                   <span class="folio">{pad(n)}</span>
-                  {p.data.cover ? <span class="cover"><img src={root(p.data.cover)} {...intrinsicProps(root(p.data.cover))} alt="" loading="lazy" decoding="async"></span> : null}
+                  <span class="cover"><img src={coverSrc(p.data.cover)} {...intrinsicProps(coverSrc(p.data.cover))} alt="" loading="lazy" decoding="async"></span>
                   <span class="row-main">
                     <h3>{p.data.title}</h3>
                     <p class="row-ex">{p.data.excerpt}</p>

@@ -4,10 +4,11 @@
 
    ── 它钉住的两件事 ──────────────────────────────────────────────────────────
    ① 稿件正文里那枚**站内图片地址**必须指到 `public/` 下盘上真存在的文件；
-   ② front matter 的 `cover` 非空就必须指到真文件。空着是已签字的状态（现值 `cover: blankSlot(z.string().default(''))`，
-      2026-10-01 起多那一层 `blankSlot` 是为了让编辑器写出来的空键不炸构建，默认值与语义没动；
-      空 ⇒ 列表页不画那个缩略位，见 `docs/设计规范.md` §13（待替换占位）里 `cover` 那一格），
-      所以放行空格子不是靠 if 跳过装绿：非空那一半有牙，牙在 ① 那格当众验。
+   ② front matter 的 `cover` 非空就必须指到真文件。空着**曾经**是“整块不画”（那层 `blankSlot` 是 2026-10-01 为了
+      让编辑器写出的空键不炸构建而加的，默认值与语义没动）；**同一天晚作者改判**：「如果没有封面就默认使用这张」
+      ⇒ 空着改为退回站点默认那张（`src/data/site.js` 的 `DEFAULT_COVER`，退路只有一枚函数 `src/lib/covers.js`）。
+      所以这一格今天两半都有牙，不是一半：非空那一半查作者填的地址，**默认那一半查 `DEFAULT_COVER` 自己在不在盘上**
+      ——退路指错比不画更糟：空着封面的每一张卡都会画出一枚破图。规范落点 §13（待替换占位）里 `cover` 那一格。
    为什么这两件非得有机器守：`public/` 是原样拷进 `dist/` 的，`<img src>` 破了 `astro build` 照样 exit 0、
    `npm run check` 照样绿——这正是 `docs/设计规范.md` §13 里 favicon 那一格点过名的那一族（静态资源也没有门禁）。
 
@@ -54,8 +55,10 @@
    · 稿件内容由作者写：本卡只判地址，一个字节都不改稿件，也不替谁补图。
 
    ── 没盖住的（别把上面读成图片已经全交给机器） ──────────────────────────────
-   ① 只查 `src/content/posts/*.md` 的正文与 `cover`。`src/data/site.js` 的 `shot`、关于页那枚
-      `portrait.png`、以及任何写死在模板里的地址都不在这一格——它们是模板与数据，不是稿件。
+   ① 只查 `src/content/posts/*.md` 的正文与 `cover`。`src/content/things/*.md` 的 `shot`（小东西那张卡的截图）、
+      关于页那枚 `portrait.png`、以及任何写死在模板里的地址都不在这一格——它们是模板与数据，不是稿件。
+      （`shot` 那一族的地址存在性不是没人管：`tools/imgpipe-check.mjs` 拿产物里那两枚 `width`/`height`
+      对盘上真尺寸，指到一枚不在的文件上会红在"盘上没有"那一格。）
    ② 表格格子里的 `![]()` 走 `inlineMd`，那里没有图片规则 ⇒ 页面上是一行字面文本而不是破图，本卡不判它
       （那是 §15 白名单的另一族——图没被渲染成图，与本卡判的站内地址不在盘上不是一件事）。
    ③ `cover` 写成多行 YAML（`cover: |` 那种）时，工具侧那份读法（`tools/frontmatter.mjs` 的 `splitFm`，
@@ -70,6 +73,8 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
 import { renderMd, root } from '../src/lib/markdown.js';
+import { coverSrc } from '../src/lib/covers.js';
+import { DEFAULT_COVER } from '../src/data/site.js';
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -257,7 +262,17 @@ cell('②', '稿件正文里每一枚站内 <img src> 都在 public/ 下有真�
 });
 
 /* ---------- ③ front matter 的 cover ---------- */
-cell('③', 'cover 非空 ⇒ 必须指到盘上真文件（空着／没写这一行＝没填＝页面不画那个缩略位）', () => {
+cell('③', 'cover 非空 ⇒ 指到盘上真文件；空着 ⇒ 画站点默认那张，而默认那张自己也必须在盘上', () => {
+  /* 退路那一半的牙（2026-10-01 晚随改判一起添）。“没填算出来是哪枚地址”本卡不重写——吃的就是 shipped 的
+     `coverSrc()`，再拿算出来的那枚去盘上找；顺带钉住“这枚函数与它声称的那枚常量没分叉”。 */
+  const defSrc = coverSrc('');
+  assert.equal(defSrc, root(DEFAULT_COVER), '③ coverSrc 在空值上算出的地址不等于 root(DEFAULT_COVER) —— 退路与它声称的那枚常量分叉了');
+  {
+    const t = target(defSrc);
+    assert.ok(t.kind === 'internal', `③ 默认封面 ${defSrc} 不是站内地址 ⇒ 列表页的退路成了一枚外链大图（本站的图一律住 public/）`);
+    const w = missingWord(t);
+    assert.ok(!w, `③ 默认封面 ${defSrc} 不在盘上（${w}）—— 空着封面的每一篇都会画它，一枚破图比不画更糟；要撤掉默认就回 src/lib/covers.js 那一枚函数撤，别在页面里各写一份`);
+  }
   const files = existsSync(POSTS_DIR) ? readdirSync(POSTS_DIR).filter(f => f.endsWith('.md')).sort() : [];
   assert.ok(files.length > 0, '③ 一篇稿件都读不到 —— 这一格在空转');
   let filled = 0, remote = 0, good = 0, bad = 0, blank = 0, n = 0;
@@ -280,8 +295,10 @@ cell('③', 'cover 非空 ⇒ 必须指到盘上真文件（空着／没写这�
   assert.equal(filled + blank, files.length, '③ cover 非空的篇数加空着的篇数对不上总篇数（有一篇被算了两次或一次都没算）');
   n++;
   notes.push(`③ front matter cover：${files.length} 篇里非空 ${filled} 枚（站内 ${filled - remote} 枚全查 ＋ 远端 ${remote} 枚不查）`
-    + ` · 指到真文件 ${good} 枚 · 缺文件 ${bad} 枚 · 空着 ${blank} 枚（空＝没填＝页面不画缩略位，口径 src/content.config.ts:34）`
-    + `${filled === 0 ? ' ⇒ 今天三枚 cover 全是空串：这一半的牙在 ① 那格当众验（needle 判在盘上、假地址必报缺文件）' : ''}`);
+    + ` · 指到真文件 ${good} 枚 · 缺文件 ${bad} 枚 · 空着 ${blank} 枚（空＝没填＝画默认那张 ${defSrc}，2026-10-01 晚改判，退路在 src/lib/covers.js）`
+    + ` · 默认那张在盘上 ✓（上面那三枚 assert 就是它的牙）`
+    + `${filled === 0 ? ' ⇒ 今天没有一篇填了 cover：全站画的都是默认那张，非空那一半的牙在 ① 那格当众验（needle 判在盘上、假地址必报缺文件）' : ''}`);
+  n++;
   return n;
 });
 
@@ -306,10 +323,26 @@ cell('④', '本卡吃的两份真值与页面同源（绊线：页面换渲染�
      搬进 `src/components/EssayIndex.astro`（第 1 页与 `/essays/page/<n>/` 两处用同一份，见 §15 那一格）。
      这一格的绊线管的正是"页面换渲染方式 ⇒ 本卡必须跟着改"，所以这里跟着换名——不改的话 ③ 那格判的
      cover 落点会指到一份不再画 `<img>` 的文件上（那是"拿一把读不到的尺子当验收"，§12 记过）。 */
-  for (const f of ['src/components/EssayIndex.astro', 'src/components/PostRow.astro']){
+  /* 2026-10-01 晚这两枚 needle 跟着改判换过一次名：`root(post.data.cover)` → `coverSrc(post.data.cover)`，
+     并且原来那枚“cover 那一枚三元还在不在”的判据**反过来了**——页面今天不许再对 cover 写三元，
+     因为“没填怎么办”这件事只许问 `src/lib/covers.js` 一处（写第二份 ⇒ 改了 DEFAULT_COVER 那一处不跟着改）。
+     换名改的是 needle 的形状，没有放宽判据：这一格仍然要求“cover 经过一整套归一才进 src”。 */
+  for (const [f, needle] of [
+    ['src/components/EssayIndex.astro', /src=\{coverSrc\(p\.data\.cover\)\}/],
+    ['src/components/PostRow.astro', /src=\{coverSrc\(post\.data\.cover\)\}/],
+  ]){
     const src = read(f);
-    assert.ok(/\.cover\s*\?/.test(src), `④ ${f} 里 cover 那一枚三元不在了 —— ③ 那格判的落点变了`);
-    assert.ok(/src=\{root\((?:p|post)\.data\.cover\)\}/.test(src), `④ ${f} 的 cover 不再经 root() 进 <img src> —— 本卡给 cover 用的那把尺子（root 之后再查盘）与页面不同源`);
+    assert.ok(needle.test(src), `④ ${f} 的 cover 不再经 coverSrc() 进 <img src> —— ③ 那格判的落点变了：本卡与页面不同源`);
+    assert.ok(!/\.data\.cover\s*\?/.test(src), `④ ${f} 里又长出一份“有没有封面”的三元 ⇒ 退路被抄进页面，DEFAULT_COVER 改了它不跟着改（一处真值破了）`);
+    n += 2;
+  }
+  {
+    const src = read('src/pages/things.astro');
+    /* 2026-10-01 晚这一枚 needle 跟着 `t.shot` → `t.data.shot` 换过一次名：小东西从 `src/data/site.js` 的数组
+       搬进 `src/content/things/` 集合（作者点名仓库只留模板），front matter 的值在 Astro 里住在 `.data` 下面。
+       换名改的是 needle 的形状，判据没放宽：这一格要的仍然是"这一页不许自己写第二份退路"。 */
+    assert.ok(/src=\{coverSrc\(t\.data\.shot\)\}/.test(src), '④ /things/ 的 shot 不再经 coverSrc() 进 <img src> —— 同一枚退路在这一页丢了，或另写了一份');
+    assert.ok(!/\|\|\s*DEFAULT_COVER|t\.data\.shot\s*&&\s*<img/.test(src), '④ /things/ 里自己写了一遍退路（`|| DEFAULT_COVER` 或 `t.data.shot && <img>`）—— 一处真值破了');
     n += 2;
   }
   /* ⚠️ content.config.ts 不走上面那枚整块注释剥离器：`:29` 那串 glob 的 pattern 字面量（两星号接斜杠那种）
