@@ -125,7 +125,7 @@ html[data-theme="dark"] .bg-photo::after{
    清晨最亮 → 正午收起 → 傍晚偏暖（暖度由 --bg-top 的时段值自己带）→ 夜里消失。
    夜林整体比亮色收一档（无月之夜没有太阳），且 night 两主题一起归零。
    ⚠️ 这八格是 §5.1 那张签过字的表，二轮 §2.1 重开了它——重开的**只有强度读数**：下面那四格是在
-   同一枚 `.bg-photo::after` 上再加两档"强姿态"，八格自己的八个数一个没改，"其余时段一字不动"
+   同一枚 `.bg-photo::after` 上再加两档"强姿态"，八格自己的八个数一个没改，提案那句"其余时段保持现状"
    就是照这句签的。角度（65deg）、渐变 stops、色相、`--mist` 的空气透视那一层，全都没动；
    §1.4 那三种模糊的半径一个字节没碰（这一格本来就不是 blur()，上面 :106 那句"零新模糊"照旧成立）。 */
 html[data-phase="dawn"][data-theme="light"]  .bg-photo::after{ opacity:.50; }
@@ -213,6 +213,36 @@ html[data-theme="dark"][data-moon="full"] .lantern-glow{
 .mist-band.b2{ top:55vh; height:18vh; animation:mist-drift 95s linear -30s infinite alternate-reverse; }
 .mist-band.b3{ top:85vh; height:12vh; animation:mist-drift 65s linear -55s infinite alternate; }
 html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓；day/night 回落到 .75。⚠️ 这里也乘 --fog，"浓"到 1 就被夹住，因为 opacity 上限就是 1 */
+/* 夜林配比（二轮 §5.2 ＋ 一轮 §F2，规范 §1 预算表那行与 §5 那张分层表）：萤火在岗的那几档，
+   横移雾带只留 b1/b2 两条，第三条的位置让给萤火。
+   ⚠️ **这是"新配比"，不是那句"或雾带 + 萤火虫"的右半边**：暗色本来就同时跑着三条雾带与六只萤火，
+   那句"或"读的是**族**（雾带一族＋萤火一族＝2 族 ≤3），从来不是枚数上限；本轮动的是一族里的枚数
+   （3 条 → 2 条），族数没涨、萤火枚数没涨。两本账的签字句在 §1 那一行。
+   四个场合必须把这一条退回去（少一条雾、又没萤火＝净亏），所以四条都点名：
+   · 亮色档不撤（选择器不吃 ⇒ 三条照旧）；
+   · 窄屏不撤——`hero.js` 的 narrow 判据就是 `matchMedia('(max-width:720px)')`，这里用**同一枚 720**，
+     不新造断点；那一档萤火本来就不生成 DOM；
+   · 减弱动态偏好不撤——那一档 `hero.js` 的 `sync()` 在第一步就 return，同样没有萤火；
+     而三条 `mist-drift` 本来就由 `base.css` 那条 `animation:none` 收掉（§1 预算表末行）；
+   · 抽屉把萤火关掉（"无"＝`data-fireflies="off"`）也不撤——`hero.js:36` 那一行清空盒子，
+     "惊起"的对象都不留。
+   ⚠️ 清晨（dawn）例外：这一条在 dawn 档退回去（下面那条 dawn 块），因为 dawn 正是雾最浓的一档
+   （§2.3 那句"雾最浓"就靠这一档），夜里这一小时保留三条。这一枚是**在场性判据**（display），
+   不是第二根夜间时间轴——§2.3 那条"不新造第二根时间轴"照旧守着。
+   ⚠️ 不乘 `--fog`：被撤那条本来就是 `.75 × --fog`，"撤它"这件事不该被一枚浓度旋钮拧回来
+   （§2.1 给雾那格签的是"只乘在氛围层的 opacity 上"，§18.3 那条"旋钮语义扩权"不许搭车）。 */
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="dark"][data-fireflies="on"] .mist-band.b3{ display:none; }
+}
+/* 退回的三条写法：**同权重 (0,4,1)，靠源码顺序赢**——§8.8 那句"那是运气不是设计"管的是跨表，
+   这一条在同一份表里、写在撤条那行的后面，是站内既有的用法（上面 `.nav` 那一格同款）。 */
+@media (prefers-reduced-motion:no-preference) and (max-width:720px){
+  html[data-theme="dark"][data-fireflies="on"] .mist-band.b3{ display:block; }
+}
+html[data-theme="dark"][data-fireflies="off"] .mist-band.b3{ display:block; }
+@media (prefers-reduced-motion:no-preference){
+  html[data-phase="dawn"][data-theme="dark"][data-fireflies="on"] .mist-band.b3{ display:block; }
+}
 @keyframes mist-drift{ from{ transform:translateX(-6vw); } to{ transform:translateX(6vw); } }
 
 /* 萤火虫：仅夜林 / 深夜 */
@@ -222,6 +252,16 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
   box-shadow:0 0 8px 2px rgba(169,196,160,.5);
   opacity:0; will-change:transform,opacity;
 }
+/* 夜林里它放开了演（二轮 §5.2 ＋ 一轮 §F2，规范 §5 那张分层表与 §8.6）：暗色单颗的有效亮度抬一档。
+   ⚠️ 只抬光晕那一枚 α，其余一个不动：几何（3px／8px／2px）不涨、`--firefly` 不涨、
+   明灭节律（`hero.js:17-23` 那串 0/.9/.15/.7/.1/.85/.05）不涨——抬几何就是让一枚点糊成一片光斑；抬 opacity
+   撞上 1 的上限（peak .9 只剩 11% 余量，进不了提案那格 20–30%）；改节律就是把"吐纳"读平成常亮，
+   §1.3 那枚 15s 地板与 §8.6 的节律都会跟着漂。
+   定标（合成像素的 WCAG 相对亮度，自算）：夜底 (11,16,10) 上，光晕 α .5 → (90,106,85)、Y .13138；
+   α .56 → (99,117,94)、Y .16183 ⇒ **×1.2318（+23.2%）**，落在提案那格 20–30% 之内。
+   这一枚跟 §8.5 那条"暗色光晕月光色 α ≤ .12"不冲突：那是 `--moon` 的雾灯光晕，这是 `--firefly`
+   的本体光晕，两族两本账。亮色档的 .5 一个字没动——夜里才放开，白天仍旧是彩蛋。 */
+html[data-theme="dark"] .firefly{ box-shadow:0 0 8px 2px rgba(169,196,160,.56); }
 
 /* 颗粒（`.grain` + `@keyframes grain-shift`）在 `base.css`——它以前在这里和 `mistwood.css`
    各有一份，`steps(4)→steps(1)` 那一修只改了一份，另一份继续跑 13.3 Hz（§1.3 / §16）。

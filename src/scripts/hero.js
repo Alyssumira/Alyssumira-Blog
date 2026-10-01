@@ -1,5 +1,11 @@
 /* 首页专属：全景视差 + 雾灯 + 萤火虫（规范 §8.5 / §8.6）
    主题与时钟归 site.js；它广播 mistwood:state，我们只读 data-theme / data-phase */
+/* 夜林配比那一条雾带在不在场要问相位（home.css 那条：dawn 档把 b3 退回来）。
+   用 `src/lib/phase.js` 那个**同一个** phaseAt：浏览器里这次判定与 `tools/phase-check.mjs` 八格跑的是
+   同一份代码，不在这里另长一份长得像的表（§17 那笔"两份长得像的实现迟早分叉"的债就是这么欠下的）。
+   边界仍旧取月份表 `tableBounds`——与 `site.js` 那行同一个写法，**不吃访客定位**：
+   这一枚只决定一条装饰性雾带要不要少一次，不碰文字、不碰 §2.4 的地板，也不给隐私那条链添新用途。 */
+import { phaseAt, tableBounds } from '../lib/phase.js';
 (function(){
   const root = document.documentElement;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -36,7 +42,25 @@
     if (root.dataset.fireflies === 'off') return;   /* 抽屉里关了：连"惊起"的对象都不留，而不是留着一群不许动 */
     const dark = root.dataset.theme === 'dark';
     const night = root.dataset.phase === 'night';
+    /* 枚数账（§5 那张分层表与 §11 降级表都写着 6/3）：**这一行一个数没改**——夜林要的不是更多只，
+       是提案那格标题写的"萤火虫数量与亮度在夜林各加一档"里的两半：亮度落在 `home.css` 那枚光晕 α，
+       数量那一半落在让出一条雾带（§1 预算表那行）。
+       同一条口径也钉着下面那颗种子的平移：dusk/day/night 档 b3 不在场，落进 b3 那条带子的种子
+       平移到 b2；dawn 档三条都在，不平移。 */
     spawn(box, dark ? 6 : (night ? 3 : 0), 55, 35);
+    if (dark && root.dataset.fireflies === 'on' && !narrow.matches && !reduceMotion &&
+        phaseAt(new Date(), tableBounds(new Date())) !== 'dawn') {
+      /* 27 ＝ b3 的带中心 91 减 b2 的带中心 64（两条带各自的 top/height 就写在上面那两条规则里：
+         b2 是 55vh+18vh ⇒ 55–73、b3 是 85vh+12vh ⇒ 85–97）。平移后 58–63%，整段落在 b2 那条带子里。
+         `dataset.base` 是惊起之后归位用的那一份，改了 top 必须把它一起改，否则一次惊起就把种子送回 b3。 */
+      for (const el of box.querySelectorAll('.firefly')) {
+        const t = parseFloat(el.style.top);
+        if (t >= 85) {
+          el.style.top = (t - 27) + '%';
+          el.dataset.base = el.style.cssText;
+        }
+      }
+    }
   }
   root.addEventListener('mistwood:state', sync);
   narrow.addEventListener('change', sync);
