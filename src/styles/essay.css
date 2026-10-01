@@ -218,7 +218,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
      由这一条继承下去，逐层 computed 读回 `tabular-nums` 的见证物登记在 §3.2。 */
   font-variant-numeric:tabular-nums;
 }
-.post-body p{ margin-bottom:28px; }
+.post-body p{ margin-bottom:28px; hanging-punctuation:first allow-end; /* 二轮 §E3／规范 §3.4 ④：标点悬挂只开正文段落这一族（目录行右缘／日期列／mono 标签层按构造走不到这儿）；Blink 读 false（§3.1 那格原读数照旧），WebKit 上它会改折行 ⇒ 那批读数欠一次重测。撤掉这一枚属性就是全撤 */ }
 .post-body h2{
   font-size:30px; font-weight:600; margin:64px 0 24px; letter-spacing:.02em;
 }
