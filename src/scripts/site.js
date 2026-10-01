@@ -318,12 +318,12 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
       announce();
     }
     /* 光柱的"晨昏各一小时"（二轮 §2.1，规范 §5.1）：同一根时钟上的**子区间**，写成 `data-shaft`。
-       ⚠️ 上面 :3 那格警告的是"别把色温/方向光搬进运行时自定义属性"——这一枚不碰那三枚：
+       ⚠️ 上面 :5 那格警告的是"搬进 CSS 之外的运行时自定义属性"会拆掉方向光复算——这一枚不碰那三枚：
        `--lit` / `--lit-at` / `--lit-r` 与暗色三段色温仍旧只住在 CSS 的 `html[data-phase=…]` 条件块里，
        palette-check 复算读的还是那些块。这里搬出去的是 `.bg-photo::after` 的 **opacity**，
        而 §5.1 签的是"opacity 是普通属性、不进色板闸"——它今天本来就没有尺子在读（欠量登记在 §5.1）。
        ⚠️ 不 `announce()`：这一枚属性只有 CSS 吃，广播一次会把 `hero.js` 的萤火那一族 innerHTML 清掉重排
-       （惊起路径的随机位与节律白丢一次），而它要的只是"到点换一档 opacity"。 */
+       （惊起路径的随机位与节律白丢一次），而它要的只是到点换一档 opacity。 */
     const sh = shaftAt(now, p);
     if ((root.dataset.shaft || null) !== sh){
       if (sh) root.setAttribute('data-shaft', sh); else root.removeAttribute('data-shaft');
