@@ -9,14 +9,12 @@
    ⚠️ `card/imgpipe`（2026-09-30）给封面那枚 `<img>` 补了 `width`/`height`/`decoding`，两句口径：
       ① **两枚属性不上屏**——`mistwood.css:504` 写的是 `.cover img{ position:absolute; inset:0; width:100%; height:100% }`，
          盒子由 `.row .cover{ width:92px; aspect-ratio:4/3 }`（:493）定，`card/hairline` 量的那枚 92×69 一个字不动；
-      ② 地址那一枚 `coverSrc()` 在这一行里**调了两次**，不是为了省事少一行变量，是因为第 ④ 格把那枚字面形状
-         钉住了（`src={coverSrc(post.data.cover)}` 原文比对，它判的是"cover 先过那一枚退路、再经 root() 才进 src"）——
-         提成局部变量会让绊线假红。两次都是纯函数、结果同缓存，代价是零。
-      ⚠️ 2026-10-01 晚这一行**从"有封面才画"改成"永远画"**：`cover` 空着不再整块不出现，而是退回站点默认那张
-         （`src/data/site.js` 的 `DEFAULT_COVER`；退路只有一枚函数 `src/lib/covers.js`）。§13 那格原来那句
-         "空着 ⇒ 列表页不画缩略位"同日改判，账在 runbook §3.13 第 ⑲ 格。 */
-import { fmtDate } from '../lib/markdown.js';
-import { coverSrc } from '../lib/covers.js';
+      ② `root()` 在这一行里**调了两次**，不是为了省事少一行变量，是因为 `tools/media-check.mjs` 的第 ④ 格
+         把这枚字面形状钉住了（`src={root(post.data.cover)}` 原文比对，它判的是"cover 经 root() 才进 src"这件事）——
+         提成局部变量会让那枚绊线假红。两次都是纯函数、结果同缓存，代价是零。
+      今天三篇稿子的 `cover` 全空 ⇒ 这一行在 `dist/` 里**一枚实例都没有**（media-check ③ 当众打的读数 0 枚），
+      它说的是哪天填上封面的那一天。 */
+import { fmtDate, root } from '../lib/markdown.js';
 import { intrinsicProps } from '../lib/image-dims.js';
 import { readMinutes } from '../lib/stats.js';
 
@@ -27,7 +25,7 @@ const d = post.data.date;
 <li>
   <a class="row" href={`/essays/${post.id}/`} data-slug={post.id}>
     <span class="folio">{pad(n)}</span>
-    <span class="cover"><img src={coverSrc(post.data.cover)} {...intrinsicProps(coverSrc(post.data.cover))} alt="" loading="lazy" decoding="async"></span>
+    {post.data.cover ? <span class="cover"><img src={root(post.data.cover)} {...intrinsicProps(root(post.data.cover))} alt="" loading="lazy" decoding="async"></span> : null}
     <span class="row-main">
       <h3>{post.data.title}</h3>
       <p class="row-ex">{post.data.excerpt}</p>

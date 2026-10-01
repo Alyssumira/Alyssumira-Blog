@@ -1,59 +1,42 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import SearchEntry from '../components/SearchEntry.astro';
-import { allThings } from '../lib/personal.js';
-import { strictHref } from '../lib/markdown.js';
-import { coverSrc } from '../lib/covers.js';
+import { things } from '../data/site.js';
+import { root, strictHref } from '../lib/markdown.js';
 import { intrinsicProps } from '../lib/image-dims.js';
 const pad = n => String(n).padStart(2, '0');
-/* 一枚 .md 一张卡，文件住在 `src/content/things/`（那一层的文件不进仓库，见 .gitignore 与 §13 那一格）；
-   顺序由 `src/lib/personal.js` 算：front matter 的 `order` 升序，没填 `order` 的排最后。 */
-const things = await allThings();
 ---
 <Layout title="小东西 · mistwood" desc="做一些小东西，像捡拾林间的石头。" here="things" tier="look">
   <main class="wrap">
-    <header class="page-head reveal">
+    <header class="page-head reveal head-things">
       <h1 class="page-title">小东西</h1>
       <div class="sec-label">things — <b>{pad(things.length)}</b> →<SearchEntry /></div>
     </header>
 
-    {things.length ? (
-      <div class="things-grid">
-        {things.map(t => {
-          /* `link` 的三种坏写法与"没填"一样退成不可点：`'#'` 是 §12 那条死锚点（点了只回页顶）；
-             缺协议头的 `example.com/x` 进了 href 就是相对路径，浏览器解成 /things/example.com/x，点开 404；
-             `javascript:`／`data:`／`vbscript:` 是一枚长在产物里的可点载体。判据只有一处——
-             `src/lib/markdown.js:21 strictHref()`（详情页页脚那两枚 URL 用的同一枚函数）：它交回空串就不给 href，
-             这张卡此时是一块图鉴（名字 + tag + 一片占位雾），不是一个看起来坏了的按钮。
-             填上合格链接它就重新可点，反馈跟着 `.thing[href]` 一起回来（§8.3 每个可点元素 1 个主反馈） */
-          const url = t.data.link ? strictHref(t.data.link) : '';
-          /* 新标签页只挂在 http(s) 上，mailto: 不挂——写法与 rel 的组合都照 `src/lib/markdown.js:43 link()` 那一句。
-             "哪些协议能用"仍然只有 markdown.js:10 OK_LINK／markdown.js:11 HAS_SCHEME 加 href() 那一处，
-             这一页不新开第二份白名单——能走到这一行的地址已经过那道闸了 */
-          const blank = /^https?:/i.test(url) ? { target: '_blank', rel: 'noopener noreferrer' } : {};
-          const props = url ? { href: url, ...blank } : {};
-          return (
-            <a class="thing reveal" {...props}>
-              {/* 截图那枚 `<img>` 补 width/height/decoding，与封面同一口径：`.thing .shot` 住在
-                  `mistwood.css:504` 那条 `position:absolute; inset:0; width:100%; height:100%` 里 ⇒ 属性不上屏，
-                  图鉴卡的格子尺寸由 CSS 定。⚠️ 2026-10-01 晚这一枚从"填了 shot 才画"改成**永远画**：空着退回站点默认那张
-                  （`DEFAULT_COVER`，与文章封面同一枚退路、同一枚 `coverSrc()`）⇒ §15 那条"作者没给图之前不许假装图
-                  在那儿"同日改判。今天 `things` 零枚卡 ⇒ 这一格**没有载体**，填卡那天才看得见。 */}
-              <img class="shot" src={coverSrc(t.data.shot)} {...intrinsicProps(coverSrc(t.data.shot))} alt="" loading="lazy" decoding="async">
-              <div class="thing-bar"><h3>{t.data.name}</h3><span>{t.data.tag}</span></div>
-            </a>
-          );
-        })}
-      </div>
-    ) : (
-      /* 零枚那一档：整块网格不出现（"空着就整块不出现"那条口径在这一页的形状），只留一句实话，
-         与 /categories/、/tags/、/series/ 那三页的 `.tax-empty` 同一段版面、同一族说法。
-         ⚠️ 这句话不许写这座站自己的历史（"原先挂着四枚名字"那一版是站内账，放进要分享的模板里就成了暗号）：
-            它回答的是"这一页为什么是空的"，对任何人都是同一句。 */
-      <p class="tax-empty">
-        还没有小东西。东西是做出来之后才登记的，不是先立一格等它长肉，所以这一页今天只有一句话：
-        文章按时间在 <a href="/essays/">文章</a>，短观察在 <a href="/notes/">notes</a>；真做出来一件，这里自己长出卡片。
-      </p>
-    )}
+    <div class="things-grid">
+      {things.map(t => {
+        /* `link` 的三种坏写法与"没填"一样退成不可点：`'#'` 是 §12 那条死锚点（点了只回页顶）；
+           缺协议头的 `example.com/x` 进了 href 就是相对路径，浏览器解成 /things/example.com/x，点开 404；
+           `javascript:`／`data:`／`vbscript:` 是一枚长在产物里的可点载体。判据只有一处——
+           `src/lib/markdown.js:21 strictHref()`（详情页页脚那两枚 URL 用的同一枚函数）：它交回空串就不给 href，
+           这张卡此时是一块图鉴（名字 + tag + 一片占位雾），不是一个看起来坏了的按钮。
+           填上合格链接它就重新可点，反馈跟着 `.thing[href]` 一起回来（§8.3 每个可点元素 1 个主反馈） */
+        const url = t.link ? strictHref(t.link) : '';
+        /* 新标签页只挂在 http(s) 上，mailto: 不挂——写法与 rel 的组合都照 `src/lib/markdown.js:43 link()` 那一句。
+           "哪些协议能用"仍然只有 markdown.js:10 OK_LINK／markdown.js:11 HAS_SCHEME 加 href() 那一处，
+           这一页不新开第二份白名单——能走到这一行的地址已经过那道闸了 */
+        const blank = /^https?:/i.test(url) ? { target: '_blank', rel: 'noopener noreferrer' } : {};
+        const props = url ? { href: url, ...blank } : {};
+        return (
+          <a class="thing reveal" {...props}>
+            {/* 截图那枚 `<img>` 补 width/height/decoding，与封面同一口径：`.thing .shot` 住在
+                `mistwood.css:504` 那条 `position:absolute; inset:0; width:100%; height:100%` 里 ⇒ 属性不上屏，
+                图鉴卡的格子尺寸由 CSS 定。`src/data/site.js` 今天四枚 `shot` 全是空串 ⇒ 产物里 0 枚实例。 */}
+            {t.shot && <img class="shot" src={root(t.shot)} {...intrinsicProps(root(t.shot))} alt="" loading="lazy" decoding="async">}
+            <div class="thing-bar"><h3>{t.name}</h3><span>{t.tag}</span></div>
+          </a>
+        );
+      })}
+    </div>
   </main>
 </Layout>

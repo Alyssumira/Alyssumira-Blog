@@ -116,48 +116,4 @@ const posts = defineCollection({
   }),
 });
 
-/* 手记＝ src/content/notes/*.md，一枚文件一条：front matter 是日期/天气/节气，正文就是那一句话。
-   为什么从 src/data/site.js 的数组搬进集合（作者 2026-10-01 点名「GitHub 上只留模板，我自己发的不要提交」）：
-   那一枚数组是**签了名的模板文件里的一行**，写进去就进 git、推上去就公开；而 `src/content/**` 这一层
-   由 .gitignore 单独管着（样例之外永不入库），所以"你写的东西"和"这座骨架"从此分在两层，误用
-   `git add -A` 也卷不进去——不靠记性，靠构造。
-   ⚠️ `date` 走 `z.coerce.date()`（与 posts 同一枚写法）而页面打的是 `fmtDate(n.date)`：站上那串
-      `2026.09.25` 是格式化出来的，不是作者手写的第二枚字面量。排序吃的是 Date 而不是文件名，
-      所以文件名随便起。
-   ⚠️ 正文那一句话走 `inlineMd()`（`src/pages/notes.astro` 与首页那一条同一个口径），front matter 里
-      不再有一枚 `text` 键——句子写两处，早晚有一处对不上。
-   ⚠️ `weather`／`jieqi` 是可空位：空着 ⇒ 页面上那一段分隔点都不出现（`blankSlot` 那条口径）。
-      `jieqi` 为什么留手填位而不是算出来：24 节气的间隔在 14–16 天之间且按时刻定，本地数组要么写死当年
-      （明年就是死数据）要么近似；而它紧挨着的是全站唯一承诺"分钟级真实"的那口时钟（§6）。
-      这一格是手记，不是天文台。（这一格从 `src/data/site.js` 的旧注释搬来，口径未变。） */
-const notes = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/notes' }),
-  schema: z.object({
-    date: z.coerce.date(),
-    weather: blankSlot(z.string().default('')),
-    jieqi: blankSlot(z.string().default('')),
-  }),
-});
-
-/* 小东西＝ src/content/things/*.md，一枚文件一张卡（名字 + tag + 截图 + 可选外链），正文这一层今天不画。
-   从 src/data/site.js 的数组搬来的理由与上面 notes 那一格同一条：作者的内容不许住在模板文件里。
-   ⚠️ `order` 是册内序号（1 起）而不是"第几枚文件名"：图鉴这一页要的是作者定的顺序，缺档的那几张
-      排在最后。与 posts 的 `seriesOrder` 同一枚形状（preprocess 先放行空值，`coerce.number()` 铸不到
-      空着的 `order:`，也就铸不出 `0` 那一枚"第 0 件"）。
-   ⚠️ `link` 存的仍是原样字符串，消毒只在消费点（`strictHref()`，`src/lib/markdown.js:21`）；
-      `shot` 交给 `coverSrc()`（`src/lib/covers.js`）——空着退回站点默认那张，页面里不许写第二份退路。 */
-const things = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/things' }),
-  schema: z.object({
-    name: z.string(),
-    tag: blankSlot(z.string().default('')),
-    link: blankSlot(z.string().default('')),
-    shot: blankSlot(z.string().default('')),
-    order: z.preprocess(
-      v => (v === null || v === '' || v === undefined) ? undefined : v,
-      z.coerce.number().int().positive().optional(),
-    ),
-  }),
-});
-
-export const collections = { posts, notes, things };
+export const collections = { posts };

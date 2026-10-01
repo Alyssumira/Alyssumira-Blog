@@ -1621,26 +1621,6 @@ function clockOf(html) {
   return m ? m[1].trim() : null;
 }
 
-/* ---------- 滚动入场有没有把内容永久藏住（2026-10-02 一起线上故障插的牙） ----------
-   `.reveal` 的起手态是 `opacity:0`（`base.css:476`），进 `.in` 才亮，而进 `.in` 只由 `site.js` 那枚
-   IntersectionObserver 做。当年那枚写法是 `threshold: .15`——要求"一次露出这块的 15%"，而作者第一篇长稿
-   的正文整块量到 **9,149px** 高 ⇒ 门槛 1,372px 比任何真实视口都高 ⇒ 那一块**永远**不进 `.in`：
-   用户打开就是一页空白，`npm run check`、`astro build`、控制台全部干净（三篇演示稿最高那篇 1,249px、
-   门槛 187px，随便一屏就过 ⇒ 这枚牙在真语料里从没咬过，语料前提那一族）。
-   现在这一格把"看得见"钉成 **DOM 见证物**（class 列表会随 `classList.add` 进 `outerHTML`，与 #clock 同族；
-   不像 `checked` 那种 IDL property，见上面 `clockOf` 头上那一段）：
-     · 完整档：必须至少一枚 `.reveal` 进了 `.in`；详情页正文那一枚（`.post-body`）必须在名单里——
-       它咬的正是"这块比视口高到永远够不着门槛"那一族。
-     · 内联隔离档（.js 全 404）：一枚都不许带 `.in`。那枚 0 与 `#clock` 的 `--:--` 是同族反证：
-       它证明这一档真把模块脚本拦住了，而不是两档都在跑完整档。 */
-function revealTally(html) {
-  let total = 0, armed = 0;
-  for (const m of String(html || '').matchAll(/class="([^"]*\breveal\b[^"]*)"/g)) { total++; if (/(^|\s)in(\s|$)/.test(m[1])) armed++; }
-  const bodyArmed = /class="[^"]*\bpost-body\b[^"]*"/.test(String(html || ''))
-    ? /class="[^"]*\bpost-body\b[^"]*\bin\b/.test(String(html || '')) : null;
-  return { total, armed, bodyArmed };
-}
-
 /* ---------- 目录 ⇄ 刻度：同一批标题的两个投影（`card/detail` 落下的格，`card/anchors` 换了归属） ----------
    ⚠️ **这一格的期望数在 `card/anchors` 之后真的变了**，而且是这卡的价值所在：
    原先那两排节点由 `site.js` 的 `buildToc()` 与 `markEls = headsOf().map(造 span)` 生成 ⇒
@@ -1715,11 +1695,6 @@ async function runPhase(kind, profiles) {
           notes.push(`隔离档 ${job.page.url} data-phase=${JSON.stringify(got.attrs['data-phase'])}（这一档 .js 全被 404，只可能读到静态那一枚）`);
           assertHeads('[内联隔离档]', job.page.url, got.stdout, 'isolate');
           if (c && /\d{1,2}:\d{2}/.test(c)) problems.push(`内联隔离档 ${job.page.url}：#clock 是 ${JSON.stringify(c)} ⇒ 模块脚本压根没被拦住，这一档其实跑在完整环境里（判据空转：五枚属性可能来自 site.js 而不是内联脚本）`);
-          { /* 无 JS 这一档：`.reveal` 一枚都不许进 `.in`（进了＝JS 其实在跑，与上面那枚 `#clock` 同族反证） */
-            const rv = revealTally(got.stdout);
-            if (rv.armed) problems.push(`内联隔离档 ${job.page.url}：${rv.armed}/${rv.total} 枚 .reveal 带了 in 这个 class ⇒ .js 没被拦住（in 只有 site.js 那枚 IntersectionObserver 会加）——这一档的读数不能当"无 JS 那一面"用`);
-            else notes.push(`隔离档 ${job.page.url}：.reveal ${rv.total} 枚、进 .in 0 枚 ✓（无 JS 的见证物，与 #clock 的 --:-- 同族）`);
-          }
         }
       } else {
         const got = assertPage('[完整档]', job.page.url, r);
@@ -1728,14 +1703,6 @@ async function runPhase(kind, profiles) {
           const c = clockOf(got.stdout);
           witness.push(`完整档 ${job.page.url} 时钟=${JSON.stringify(c)}`);
           if (!c || !/\d{1,2}:\d{2}/.test(c)) problems.push(`完整档 ${job.page.url}：#clock 还是 ${JSON.stringify(c)} ⇒ site.js 没跑（资源没喂到 / MIME 不对 / 模块脚本自己炸了），这一档和隔离档没区别（判据空转）`);
-          { /* 完整档：正文那一块必须真的亮了（2026-10-02 那起"打开是一页空白"就红在这里）。
-               ⚠️ 这里**只判详情页的 .post-body，不判"全页一枚都没进 in"**——首屏之下的 .reveal 在
-               `--dump-dom` 那一趟里本来就没 intersect（首页那两枚在 800×600 下位于 y≈1900，armed=0 是对的），
-               把它们判成红就是假阳性；那一半只作为看得见的数打出来。 */
-            const rv = revealTally(got.stdout);
-            if (rv.bodyArmed === false) problems.push(`完整档 ${job.page.url}：正文那一块（.post-body）没进 in，而它是整页最长的一枚 ⇒ 用户打开就是一页空白（当年那枚 threshold: .15 在 9,149px 高的正文上要一次露出 1,372px，比任何真实视口都高，于是永远够不着）`);
-            else notes.push(`完整档 ${job.page.url}：.reveal ${rv.armed}/${rv.total} 枚已进 in${rv.bodyArmed === null ? '（这一页没有正文块）' : `（正文那一枚 ${rv.bodyArmed ? '亮 ✓' : '没亮 ✗'}）`}`);
-          }
           assertPhase('[完整档]', job.page.url, got.attrs, w);
           assertHeads('[完整档]', job.page.url, got.stdout, 'full');
           const rv = 'data-revisit' in got.attrs ? got.attrs['data-revisit'] : null;

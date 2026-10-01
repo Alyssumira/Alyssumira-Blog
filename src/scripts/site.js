@@ -465,14 +465,7 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
         e.target.classList.add('in');
         io.unobserve(e.target);
       });
-    /* ⚠️ 这一枚**不许回到 `threshold: .15`**（2026-10-02 修的一起线上故障：正文整块就是一枚 `.reveal`，
-       作者那篇长稿在 1440×900 下量到 **9,149px** 高 ⇒ "露出 15%" 要一次看见 1,372px，比任何真实视口都高，
-       于是那一块永远不进 `.in`、永远 `opacity:0`——访客看到的是一页空白，而构建、门禁、控制台全干净。
-       手机同一枚账：390×844 下那块 7,073px，门槛 1,061px > 844。三篇演示稿当年最高那篇只有 1,249px
-       （门槛 187px，随便一屏就过），所以这枚牙在真语料里从没咬过——语料前提那一族，见 runbook §3.13 第 ㉒ 格。）
-       现在这枚写法管的是"顶边进了首屏就演"，与那块有多高无关：`threshold: 0` ＋ 底边内缩 12% 的 rootMargin
-       （内缩那 12% 是留给"刚露头就点亮"的一点余量，不参与错落节拍——节拍仍住在 CSS 的 `--cascade` 里）。 */
-      }, { threshold: 0, rootMargin: '0px 0px -12% 0px' });
+    }, { threshold: .15 });
     revealEls.forEach(el => io.observe(el));
   }
 

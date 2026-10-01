@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import SearchEntry from '../components/SearchEntry.astro';
 import { siteFacts, tone } from '../lib/stats.js';
-import { fmtDate, inlineMd } from '../lib/markdown.js';
+import { inlineMd } from '../lib/markdown.js';
 import { intrinsicProps } from '../lib/image-dims.js';
 /* 人像那两枚宽高原先是模板里手写的字面量 276/276（**值是对的，但是抄来的**）：换成构建期读真文件头。
    为什么这一枚值得动：`tools/imgpipe-check.mjs` 那把尺量的是"dist 里的属性 ⇄ 盘上真尺寸"，
@@ -12,8 +12,7 @@ import { intrinsicProps } from '../lib/image-dims.js';
    盒子由 `.portrait` 那枚 `width:220px; aspect-ratio:1/1`（:634）定，两枚属性从来不上屏（实测见规范 §8.4 那一格）。
    ⚠️ 说明写在 `---` 里而不是模板里：Astro 把 HTML 注释原样落进产物（`src/layouts/Layout.astro:21` 点过名）。 */
 import { visiblePosts } from '../lib/posts.js';
-import { allNotes } from '../lib/personal.js';
-import { fonts, BIRTH_DATE, EMAIL } from '../data/site.js';
+import { fonts, notes, BIRTH_DATE, EMAIL } from '../data/site.js';
 /* 一生格子（`card/lifegrid`）：吃 `src/lib/lifegrid.js` 那三枚纯函数——与 `tools/lifegrid-check.mjs`
    同一份实现（接法照 taxonomy.js：页面与门禁两处说了算的那种分叉，§16 记过）。 */
 import { parseBirth, lifeField, lifeFieldHtml } from '../lib/lifegrid.js';
@@ -45,17 +44,12 @@ const tended = !f.tended ? ''
     ? `${f.commits} 次提交 · 最早的一次就在 ${f.tended.first}`
     : `${f.commits} 次提交 · ${f.tended.first} → ${f.tended.last}`;
 
-/* 最近一次散步不在这行字里手写第二遍：它就是 notes 的最新一条（顺序住在 `src/lib/personal.js`，
-   首页收尾那一句与 `/notes/` 吃的是同一枚排序）。
-   ⚠️ 零枚手记时 `walk` 是 `undefined`：`last walk` 那一行与 `now` 那一整块披露件**都不出现**
-      （`src/content/notes/` 那一层的文件不进仓库，所以"模板出厂时一个字的作者内容都没有"是设计，
-      而这一页不许为了填空编一句散步）。 */
-const notes = await allNotes();
+/* 最近一次散步不在这行字里手写第二遍：它就是 notes 的最新一条 */
 const walk = notes[0];
 ---
 <Layout title="关于 · mistwood" desc="写代码的人，住在城市边缘，心在森林里。" here="about">
   <main class="wrap">
-    <header class="page-head reveal">
+    <header class="page-head reveal head-about">
       <h1 class="page-title">关于</h1>
       <!-- 这一页原本没有 `.sec-label` 那一行（扉页只有标题）。搜索入口要落在扉页那一族里（§9/§11），
            所以这里补的正是那一族的一行：`solo` 让分隔点不出现，`margin-top:16px` 吃的是
@@ -72,37 +66,31 @@ const walk = notes[0];
       <div class="about-lede">
         <div class="portrait reveal"><img src="/assets/portrait.png" alt="Alyssumira" {...intrinsicProps('/assets/portrait.png')}></div>
         <div class="about-text reveal">
-          <p>Alyssumira</p>
-          <p>纯兴趣使然</p>
+          <p>写代码的人，住在城市边缘，心在森林里。白天修 bug，傍晚散步，夜里把这个网站当作营地慢慢打理。</p>
+          <p>这里不追热点，只收集经得起重读的东西。</p>
         </div>
       </div>
       <!-- 整行是可点开的披露件：那一枚点只是记号，命中区是这一整行（§15）。
-           展开的内容不新写——就是 notes 最近几条，"这一周在做什么"的答案本来就在日志本里。
-           零条手记时这一整块（连 summary 那一行）不出现：留一行点开是空的披露件就是 §12 禁的活壳。 -->
-      {notes.length > 0 && (
-        <details class="about-now reveal">
-          <summary><span class="dot"></span>now · 在给这个网站种内容</summary>
-          <ul class="now-list">
-            {notes.slice(0, 3).map(n => (
-              <li>
-                <time>{fmtDate(n.data.date)}{n.data.jieqi ? ' · ' + n.data.jieqi : ''}</time>
-                <span class={tone(n.body)} set:html={inlineMd(n.body.trim())}></span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
+           展开的内容不新写——就是 notes 最近几条，"这一周在做什么"的答案本来就在日志本里 -->
+      <details class="about-now reveal">
+        <summary><span class="dot"></span>now · 在给这个网站种内容</summary>
+        <ul class="now-list">
+          {notes.slice(0, 3).map(n => (
+            <li>
+              <time>{n.date}{n.jieqi ? ' · ' + n.jieqi : ''}</time>
+              <span class={tone(n.text)} set:html={inlineMd(n.text)}></span>
+            </li>
+          ))}
+        </ul>
+      </details>
 
       <div class="contact reveal">
         <nav class="contact-links">
           {EMAIL && <a href={EMAIL}>email</a>}
           <a href={GITHUB} target="_blank" rel="noopener noreferrer">github</a>
         </nav>
-        <!-- 节气是手填位（§7）：空着就不显示。算出来的近似节气不配站在分钟级时钟旁边。
-             `weather` 同样是可空位；整行在手记零枚时不出现（上面那枚 `walk`）。 -->
-        {walk && (
-          <p class="last-walk">last walk · {fmtDate(walk.data.date)}{walk.data.weather ? ' · weather: ' + walk.data.weather : ''}{walk.data.jieqi ? ' · ' + walk.data.jieqi : ''}</p>
-        )}
+        <!-- 节气是手填位（§7）：空着就不显示。算出来的近似节气不配站在分钟级时钟旁边 -->
+        <p class="last-walk">last walk · {walk.date} · weather: {walk.weather}{walk.jieqi ? ' · ' + walk.jieqi : ''}</p>
       </div>
 
       <!-- 站点档案：数字全部在构建期从仓库里数出来。没有"访问量"这一栏，因为本站没有服务端 ⇒ 拿不到 -->
@@ -164,7 +152,11 @@ const walk = notes[0];
           <span>今年</span>
         </p>
         <p class="col-note">
-          这是一份纯静态站点，只负责记录与分享
+          这是一份纯静态站点：没有服务端、没有 cookie、没有第三方统计脚本。
+          所以这里不放"访问量"——那个数字我们真的拿不到，写一个出来就是假的。
+          你的浏览器里只有三行留得住的本地数据：主题、显示设置（雾 / 颗粒 / 萤火 / 入场）、和下面这个载入次数；
+          另有三行关掉标签页就消失的会话标记——这次会话看过完整入场没有、从哪一篇回列表、这一轮说过"守夜"没有。
+          清掉它们，这个网站不会少一块。
         </p>
         <p class="col-visit" id="col-visit" hidden></p>
       </section>

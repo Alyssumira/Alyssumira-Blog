@@ -14,7 +14,7 @@ const groups = bySize(groupBy(posts, categoryOf));
 ---
 <Layout title="分类 · mistwood" desc="按主题走一圈——分类是作者自己起的名字。">
   <main class="wrap">
-    <header class="page-head reveal">
+    <header class="page-head reveal head-categories">
       <h1 class="page-title">分类</h1>
       <div class="sec-label">categories — <b>{pad(groups.length)}</b> →<SearchEntry /></div>
     </header>

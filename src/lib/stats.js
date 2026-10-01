@@ -35,11 +35,14 @@ export function readMinutes(body){
    再多一个字就换成 tight 档。所以这一档不是稳态：加 note 时要重新量一次，别顺手改成 20/40 那种整数。
    ⚠️ 构建期算，不是运行时、更不是随机数：版式是作者写下的东西决定的，不是访客的浏览器决定的。 */
 export function tone(text){
-  const n = cjkCount(text) + latinWords(text);
+  const n = bodyLen(text);
   return n <= 22 ? 'tone-breath' : n <= 38 ? 'tone-plain' : 'tone-tight';
 }
 export const cjkCount = body => (String(body).match(CJK) || []).length;
 export const latinWords = body => (String(body).replace(CJK, ' ').match(/[A-Za-z0-9'’-]+/g) || []).length;
+/* 单篇字数：全站只有这一把尺（`siteFacts` 那个总数就是逐篇相加它）。列表页那两枚新图形
+   （写作年轮／每行字数尺）吃的也是它——尺子不许由渲染器自己出。 */
+export const bodyLen = body => cjkCount(body) + latinWords(body);
 
 const git = cmd => {
   try { return execSync(cmd, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); }
@@ -99,7 +102,7 @@ export function siteFacts(posts){
 
   return {
     posts: posts.length,
-    words: posts.reduce((n, p) => n + cjkCount(p.body) + latinWords(p.body), 0),
+    words: posts.reduce((n, p) => n + bodyLen(p.body), 0),
     minutes: posts.reduce((n, p) => n + readMinutes(p.body), 0),
     templates: templates.length,
     cssFiles: styles.length,

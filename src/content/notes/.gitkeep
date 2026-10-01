@@ -1,3 +1,0 @@
-# 这一格留在仓库里，是为了让 `src/content/notes/` 这枚目录存在。
-# glob loader 的 base 指向一枚不存在的目录时 astro build 当场红（配置错，不是"作者还没写手记"）。
-# 手记本身一枚 .md 一条，文件名随便起，日期写在 front matter 里；那一族文件不进仓库（见 ../.gitignore 顶部那块）。

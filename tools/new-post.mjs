@@ -18,11 +18,7 @@ import { ESSAYS_PAGE_NS } from '../src/lib/pagination.js';   /* 分页命名空�
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const POSTS = join(ROOT, 'src', 'content', 'posts');
-/* 手记与小东西这两层从 `src/data/site.js` 的两枚数组搬了过来（同一轮：作者点名仓库只留模板）。
-   目录本身在仓库里（旁边一枚 `.gitkeep`，glob loader 的 base 指向不存在的目录会红在配置上），
-   里面的 `*.md` 不进仓库。`--check` 因此按盘上文件读这两层，不再 import 那份 JS。 */
-const NOTES = join(ROOT, 'src', 'content', 'notes');
-const THINGS = join(ROOT, 'src', 'content', 'things');
+const DATA = join(ROOT, 'src', 'data', 'site.js');
 
 /* 稿件 id 的**第一段**不许是这些字面量（本轮 `card/pagination` 立这一格）。
    ⚠️ 名单只加不减：将来 `/essays/` 底下再多一枚静态命名空间（例如 `/essays/tag/<x>/` 那种写法），
@@ -315,81 +311,41 @@ async function check() {
     }
     console.log(`· 旧地址检查 ${aliasChecked} 项（${[...new Set([...seen.keys()])].length} 枚在册）：与固定路由／详情页／分类三族／静态资源层逐枚比过（0 项是今天签字的状态，不是这一格没跑——每一篇的 front matter 都被读过）`);
   }
-  /* 手记与小东西从 `src/data/site.js` 的两枚数组搬进了内容集合（作者 2026-10-01 晚点名「GitHub 上只留
-     文章手记小东西的模板，我自己发的不要提交」）。这一格跟着换成**按盘上文件读**：
-     ⚠️ 不许退回 `import('../src/data/site.js')` 那两条 `export const` 已经不在了 —— 要么 `things.forEach`
-        当场抛，要么被人补一枚 `?? []`：补完之后这一格永远读到 0 枚，"扫过了"是假的
-        （§12 那一族：拿一把读不到的尺子当验收）。
-     ⚠️ 按文本读要走 `tools/frontmatter.mjs` 那份 `splitFm`／`unquote`（页面那侧吃 gray-matter，两种引号都剥；
-        工具侧不剥就是假红，假阳性教人忽略门禁——文件头那条教训同一句）。
-     ⚠️ 零枚是**出厂状态**：`src/content/notes/` 与 `src/content/things/` 里的文件不进仓库。所以每一格
-        扫了几枚都要打成看得见的数（0 也打），它证明这一格走到过，而不是一枚从没被喂过输入的保险。 */
-  const col = dir => (existsSync(dir) ? readdirSync(dir).filter(f => /\.md$/i.test(f)).sort() : [])
-    .map(f => ({ f, parsed: splitFm(read(join(dir, f))) }));
-  const noteFiles = col(NOTES);
-  const thingFiles = col(THINGS);
-  /* /things/ 那几枚卡的名字与链接（页面侧的对应物是 `src/pages/things.astro` 里那枚 `strictHref(t.data.link)`，
-     产物是那一行 `<a class="thing reveal">`）。
+  /* 数量直接 import 来数：site.js 是真模块，按文本猜格式会静默读成 0 */
+  const { things, notes } = await import(pathToFileURL(DATA).href);
+  /* /things/ 那几枚卡的名字与链接（页面侧的对应物是 `src/pages/things.astro:23 url`，产物在 `src/pages/things.astro:30 <a class="thing reveal">`）。
      这一格必须在：坏写法在页面上的表现是**整枚卡退成不可点的图鉴**（没有 href、没有悬停那一下），
      build 全绿、页面上一个字的报错都没有——作者却以为写了就能点。两种坏形状**分开点名**、各带出路（口径与上面许可族那一格同源）：
        · `href(v) === '#'` ⇒ 带了协议头而协议不被站内白名单收（javascript:／data:／vbscript: 那一族），消毒成 '#'；
        · 否则 ⇒ 没有协议头，`href` 里它就成相对路径，浏览器解成 /things/example.com/x 那样一枚点开 404 的活锚。
      ⚠️ 判据只有 `src/lib/markdown.js:21 strictHref()` 与 `:20 href()` 这两枚导出函数的返回值，
      tools/ 这一侧不写第三份协议白名单（`OK_LINK`／`HAS_SCHEME` 若在这儿抄一遍，早晚有一处漏掉 javascript:）。
-     ⚠️ 值现在从盘上的 front matter 读，所以要先走 `tools/frontmatter.mjs:30 unquote()` 摘引号：这一格从前按
-     `import site.js` 拿数组，引号早在 Node 解析源码时就摘掉了，那时**不用**摘是对的；换了读法不换这一步，
-     `link: "https://…"` 会被当成带引号的一串而判成"没有协议头"（假阳性教人忽略门禁）。
+     ⚠️ 这里**不用** `tools/frontmatter.mjs:30 unquote()`：site.js 是按 `import` 拿进来的真模块，
+     引号早在 Node 解析源码时就摘掉了，值已经是 JS 字符串；只有按文本读的 front matter 那一侧才需要自己摘。
      ⚠️ `'#'` 是在册的**占位写法**（§12 死锚点那一族的"压根没给地址"），与空着同解 ⇒ 不算"填了一枚链接"、不进下面那个计数、不报红。 */
   let thingLinksChecked = 0;             /* 本格实际查了几枚 link（看得见数，0 也要打这一行，见下面那句） */
-  for (const { f, parsed } of thingFiles){
-    const at = `src/content/things/${f}`;
-    if (!parsed){
-      console.log(`✗ ${at}：开头少了 --- front matter --- 那一段（name / tag / link / shot / order 都在里面；一张卡的句子写在正文里，页面上一个字都不画）`);
-      bad++; continue;
-    }
-    const name = unquote(parsed.fm.name ?? '');
-    if (!name.trim()) {
-      console.log(`✗ ${at}：name 空着——图鉴上那一条只剩一枚 tag 和一片占位雾，读者叫不出它是啥，而页面照常 build 全绿。填上名字，或把这一枚文件整枚删掉（删掉＝这块不存在）`);
+  things.forEach((t, i) => {
+    const at = `things 第 ${i + 1} 枚卡`;
+    if (!String(t.name ?? '').trim()) {
+      console.log(`✗ ${at}：name 空着——图鉴上那一条只剩一枚 tag 和一片占位雾，读者叫不出它是啥，而页面照常 build 全绿。填上名字，或把这一条整条删掉（删掉＝这块不存在）`);
       bad++;
     }
-    const v = unquote(parsed.fm.link ?? '').trim();
-    if (!v || v === '#') continue;
+    const v = String(t.link ?? '').trim();
+    if (!v || v === '#') return;
     thingLinksChecked++;
-    if (strictHref(v)) continue;
+    if (strictHref(v)) return;
     const why = href(v) === '#'
       ? '协议不在站内白名单里，消毒之后是一枚 href="#" 的死锚，而这一族不许产出它'
       : `没有协议头，它进了 href 就是相对路径——浏览器解成 /things/${v} 那样一枚看着像真链接、点开 404 的活锚`;
-    console.log(`✗ ${at}${name ? ` "${name}"` : ''}：link "${v}" 不会让这张卡可点——${why}；页面上它退成一块没有 href、也没有悬停反馈的图鉴，而你大概以为写了就能点。要它能点就写成带协议头的 https://…，或者干脆留空——留空＝这块不可点，是设计而不是缺陷`);
+    console.log(`✗ ${at}${t.name ? ` "${t.name}"` : ''}：link "${v}" 不会让这张卡可点——${why}；页面上它退成一块没有 href、也没有悬停反馈的图鉴，而你大概以为写了就能点。要它能点就写成带协议头的 https://…，或者干脆留空——留空＝这块不可点，是设计而不是缺陷`);
     bad++;
-  }
-  /* 手记一枚文件一条：front matter 是日期/天气/节气，句子写在正文里。这一格管两件页面侧管不了的形状——
-     ① `date` 不合 `YYYY-MM-DD`：schema 那枚 `z.coerce.date()` 读不出形状时交回 Invalid Date，页面上那行日期
-        打印成 "Invalid Date" 那一串而 build 全绿（稿件那一族同一件事写在上面那圈主循环里）；
-     ② 正文空着：那是一条只有日期的手记，而首页收尾那一句就是它——点得开、里面没字（§12 的活壳那一族）。
-     ⚠️ 零条时这两个循环一枚都不转，靠下面那行看得见的数记账："扫了 0 枚"与"这一格没跑"必须分得开。 */
-  for (const { f, parsed } of noteFiles){
-    const at = `src/content/notes/${f}`;
-    if (!parsed){
-      console.log(`✗ ${at}：开头少了 --- front matter --- 那一段（日期与天气在里面；句子才写在正文里）`);
-      bad++; continue;
-    }
-    const d = unquote(parsed.fm.date ?? '');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)){
-      console.log(`✗ ${at}：date "${d}" 不是 YYYY-MM-DD —— schema 会读成一枚 Invalid Date，页面上那行日期变成 "Invalid Date" 而构建全绿。写成 2026-09-25 那样（站上显示的那串 2026.09.25 是格式化出来的，不用你手写）`);
-      bad++;
-    }
-    if (!parsed.body.trim()){
-      console.log(`✗ ${at}：正文空着——这条手记只剩一枚日期，而首页收尾那一句就是它（点得开、里面没字）。写下那句话，或把这一枚文件整枚删掉`);
-      bad++;
-    }
-  }
-  /* 看得见数：**0 也要打这一行**。今天 `src/content/things/` 零枚卡 ⇒ 链接那一半查到 0 处，
-     但同一行打出"检查 0 枚卡"，它证明这一格真的走到过每一条，而不是一枚从没被喂过输入的保险——
+  });
+  /* 看得见数：**0 也要打这一行**。今天四条 thing 的 link 全是 `'#'` ⇒ 链接那一半查到 0 处，
+     但同一行打出"检查 4 枚卡"，它证明这一格真的走到过每一条，而不是一枚从没被喂过输入的保险——
      本仓被"扫了但没匹配到"骗过两次（§16 那一族）。 */
-  console.log(`· things 检查 ${thingFiles.length} 枚卡：link 查到 ${thingLinksChecked} 处非占位链接（'#' 与空都不算填过 ⇒ 全是 '#' 时这里是 0 处，它只说明没有链接可判；name 那 ${thingFiles.length} 枚每轮都判过）`);
-  console.log(`· notes 检查 ${noteFiles.length} 条：date 形状与正文非空各判 ${noteFiles.length} 次（手记住在 src/content/notes/，那一层的 *.md 不进仓库）`);
+  console.log(`· things 检查 ${things.length} 枚卡：link 查到 ${thingLinksChecked} 处非占位链接（'#' 与空都不算填过 ⇒ 全是 '#' 时这里是 0 处，它只说明没有链接可判；name 那 ${things.length} 枚每轮都判过）`);
   if (bad) { console.log(`✗ ${bad} 处问题 / 共 ${files.length} 篇`); return 1; }
-  console.log(`✓ posts ${files.length} · things ${thingFiles.length} · notes ${noteFiles.length}，front matter 全部合规矩`);
+  console.log(`✓ posts ${files.length} · things ${things.length} · notes ${notes.length}，front matter 全部合规矩`);
   return 0;
 }
 

@@ -1,10 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import SearchEntry from './SearchEntry.astro';
-import { fmtDate } from '../lib/markdown.js';
-import { coverSrc } from '../lib/covers.js';
+import { fmtDate, root } from '../lib/markdown.js';
 import { intrinsicProps } from '../lib/image-dims.js';
-import { readMinutes } from '../lib/stats.js';
+import { readMinutes, bodyLen } from '../lib/stats.js';
 import { essaysPerPage, pageRanges, pageHref } from '../lib/pagination.js';
 /* 三族索引页的可见入口（F2 `card/f2entries`）用的那三份分组函数——**就是 `/categories/`、`/tags/`、`/series/`
    三页自己用的那三份**（`groupBy(posts, categoryOf)` / `tagGroups(posts)` / `seriesGroups(posts)`，
@@ -71,6 +70,50 @@ const wrote = perMonth.filter(c => c).length;
 const stamp = ({ y, m }) => `${y}.${pad(m + 1)}`;
 const span = `${stamp(months[0])} → ${stamp(months[11])}`;
 
+/* 写作年轮（三轮 §1.1 横条版；母题指认与降级谱在 §13b、规格在 §15、打印在 §19.1）：
+   过去一年每天一格，写过稿的日子按当天的字数上深浅，按月轻轻分段。
+   ⚠️ 窗口终点＝这批稿子里最新的那一天，不是构建时刻。终点若吃 `new Date()`，这份产物每天多改一次
+   字节，而"改前改后逐字节对账"是现役验收尺（§16）；上面那把 12 月尺按月份滑、只在月初变，
+   这一把按天滑、每天都会变，所以它向数据要终点。格数与区间都由日历算（Date.UTC 自带 2 月 29 日），
+   代码里不写 365/366 那类常量——与 `stats.js` 的 `yearArc()`、`lifegrid.js` 的 `lifeField()` 同一句话。
+   ⚠️ 深浅走 `--moss-ink` 一枚墨的 alpha 档，不走提案写的 `--moss-ink`→`--moss` 明度轴：夜林那一档
+   这两枚令牌是同一个值（`base.css:75` 与 `:77` 写的是同一枚色，照 §13b 那格的口径不在注释里抄它的字面量），
+   轴的量程是零，两篇字数差三倍的格子
+   会在夜里画成同一枚色。alpha 那两档（25% 地板／峰值 100%）是画幅，比例尺仍旧只由数据定：
+   深浅 ＝ 当天字数 ÷ 这一年里最重的那一天。空格照 `.density .tick.nil` 那一对现成值——尺子不能缺齿。 */
+const DAY_MS = 86400000;
+const ringEnd = new Date(Math.max(...posts.map(p => p.data.date.getTime())));
+const ringStartTs = Date.UTC(ringEnd.getUTCFullYear() - 1, ringEnd.getUTCMonth(), ringEnd.getUTCDate() + 1);
+const ringEndTs = Date.UTC(ringEnd.getUTCFullYear(), ringEnd.getUTCMonth(), ringEnd.getUTCDate());
+const ringCells = Math.round((ringEndTs - ringStartTs) / DAY_MS) + 1;
+const dayWords = new Map();
+for (const p of posts) {
+  const t = Math.floor(p.data.date.getTime() / DAY_MS) * DAY_MS;
+  dayWords.set(t, (dayWords.get(t) || 0) + bodyLen(p.body));
+}
+const ringPeak = Math.max(1, ...dayWords.values());
+const ringMonths = [];
+for (let i = 0; i < ringCells; i++) {
+  const t = ringStartTs + i * DAY_MS;
+  const d = new Date(t);
+  const key = d.getUTCFullYear() * 100 + d.getUTCMonth();
+  let g = ringMonths.find(m => m.key === key);
+  if (!g) ringMonths.push(g = { key, days: [] });
+  g.days.push({ t, w: dayWords.get(t) || 0 });
+}
+/* ⚠️ 图例那句"几天写过"数的是**这一片窗口里亮着的格子**，不是 dayWords.size：
+   一年前的旧稿照样在 dayWords 里，但它那一格不在画幅里——拿 Map 的枚数去讲这片格子就是报假数（§12）。 */
+const ringWrote = ringMonths.reduce((n, g) => n + g.days.filter(c => c.w).length, 0);
+
+/* 每行字数尺（三轮 §1.2；§9 那一格与 12 月刻度尺的"同族两档"裁决、§12 那枚否决的药方都签在规范）：
+   条长 ＝ 这一篇的字数 ÷ 这批稿子里最长的那一篇。峰值归一，没有一毫米来自"1 min = 20px"那种常数。
+   ⚠️ 分母读**整份 `posts`**、不读本页 `items`——与上面那把尺同一条口径：一把随页数漂移的是假尺。
+   ⚠️ 字数向 `stats.js` 的 `bodyLen()` 要（`cjkCount` ＋ `latinWords` 那一对，与 `readMinutes`、
+      关于页那个总数同一把尺），这一页不自己数；画幅走 `em`（宿栏 12px 的一枚字高为上界、
+      三分之一为下界），不新增一枚 px。它是旁边那枚 `N min` 的图形，不是第二份真值。 */
+const maxLen = Math.max(1, ...posts.map(p => bodyLen(p.body)));
+const tickEm = len => (0.35 + (len / maxLen) * 0.65).toFixed(3);
+
 /* 按年分节；年份只写一次，行内就剩 MM.DD（Rachel Andrew 那套去噪法）
    ⚠️ 分页之后这一格分的是**本页那几行**（`items`），不是整份名单：同一年的行被页界切开时，两页各写一次那一年
       的年标——那是"这一页里有这几行"的事实，不是第二把尺。尺子（密度尺／`共 N 篇`／`sec-label` 那个数）
@@ -103,7 +146,7 @@ const browse = [
 ---
 <Layout title={pageTitle} desc="经得起重读的东西。" here="essays">
   <main class="wrap">
-    <header class="page-head reveal">
+    <header class="page-head reveal head-essays">
       <h1 class="page-title">文章</h1>
       {/* 扉页那一行现在要能承一块玻璃面板 ⇒ tag 从 `<span>` 换成 `<div>`（内容模型合法、`display:block`
           由 `.page-head .sec-label` 那条既有声明给，版面逐位不变）；理由全文在 SearchEntry.astro 头上。 */}
@@ -127,6 +170,17 @@ const browse = [
           })}
         </span>
         <span class="density-cap">近 12 个月 · {span}（{wrote} 个月有更新，共 {posts.length} 篇）</span>   {/* 尺身 aria-hidden ⇒ 那条 aria 串逐字符搬进这句看得见的图例（仓库没有 sr-only 那一族，也不为它新写一条藏法的类） */}
+        {/* 第二把尺：写作年轮横条（同一只尺架里落下第二枚，就把它的图例也交给 .density-cap 那一档的嗓子——
+            名字并进群组、声明不复制第二条，§17 那条复用类的口径，先例是 .tax-empty a,.essay-browse a）。
+            ⚠️ 它必须排在 .density-cap **之后**：tools/pagination-check.mjs 第 ③ 那枚量具是拿
+            `<span class="density" …>(…)<span class="density-cap">` 这一条正则抠尺身字节的，插在中间就是让那把
+            已经签字的尺去读一枚新东西。环（提案那枚更"年轮"的版）留在升级位，本卡不画。 */}
+        <span class="yring" aria-hidden="true">
+          {ringMonths.map(g => <span class="yr-month" style={`flex:${g.days.length}`}>{g.days.map(c => c.w
+            ? <span class="yr-lit" style={`background:color-mix(in srgb,var(--moss-ink) ${25 + Math.round(c.w / ringPeak * 75)}%,transparent)`}></span>
+            : <span></span>)}</span>)}
+        </span>
+        <span class="yring-cap">写作年轮 · 每格一天 · {fmtDate(new Date(ringStartTs))} → {fmtDate(ringEnd)}（{ringWrote} 天写过）</span>
       </span>
     </header>
 
@@ -139,13 +193,12 @@ const browse = [
             const d = p.data.date;
             /* 封面那枚 `<img>` 上的 width/height/decoding 与 `src/components/PostRow.astro` 同一口径
                （属性被 `.cover img{position:absolute;inset:0}` 完全覆写 ⇒ 已签字的 92×69 一格不动；
-               coverSrc() 调两次是绕开 `tools/media-check.mjs` 第 ④ 格那枚字面绊线，理由写在那一卡的注释里。
-               2026-10-01 晚这一行与 PostRow 同一批从"有封面才画"改成"没填也画"——退路只有一枚函数，两处各 import 它）*/
+               root() 调两次是绕开 `tools/media-check.mjs` 第 ④ 格那枚字面绊线，理由写在那一卡的注释里）*/
             return (
               <li>
                 <a class="row" href={`/essays/${p.id}/`} data-slug={p.id}>
                   <span class="folio">{pad(n)}</span>
-                  <span class="cover"><img src={coverSrc(p.data.cover)} {...intrinsicProps(coverSrc(p.data.cover))} alt="" loading="lazy" decoding="async"></span>
+                  {p.data.cover ? <span class="cover"><img src={root(p.data.cover)} {...intrinsicProps(root(p.data.cover))} alt="" loading="lazy" decoding="async"></span> : null}
                   <span class="row-main">
                     <h3>{p.data.title}</h3>
                     <p class="row-ex">{p.data.excerpt}</p>
@@ -153,6 +206,9 @@ const browse = [
                   <span class="row-side">
                     <time>{fmtDate(d).slice(5)}</time>
                     <span class="row-min">{readMinutes(p.body)} min</span>
+                    {/* 每行字数尺：常显，不悬停（§8.3 那枚悬停预算已满，§1 也不开第二档"钉死的铺底"）。
+                        它是上面那枚 `N min` 的图形、同一个 bodyLen 的同源两读，所以这一行不多一份真值。 */}
+                    <span class="row-tick" style={`height:${tickEm(bodyLen(p.body))}em`}></span>
                   </span>
                 </a>
               </li>

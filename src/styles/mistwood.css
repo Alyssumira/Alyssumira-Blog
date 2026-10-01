@@ -357,6 +357,110 @@ html[data-tier="lost"] .page-head::after{
     linear-gradient(187deg,transparent 62%,color-mix(in srgb,var(--ink-3) 14%,transparent) 70% 75%,transparent 84%),
     linear-gradient(181deg,transparent 78%,color-mix(in srgb,var(--mist) 70%,transparent) 86% 91%,transparent 98%);
 }
+/* ============ 子页页头的横雾线族（三轮 §2.1；母题①"雾线"铺开，规范 §13b／§9／§12／§15） ============
+   七个子页页头各落一族 3–5 条水平雾线，自上而下透明度渐隐、间距渐宽，读起来是"标题沉进雾里"。
+   这七层与 404 那层**同一套构造**（这也是 §9「横线四种意思」对账的落点）：
+   ① 选择器带页头自己的 `head-*` 修饰类（写死在 `<header class="page-head … head-essays">` 上），
+      不靠 `:has(内容后代)` 那种"内容类一改线就没了"的偶然钩子——先例见同文件 `.row` 那格"宿主的
+      position:relative 写死"；404 的 `<header>` 没有这枚修饰类，`html[data-tier="lost"]` 那层也不带
+      修饰类，两边互不匹配。
+   ② 浓度照抄 404 那层的 `opacity:calc(var(--band-a) * var(--fog))`——子页拿到的 `--band-a` 是
+      `.page-head` 基准那枚 **.75**（look 档不覆盖、read 档就是基准），**仓里不落第二枚 .95**，
+      每一枚 `color-mix()` 的百分比也全部压在 404 亮族那 62–70% 之下（最重 .42），"淡"是有数可查的；
+      §17 末那格"band-a 声明恰好两处、消费者只有那两层伪元素"这两条不变量本卡一枚没动（新层只消费 .75）。
+   ③ 线条不是模糊（零 `blur()` 半径 ⇒ §1.4 三枚名额一个没占）、零 `animation`、零滚动驱动
+      （⇒ reduced-motion 天然免疫，§8.7／§19.3）；`top`／`height`／`background-*` 不是 margin·padding·gap
+      ⇒ **gap-check 那 142 枚垂直槽位一枚没多**。
+   ④ 画幅照 `::before` 与 404 `::after` 的全出血（`left:50%+width:100vw+translateX(-50%)`）与整块开场
+      （`top:0;height:100%`），线只由渐变 stop 摆在**下半幅**（≈40%→100%），标题在上半幅不被蒙；
+      `z-index:-1` 同 §15 那句"气这一层必须留在 z-index:-1"；绝对定位 ⇒ 减透明档与打印档整层撤除
+      不改一行版面。**降级谱（§13b）里七层都落"窄屏：跟宿主盒走、零窄屏分支"那一行**——stop 全是百分比，
+      窄屏压的是 `--head-top`/`--band-h` 两枚 vh，线族自己一个新数都不起。
+   ⑤ 纯装饰、承认纯装饰（§13b 第二道闸）：每层的 stop 位置与深浅都不从任何真值派生、不表达数据、
+      不许将来挂读数。七家参数各判一次（指认纪律），逐格口径见规范 §13b 新加那一格。 */
+/* /essays 密而淡（目录＝平静）：五根、间距由密到疏地铺开、整体最淡，走暗一点还是走淡？走淡。 */
+.page-head.head-essays::after{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  left:50%; width:100vw; transform:translateX(-50%); top:0; height:100%;
+  opacity:calc(var(--band-a) * var(--fog));
+  background-image:
+    linear-gradient(180deg,transparent 38%,color-mix(in srgb,var(--mist) 30%,transparent) 43% 44%,transparent 49%),
+    linear-gradient(182deg,transparent 50%,color-mix(in srgb,var(--mist) 24%,transparent) 54% 55%,transparent 60%),
+    linear-gradient(178deg,transparent 62%,color-mix(in srgb,var(--mist) 19%,transparent) 66% 67%,transparent 72%),
+    linear-gradient(181deg,transparent 74%,color-mix(in srgb,var(--mist) 14%,transparent) 78% 79%,transparent 84%),
+    linear-gradient(179deg,transparent 86%,color-mix(in srgb,var(--mist) 10%,transparent) 90% 91%,transparent 96%);
+}
+/* /about 疏而长（关于＝舒展）：三根、间距最开、每根横贯全幅，最深的一枚也停在 .42（<404 的 .70）。 */
+.page-head.head-about::after{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  left:50%; width:100vw; transform:translateX(-50%); top:0; height:100%;
+  opacity:calc(var(--band-a) * var(--fog));
+  background-image:
+    linear-gradient(179deg,transparent 46%,color-mix(in srgb,var(--mist) 42%,transparent) 52% 54%,transparent 60%),
+    linear-gradient(182deg,transparent 64%,color-mix(in srgb,var(--mist) 30%,transparent) 72% 73%,transparent 80%),
+    linear-gradient(178deg,transparent 84%,color-mix(in srgb,var(--mist) 18%,transparent) 92% 93%,transparent 100%);
+}
+/* /things 短而断（物件＝散落）：四根，长度不齐（background-size 46/30/58/24%）、左右错位 ⇒ "断"。 */
+.page-head.head-things::after{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  left:50%; width:100vw; transform:translateX(-50%); top:0; height:100%;
+  opacity:calc(var(--band-a) * var(--fog));
+  background-repeat:no-repeat;
+  background-size:46% 100%,30% 100%,58% 100%,24% 100%;
+  background-position:0% 0%,100% 0%,22% 0%,100% 0%;
+  background-image:
+    linear-gradient(180deg,transparent 42%,color-mix(in srgb,var(--mist) 34%,transparent) 47% 48%,transparent 53%),
+    linear-gradient(182deg,transparent 56%,color-mix(in srgb,var(--mist) 26%,transparent) 61% 62%,transparent 67%),
+    linear-gradient(178deg,transparent 70%,color-mix(in srgb,var(--mist) 20%,transparent) 76% 77%,transparent 82%),
+    linear-gradient(181deg,transparent 85%,color-mix(in srgb,var(--mist) 14%,transparent) 90% 91%,transparent 96%);
+}
+/* /notes（指认：短观察＝句子短、线也短）：三根，都不横贯（background-size 72/58/66%）、左右交替 ⇒ 短。 */
+.page-head.head-notes::after{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  left:50%; width:100vw; transform:translateX(-50%); top:0; height:100%;
+  opacity:calc(var(--band-a) * var(--fog));
+  background-repeat:no-repeat;
+  background-size:72% 100%,58% 100%,66% 100%;
+  background-position:0% 0%,100% 0%,0% 0%;
+  background-image:
+    linear-gradient(180deg,transparent 44%,color-mix(in srgb,var(--mist) 30%,transparent) 50% 51%,transparent 57%),
+    linear-gradient(182deg,transparent 62%,color-mix(in srgb,var(--mist) 22%,transparent) 70% 71%,transparent 78%),
+    linear-gradient(178deg,transparent 82%,color-mix(in srgb,var(--mist) 14%,transparent) 90% 91%,transparent 98%);
+}
+/* /categories（指认：抽屉＝收纳，等距三格）：三根全幅、间距均匀、不斜 ⇒ "整齐一列抽屉"。 */
+.page-head.head-categories::after{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  left:50%; width:100vw; transform:translateX(-50%); top:0; height:100%;
+  opacity:calc(var(--band-a) * var(--fog));
+  background-image:
+    linear-gradient(180deg,transparent 50%,color-mix(in srgb,var(--mist) 36%,transparent) 58% 60%,transparent 68%),
+    linear-gradient(180deg,transparent 68%,color-mix(in srgb,var(--mist) 26%,transparent) 76% 77%,transparent 84%),
+    linear-gradient(180deg,transparent 84%,color-mix(in srgb,var(--mist) 16%,transparent) 92% 93%,transparent 99%);
+}
+/* /tags（指认：标签＝零星，短而错落）：四根、长度参差（38/55/28/48%）、左右乱点 ⇒ 比 things 更淡。 */
+.page-head.head-tags::after{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  left:50%; width:100vw; transform:translateX(-50%); top:0; height:100%;
+  opacity:calc(var(--band-a) * var(--fog));
+  background-repeat:no-repeat;
+  background-size:38% 100%,55% 100%,28% 100%,48% 100%;
+  background-position:100% 0%,0% 0%,60% 0%,0% 0%;
+  background-image:
+    linear-gradient(179deg,transparent 44%,color-mix(in srgb,var(--mist) 28%,transparent) 49% 50%,transparent 55%),
+    linear-gradient(181deg,transparent 58%,color-mix(in srgb,var(--mist) 20%,transparent) 64% 65%,transparent 71%),
+    linear-gradient(178deg,transparent 73%,color-mix(in srgb,var(--mist) 14%,transparent) 79% 80%,transparent 86%),
+    linear-gradient(182deg,transparent 87%,color-mix(in srgb,var(--mist) 9%,transparent) 92% 93%,transparent 98%);
+}
+/* /series（指认：系列＝时间序列，等距一根轴）：三根全幅、严格等距（48/70/92）⇒ 读成"一条走线"。 */
+.page-head.head-series::after{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  left:50%; width:100vw; transform:translateX(-50%); top:0; height:100%;
+  opacity:calc(var(--band-a) * var(--fog));
+  background-image:
+    linear-gradient(180deg,transparent 42%,color-mix(in srgb,var(--mist) 34%,transparent) 48% 49%,transparent 55%),
+    linear-gradient(180deg,transparent 64%,color-mix(in srgb,var(--mist) 24%,transparent) 70% 71%,transparent 77%),
+    linear-gradient(180deg,transparent 86%,color-mix(in srgb,var(--mist) 15%,transparent) 92% 93%,transparent 100%);
+}
 .page-title{
   font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
   /* 700（二轮 §3.1，规范 §3.4）：这一枚吃的是 `base.css:203` 那枚**区间描述符** `font-weight:200 900`，
@@ -480,13 +584,21 @@ a.row:visited{ color:var(--ink-visited); }
   flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:6px;
   font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.1em; color:var(--ink-2);
 }
+/* 每行字数尺（三轮 §1.2，规范 §15 那一格／§9 那格"同族两档"的裁决）。四条口径：
+   ① 条长由数据定（这一篇 ÷ 这批稿子里最长那篇），没有一毫米来自"1 min = 20px"那种常数——那正是
+      §12 那格否掉它时自己开的药方，与下面那把 12 月刻度尺同一口径；② 常显、不悬停（§8.3 的悬停预算
+      `.row:hover` 那四格已满，§1 的"形状钉死的铺底"只许那一档、不开第二档）；
+   ③ 宽 4px、`--moss` ＋ opacity .55 两枚值都是照 `.density .tick` 搬的——同族两档就用同一副嗓子；
+   ④ 高度由模板按 em 给（宿栏自己那枚 12px 字号的一档与三分之一档），所以这里不写 height，
+      gap-check 那 142 枚垂直槽位与 30 枚圆角一个都不动（`flex`／`width`／`background`／`opacity` 都不在它那两把尺上）。 */
+.row-tick{ flex:none; width:4px; background:var(--moss); opacity:.55; }
 
 /* 密度尺：最近 12 个月每月一根，构建期算好画成 HTML。空月也画刻度——一把尺子比三根柱子诚实。
    ⚠️ 尺身不能是 SVG 拉宽：viewBox 是**等比放大整张画**，宽度换 100% 会连字带轴一起放大、`height:auto` 按 5:1 把带高长到 224px＝一次垂直大改；320px 档旧版实测整张缩到 135.31px 宽（柱 4→1.8、空月 3→1.35、标签字盒 13→6px）。换算与结论在 §15 那一格。已有的数一枚没改：柱宽 4、柱高 6+(c/peak)*30、空月 3、带高 60、轴 y=46、标签 10px mono .06em、三档 opacity .55/.22/.95。 */
 .density-wrap{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin-top:22px; }   /* 尺身全宽 ⇒ 图例落到下一行：单值 gap 换行后自己兼作 row-gap ⇒ 零枚新垂直槽位（在册那两枚 gap:14px / margin-top:22px 的值·属性名·档位都没动） */
 .density{ position:relative; display:block; width:100%; height:60px; }   /* 带高仍旧 60、轴线仍旧 y=46，柱与标签的偏移都按这两枚数摆；首尾柱心各探出 2px 是刻意的——轴线必须与 .essay-index 同宽，左右各出一点走 translateX 不走负 margin（先例见 :329 那枚 .row::before 的 left/right）。⚠️ 探出的口径是"柱探出 2px、标签不探出（首尾两枚换成贴栏缘，`head`／`tail`，见下面那两条）"：柱的位置是数据、居中才落在真实刻度上，所以那 2px 是买轴线同宽付的、已签；标签是文字，跟着居中就会把左缘探出栏外、切断全站那条左对齐线，所以它不享有这 2px。 */
 .density::before{ content:""; position:absolute; left:0; right:0; top:46px; height:1px; background:var(--line); }   /* 原来那枚 <line class="axis" stroke-width:1>：1px、--line、横向铺满；crispEdges 不迁，HTML 这一枚本来就是整像素 */
-.density .tick{ position:absolute; bottom:14px; width:4px; transform:translateX(-50%); background:var(--moss); opacity:.55; }   /* 柱高 6+(c/peak)*30、空月 3 由模板按数据给：那是数据不是样式。原 SVG 那枚 rx="1" 没迁——圆角只住在 §4 那根 11 档梯子上（gap-check 在册 31 枚／12 种写法，一枚都不许多） */
+.density .tick{ position:absolute; bottom:14px; width:4px; transform:translateX(-50%); background:var(--moss); opacity:.55; }   /* 柱高 6+(c/peak)*30、空月 3 由模板按数据给：那是数据不是样式。原 SVG 那枚 rx="1" 没迁——圆角只住在 §4 那根 11 档梯子上（gap-check 在册 30 枚／12 种写法，一枚都不许多） */
 .density .tick.nil{ background:var(--ink-3); opacity:.22; }
 .density .tick.now{ background:var(--moss); opacity:.95; }   /* 当前月那一根：写没写过都是 moss——它说的是"你在这儿"，不是"这个月有货"（§12 不造假语义） */
 .density .d-lab .short{ display:none; }   /* 平时只露长形式：带年的那一格（窗口起点与年份边界）说 2025.10／2026.01，窄屏在下面那档换回短形式 */
@@ -498,7 +610,21 @@ a.row:visited{ color:var(--ink-visited); }
 .density .d-lab.tail{ transform:translateX(-100%); }   /* 右缘贴栏右缘（i=11 的 `left` 已经是 100%） */
 .density .d-lab.now{ color:var(--moss-ink); }
 @media (max-width:720px){ .density .d-lab .full{ display:none; } .density .d-lab .short{ display:inline; } }   /* 窄屏退回短标签：display:none 不占位 ⇒ 零新垂直槽位；区间那句仍旧由 .density-cap 说话 */
-.density-cap{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档 */
+.density-cap,.yring-cap{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档。⚠️ 名单并进群组而不是复制第二条声明（§17 复用类，先例 `.tax-empty a,.essay-browse a` 与 `.cover img,.thing .shot,.portrait img,.post-body img`）：页头那只尺架今天有两把尺，图例共用同一副嗓子 */
+
+/* 写作年轮横条（三轮 §1.1 横条版；母题指认＝§13b 母题②苔点，降级谱与打印在 §13b／§19.1，窄屏那一档在 §11）。
+   一片尺架里的第二把尺：过去一年每天一格、按月轻轻分段，写过稿的日子按当天字数上深浅。
+   ⚠️ 零枚新垂直槽位：段与段之间那 3px 走 `column-gap`（gap-check 只看 `margin`／`padding`／`gap`／`row-gap` 那一族，
+      横向与 `column-gap` 一概不看，同 §4 那格"8vw 在第二值位"的口径），格与格之间不留缝（365 枚缝比格还宽）。
+   ⚠️ 画幅 12px ＝ 这一页小字那一档（`.row-side`／`.d-lab` 都是 10–12px 族），不是新起的数；
+      每格宽度由 `flex` 分（模板按那个月几天给 grow），这里不写死一枚格宽、也不写 365。
+   ⚠️ 深浅由模板的 inline `color-mix(in srgb,var(--moss-ink) N%,transparent)` 给——N 是数据，
+      令牌是在册那枚，零新 hex／零新 rgba（palette-check 数的是源码里的字面量，这里一枚都没有）。
+   ⚠️ 空格的 .22 ＋ `--ink-3` 两枚值照 `.density .tick.nil` 搬：尺子不能缺齿，两把尺也就不打架。 */
+.yring{ display:flex; column-gap:3px; width:100%; height:12px; }
+.yr-month{ display:flex; min-width:0; }
+.yr-month>span{ flex:1 1 0; min-width:0; background:var(--ink-3); opacity:.22; }
+.yr-month>span.yr-lit{ opacity:1; }   /* 深浅那一档由模板的 inline color-mix 给（数据），这里只负责把它从空格的 .22 里捞回不透明 */
 
 /* ============ 404：把真实存在的地址一次性列全（零请求，也不留死锚点） ============ */
 .lost{ padding-bottom:22vh; }
@@ -813,6 +939,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   .folio{ width:20px; }
   .row h3{ font-size:19px; }
   .row .cover{ display:none; }   /* §11：窄屏放不下缩略图，编号和日期留住就够了 */
+  .yring{ display:none; }   /* §11 同一档的第二刀：365 格在 269px 的栏宽里每格 0.74px，画了是一片糊——按 §15 那格"读不出就只是点缀"的判据整块撤，不缩着画。撤的只有格阵本体，那句图例（窗口与写过几天）照旧上屏，读者不丢信息；先例是上面那行 `.cover` 与 §11 那行 `.dayring`。⚠️ 每格宽度跟宿主盒走、不写死，所以窄屏这一档只有一条 display:none、零枚新垂直槽位 */
   .year-block{ margin-bottom:64px; }
   .things-grid{ grid-template-columns:1fr; }
   /* §11：移动卡片改实色+软影，模糊是性能杀手 ⇒ 入场虚焦只在桌面上演
@@ -910,11 +1037,6 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    ⚠️ 名单这一轮补上 `.settings`：显示设置抽屉与搜索面板共用这一枚类（`base.css` 的
    `.settings.search-panel` 是它的定位变体），它是 `mistwood.css:173-174` 那条 blur(18px) 的宿主、
    全站第三块常驻透视玻璃——上一轮漏它没有理由，纯粹是当时只点了"看得见在模糊"的两处。
-   ⚠️ 2026-10-02（规范 §2.6）再补 `.hero-cta`：首页那枚主行动从深苔实心面退成玻璃胶囊之后，它是**第四块**
-   常驻透视玻璃。这一格从"漏"变成"必须认"：实心面那档本来就不在这份名单的职责范围内（它不透视），
-   换成 `--glass` 之后如果不同名补进来，要求减少透明度的用户拿到的还是一块压在照片上的透视面。
-   退成的实面是 `--surface`：`--ink` 压它两档都 ≥12，比它玻璃态那一枚字还稳（2026-10-02 在屏上按
-   `prefers-reduced-transparency` 模拟档实读过两档）。
    !important 不是偷懒：首页的 .nav 另有一条 backdrop-filter 在 home.css 里，现在靠 Astro 把
    Layout.css 排在页面 CSS 之后才赢下级联——那是运气不是设计。用户偏好覆盖作者样式本就该用
    !important（MDN 明确列为正当场景），这样无论样式表顺序怎么变都不会静默失效。
@@ -926,7 +1048,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    先例与公式都照 `mistwood.css:688-693`（≤720 把 .thing-bar 改实面时同一裁决、同样整体撤，
    实面条的影就是 `--shadow-contact,--shadow` 那对——作者为"实面 thing-bar"已签的那一份）。 */
 @media (prefers-reduced-transparency:reduce){
-  .nav,.thing-bar,.settings,.hero-cta{
+  .nav,.thing-bar,.settings{
     background:var(--surface) !important;
     -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
     box-shadow:var(--shadow-contact),var(--shadow) !important;

@@ -2,40 +2,25 @@
 import '../styles/notes.css';
 import Layout from '../layouts/Layout.astro';
 import SearchEntry from '../components/SearchEntry.astro';
-import { allNotes } from '../lib/personal.js';
-import { fmtDate, inlineMd } from '../lib/markdown.js';
+import { notes } from '../data/site.js';
+import { inlineMd } from '../lib/markdown.js';
 import { tone } from '../lib/stats.js';
 const pad = n => String(n).padStart(2, '0');
-/* 顺序只在这一个地方算：`src/lib/personal.js`（首页收尾那一条与关于页的 last walk 吃同一枚答案）。
-   一枚手记＝ `src/content/notes/` 里的一枚 .md：front matter 是日期/天气/节气，正文就是那一句话。
-   这一层的文件不进仓库（.gitignore），所以零枚是在册状态而不是坏了——下面那一档空态就是为它准备的。 */
-const notes = await allNotes();
 ---
 <Layout title="notes · mistwood" desc="观察日志：日期，加一两句话。" here="notes">
   <main class="wrap">
-    <header class="page-head reveal">
+    <header class="page-head reveal head-notes">
       <h1 class="page-title">碎碎念</h1>
       <div class="sec-label">notes — <b>{pad(notes.length)}</b> →<SearchEntry /></div>
     </header>
 
-    {notes.length ? (
-      <div class="notes-list">
-        {notes.map(n => (
-          <div class="note reveal">
-            {/* `weather` 是可空位（schema 的 blankSlot ⇒ 没填是空串）：空着连那枚分隔点都不出现，
-                不许留一行「2026.09.25 · 」那样的活壳（§14 那条"没填 ⇒ 不出现"） */}
-            <time>{fmtDate(n.data.date)}{n.data.weather ? ' · ' + n.data.weather : ''}</time>
-            {/* 正文走 inlineMd，与首页那一条同一份解析口径（两处两种渲染迟早分叉）；`tone()` 吃的是原句 */}
-            <p class={tone(n.body)} set:html={inlineMd(n.body.trim())}></p>
-          </div>
-        ))}
-      </div>
-    ) : (
-      /* 零枚那一档：整块列表不出现，只留一句实话——与 /things/、/categories/、/tags/、/series/ 同一族版面。 */
-      <p class="tax-empty">
-        还没有手记。这一页收的是短到不值得单独成篇的观察，写一条就长一条；
-        文章按时间在 <a href="/essays/">文章</a>，真做出了小东西登记在 <a href="/things/">小东西</a>。
-      </p>
-    )}
+    <div class="notes-list">
+      {notes.map(n => (
+        <div class="note reveal">
+          <time>{n.date} · {n.weather}</time>
+          <p class={tone(n.text)} set:html={inlineMd(n.text)}></p>
+        </div>
+      ))}
+    </div>
   </main>
 </Layout>
