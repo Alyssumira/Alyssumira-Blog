@@ -236,12 +236,17 @@ const browse = [
             ⚠️ 它必须排在 .density-cap **之后**：tools/pagination-check.mjs 第 ③ 那枚量具是拿
             `<span class="density" …>(…)<span class="density-cap">` 这一条正则抠尺身字节的，插在中间就是让那把
             已经签字的尺去读一枚新东西。环（提案那枚更"年轮"的版）留在升级位，本卡不画。 */}
+        {/* 零篇可见稿 ⇒ 这把横条连同它的图例整块不落（作者把三篇都标了 draft: true 之后，产物里印过
+            `NaN.NaN.NaN → NaN.NaN.NaN（0 天写过）`——那是 `Math.max()` 在空数组上的读数上了纸）。
+            口径照 §12 那句"空着就是不画"，不给空盒擦亮；同页那把 12 月刻度尺不受影响（它按 `.tick.nil` 画空档）。 */}
+        {posts.length > 0 && <>
         <span class="yring" aria-hidden="true">
           {ringMonths.map(g => <span class="yr-month" style={`flex:${g.days.length}`}>{g.days.map(c => c.w
             ? <span class="yr-lit" style={`background:color-mix(in srgb,var(--moss-ink) ${25 + Math.round(c.w / ringPeak * 75)}%,transparent)`}></span>
             : <span></span>)}</span>)}
         </span>
         <span class="yring-cap">写作年轮 · 每格一天 · {fmtDate(new Date(ringStartTs))} → {fmtDate(ringEnd)}（{ringWrote} 天写过）</span>
+        </>}
       </span>
     </header>
 
