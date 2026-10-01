@@ -4,8 +4,9 @@
 
    ── 它钉住的两件事 ──────────────────────────────────────────────────────────
    ① 稿件正文里那枚**站内图片地址**必须指到 `public/` 下盘上真存在的文件；
-   ② front matter 的 `cover` 非空就必须指到真文件。空着是已签字的状态（`src/content.config.ts:34` 是
-      `cover: z.string().default('')`；空 ⇒ 列表页不画那个缩略位，见 `docs/设计规范.md` §13（待替换占位）里 `cover` 那一格），
+   ② front matter 的 `cover` 非空就必须指到真文件。空着是已签字的状态（现值 `cover: blankSlot(z.string().default(''))`，
+      2026-10-01 起多那一层 `blankSlot` 是为了让编辑器写出来的空键不炸构建，默认值与语义没动；
+      空 ⇒ 列表页不画那个缩略位，见 `docs/设计规范.md` §13（待替换占位）里 `cover` 那一格），
       所以放行空格子不是靠 if 跳过装绿：非空那一半有牙，牙在 ① 那格当众验。
    为什么这两件非得有机器守：`public/` 是原样拷进 `dist/` 的，`<img src>` 破了 `astro build` 照样 exit 0、
    `npm run check` 照样绿——这正是 `docs/设计规范.md` §13 里 favicon 那一格点过名的那一族（静态资源也没有门禁）。
@@ -315,7 +316,11 @@ cell('④', '本卡吃的两份真值与页面同源（绊线：页面换渲染�
      里含着一枚斜杠紧跟星号，惰性匹配会把它到 `:38` 之间整段当注释抹掉，schema 那几行连带消失 ⇒ 假红
      （本卡实测踩过一次，登记在这儿）。换成行锚死的原始文本判据：注释掉的那一行不匹配，写在句中的也不匹配。 */
   const cfgRaw = readFileSync(join(ROOT, 'src/content.config.ts'), 'utf8').replace(/\r\n/g, '\n');
-  assert.ok(/^\s*cover:\s*z\.string\(\)\.default\(''\)/m.test(cfgRaw),
+  /* 2026-10-01 起 `cover` 外面多了一层 `blankSlot`（作者用 Obsidian 写稿，属性面板会把没填的键写成
+     空值 ⇒ YAML 交来 null ⇒ 裸 `default('')` 当场炸 `astro build`）。本卡依赖的从来不是那枚写法，而是
+     **语义**：默认值仍是空串、没填不许报错。所以行锚放宽到"可选地包在 blankSlot 里"，
+     而 `default('')` 与 `z.string()` 两枚照旧钉死——变成必填、或默认值换了，这一格仍然红。 */
+  assert.ok(/^\s*cover:\s*(?:blankSlot\()?z\.string\(\)\.default\(''\)/m.test(cfgRaw),
     '④ schema 的 cover 不再是可空、默认空串那一枚写法 —— ③ 那格放行空格子的前提变了：它要么变成必填（空格子就该红），要么换了默认值');
   return n + 1;
 });
