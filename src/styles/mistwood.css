@@ -425,7 +425,12 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 a.row:visited{ color:var(--ink-visited); }
 /* 摘要常驻自己的两行位置，只切透明度：悬停不许重排（§8.8 属性口径） */
 .row-ex{
-  margin-top:8px; font-size:15px; line-height:1.7; color:var(--ink-2); min-height:3.4em;
+  /* 摘要提半档（二轮 §3.3，规范 §3.4 ③）：`--ink-2` → `--moss-ink`（板内现成的"正文级强调与小字"档，
+     7.77／傍晚暖顶 7.25），与详情页 `.post-sub` 同一手。⚠️ 位置／`min-height:3.4em`／透明度显形
+     一条没动，所以 §15 那格登记的行盒读数（`.row-ex y=570.72 h=51.00`）不归本轮重测；
+     那格「`.row-ex` 与 `.row-side`（`--ink-2`）各自带 `color`、不吃继承」的**机制**照旧成立，只是括号里
+     `.row-ex` 那枚 token 换了——不吃继承这条没变，所以 `a.row:visited` 仍旧只深标题。 */
+  margin-top:8px; font-size:15px; line-height:1.7; color:var(--moss-ink); min-height:3.4em;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
   opacity:0; transition:opacity .35s cubic-bezier(.22,1,.36,1);
 }

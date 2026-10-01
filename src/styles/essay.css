@@ -82,7 +82,12 @@ html[data-focus="1"] .wrap::before{ display:none; }
   font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
   font-size:clamp(32px,6vw,42px); font-weight:600; line-height:1.4; letter-spacing:.02em;
 }
-.post-sub{ margin-top:18px; color:var(--ink-2); font-size:15px; }
+/* 摘要提半档（二轮 §3.3，规范 §3.4 ③）：从 `--ink-2`（压新亮底 5.04／傍晚暖顶 4.70）抬到
+   `--moss-ink`（7.77／7.25，`base.css:34` 那句在册"正文级强调与小字"就是它）。
+   ⚠️ 只抬摘要，不动元信息与脚注——往 `--ink-3` 降半档的三种落法逐条算过全破 §2.4 的次要档 4.5
+   （25% 混色 3.98／50% 混色 3.22／整档 2.16，傍晚那一格更低），账在 §3.4 ③ 那张表里。
+   ⚠️ 代价：这一层从此与脚注（`.footnotes ol`，仍旧 `--ink-2`）不同灰，深苔带一点色相。 */
+.post-sub{ margin-top:18px; color:var(--moss-ink); font-size:15px; }
 /* 写作时辰那一行：走 §3 的"说明 14"档，宋体——它是一句人话，不是元数据，
    所以不进 .post-meta 那行 IBM Plex Mono（那行是等宽数字与英文标签，塞中文会掉进字体回退、一行两套度量） */
 .post-when{ margin-top:14px; font-size:14px; color:var(--ink-2); letter-spacing:.02em; }
