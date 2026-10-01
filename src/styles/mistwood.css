@@ -1056,8 +1056,11 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   /* 开场那条雾带是半透明的"气"，这里没有"退回实面"的解法——实面就是一块白板。
      它是氛围不是信息，所以直接撤掉：绝对定位，撤了不改一行版面、不改一次换行。
      404 那层雾线（`.page-head::after`，只在 lost 档存在）走同一条裁决、同一句理由：它不表达任何数据，
-     撤掉它那一页少的是氛围、一条地址都不少（§13b）。 */
-  .page-head::before,.page-head::after{ display:none; }
+     撤掉它那一页少的是氛围、一条地址都不少（§13b）。
+     ⚠️ 三轮 §2.1 那七层子页页头雾线也是 `.page-head::after`（带 head-* 修饰类），被这一条裸选择器
+     一并撤除；文章页头的题花区（`.post-title::before`，三轮 §2.3）是同一族的横雾线、同一句"氛围不是信息"，
+     在这里点名一起撤（§13b 降级谱"减透明档：整层撤"那一列）。 */
+  .page-head::before,.page-head::after,.post-title::before{ display:none; }
   /* ⚠️ 首页雾带的 `blur(28px)`（`home.css:174`）**不在这一档的名单里**，这是裁决不是漏网：
      §1.4 签的是"背景雾化"，不是玻璃材质——它不透视身后内容、没有"实面"可退；
      它与 `prefers-reduced-transparency` 不同向，只有 `prefers-reduced-motion` 那档管它。 */

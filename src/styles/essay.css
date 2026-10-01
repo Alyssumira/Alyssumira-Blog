@@ -81,6 +81,38 @@ html[data-focus="1"] .wrap::before{ display:none; }
 .post-title{
   font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
   font-size:clamp(32px,6vw,42px); font-weight:600; line-height:1.4; letter-spacing:.02em;
+  /* 写死包含块：题花是绝对定位的伪元素，宿主的 position:relative 不能指望 .post-head 的 .reveal
+     transform 临时顶上（同族教训见 mistwood.css 里 `.row` 那格与 §9 为 .post-nav 记的那笔）。 */
+  position:relative;
+}
+/* ============ 文章页头题花区（三轮 §2.3；母题①"雾线"第三处宿主，规范 §13b／§9／§15） ============
+   标题上方一块窄幅题花：三根水平雾线横贯版心（.post-title 的盒宽＝.post-head 的 680），
+   读起来是"这篇的手写花押"。目前是"雾线 3 条"固定版——三篇稿子的 category 全空着，
+   按主分类换一族参数是将来有分类之后的事，本卡不为它造假数据（§12 假内容族）。
+   构造（§9「横线四种意思」对账，与页头那七层同一族同一判法）：
+   ① 它是**成组三根、两端 soft 渐隐、z-index:-1、贴在标题上方**的横族雾线：
+      不是 `--line` 那枚 1px 发丝分隔（成组、软边、非实线），不是 §9 那枚两端渐隐的**封口线**
+      （封口线收的是一块面的边，这里没有面、只压在标题上方的空档里），不是 §15 的 32px 苔绿章记号
+      （章记号是单条实线 32px，这里是三根 680 宽的渐隐带），不是左缘竖线引用块（方向相反）。
+      ⇒ 与页头那七层的区分靠"贴在标题正上方、成三根、跟着标题盒宽走"这一枚新的**位置**语义，
+      不新增一种"线长"语义；本卡全站横族用到的线长仍只有三档（全幅 / 中段渐隐 / 短错落），一枚没多。
+   ② 深浅不新起常数，也不碰 `--band-a`（那枚是三档共用的浓度排序，band-a 声明只许两处、消费者只许
+      那两层页头伪元素——见 §17 末与 §13b；本卡一枚没动）。走 `opacity:var(--fog)` 这枚在册画法
+      （先例 `home.css:215 .mist-band`），色走 `--ink-3` 的 `color-mix()` 百分比（14/11/8，
+      全部低于 404 亮族那 62–70%，"安静即规格"§15 落在数上）⇒ 零新 hex、零新 rgba、零第五色。
+   ③ 线条不是模糊（零 `blur()`）、零 `animation`、零滚动驱动；`bottom/width/height` 是绝对定位偏移
+      与百分比，不是 margin·padding·gap ⇒ gap-check 那 142 枚一枚没多（题花坐在 meta 与 title 之间
+      那 20px 既有空白里，不新起垂直槽位）。
+   ④ 减透明档与打印档整层撤除：它不在页头那串裸选择器里，故在 `mistwood.css` 减透明那格与
+      `base.css` 打印撤场那串里各补点名一行（§13b 降级谱"减透明/打印：整层撤"那一列）。 */
+.post-title::before{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  left:0; width:100%; bottom:100%; height:16px;
+  opacity:var(--fog);
+  background-image:
+    linear-gradient(180deg,transparent 2%,color-mix(in srgb,var(--ink-3) 14%,transparent) 20% 24%,transparent 40%),
+    linear-gradient(179deg,transparent 34%,color-mix(in srgb,var(--ink-3) 11%,transparent) 50% 54%,transparent 68%),
+    linear-gradient(181deg,transparent 66%,color-mix(in srgb,var(--ink-3) 8%,transparent) 80% 84%,transparent 98%);
 }
 /* 摘要提半档（二轮 §3.3，规范 §3.4 ③）：从 `--ink-2`（压新亮底 5.04／傍晚暖顶 4.70）抬到
    `--moss-ink`（7.77／7.25，`base.css:34` 那句在册"正文级强调与小字"就是它）。

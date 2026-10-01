@@ -658,6 +658,12 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
   html .site-foot,
   html .wrap::before, html .page-head::before, html .page-head::after{ display:none; }
 
+  /* 文章页头题花区（三轮 §2.3，`v5b/heads` 2026-10-01 新增）：它是成组渐隐的横族雾线（§13b），
+     与上面那层页头"气"同一判法——纸上是灰度斜坡、§19.4 早判过"灰度在纸上不可信"，撤除对象。
+     撤法＝整层 `display:none`，不重画、不改色（与 §19.1 那句"纸上不留一层面"同一口径）。
+     ⚠️ 它不在上面那串裸 `.page-head::after` 里（宿主是 `.post-title`），故单独点名一行。 */
+  html .post-title::before{ display:none; }
+
   /* 主行动那一枚实心面（二轮 §4.1，规范 §2.5）在纸上也整体撤掉：它落在首页 `.hero` 之内，
      而 `.hero` 那一屏在纸上只剩 `--photo-look` 撤掉之后的字——一枚印在纸上的深苔方块既点不动、
      又不带任何"这张纸出自哪儿"的信息（那是 print-foot 的职责），留着它就正好是 §19.2 禁的那类噪音。
