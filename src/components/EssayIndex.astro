@@ -248,8 +248,6 @@ const browse = [
     {byYear.map(g => (
       <section class="year-block reveal">
         <h2 class="year-mark">{g.y}</h2>
-        {/* 一轮 §B1＋§B2 的两处落点都在这一层：`data-density` 只写在 `<ol class="essay-index">` 上（理由在 `---` 上面那一格），
-            季度名只在整年 ≥12 篇时才存在；不足那一格 `chunksOf()` 交回一枚 `q:0` 的无名块 ⇒ 产物里连那个 `<div>` 都没有。 */}
         {chunksOf(g).map(c => (<>
           {c.q ? <div class="q-mark">q{c.q}</div> : null}
           <ol class="essay-index" data-density={density}>
