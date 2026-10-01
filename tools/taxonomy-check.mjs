@@ -245,7 +245,7 @@ cell('②', '读 posts 的页面都在吃 visiblePosts()，而 publishedPosts() 
 });
 
 /* ---------- ③ schema 那一侧同源 ---------- */
-cell('③', 'content.config.ts 的八枚键（taxonomy 四枚 + 系列两枚 + 不列入一枚 + 旧地址一枚：不许 coerce 的照旧、空值退回 undefined）', () => {
+cell('③', 'content.config.ts 的十枚键（taxonomy 四枚 + 系列两枚 + 不列入一枚 + 旧地址一枚 + 摘要与封面两枚：不许 coerce 的照旧、空值退回 undefined）', () => {
   const src = codeOnly(readSrc(join(ROOT, 'src', 'content.config.ts')));
   /* 注释先抹掉：content.config.ts 里那段警告文字**故意**抄着 `z.coerce.boolean()` 这个坏写法（讲它为什么禁），
      不抹的话判据会被自己的例子命中——同 §9 那条"注释里别抄坏值"的教训。 */
@@ -260,6 +260,12 @@ cell('③', 'content.config.ts 的八枚键（taxonomy 四枚 + 系列两枚 + �
     /* 旧地址那一枚（第十七轮 `card/aliases`）**必须与 tags 逐字符同形**（同一枚 blankSlot、同一个 `default([])`）：
        两处形状一分叉，"没填 ⇒ 一枚产物都不生成"这条就变成两处各说一遍——而这一族的"没填"恰恰是最常见的状态。 */
     aliases: /aliases:\s*blankSlot\(z\.array\(z\.string\(\)\)\.default\(\[\]\)\)/,
+    /* 摘要与封面这两枚（2026-10-01 补）**必须与 category 逐字符同形**。它们原本是裸 `z.string().default('')`，
+       而外部编辑器（Obsidian 的属性面板）会替作者把没填的键写成空值 ⇒ YAML 交来 null ⇒ `astro build` 当场
+       `[InvalidContentEntryDataError] cover: Expected type "string", received "object"`，
+       红在一枚作者看不懂的堆栈上（真撞上过一次）。这一格的牙从此是"别再留一枚裸 default 的键"。 */
+    excerpt: /excerpt:\s*blankSlot\(z\.string\(\)\.default\(''\)\)/,
+    cover: /cover:\s*blankSlot\(z\.string\(\)\.default\(''\)\)/,
   };
   let n = 0;
   for (const [k, re] of Object.entries(KEYS)){
@@ -273,8 +279,8 @@ cell('③', 'content.config.ts 的八枚键（taxonomy 四枚 + 系列两枚 + �
      "一篇作者照常发的稿子从列表／feed／搜索里消失，而构建全绿"——同一枚假语境，换了个键。 */
   const badCoerce = /(?:draft|pinned|unlisted)[^\n]*z\.coerce\.boolean\(\)/.exec(src);
   assert.ok(!badCoerce, `③ draft/pinned/unlisted 用了 z.coerce.boolean()（"${badCoerce && badCoerce[0]}"）—— 那会把 "false"、"no"、"0" 全铸成 true`);
-  const badString = /(?:category|tags|aliases)[^\n]*z\.coerce\./.exec(src);
-  assert.ok(!badString, `③ category/tags/aliases 里出现了 z.coerce.（"${badString && badString[0]}"）—— 空着的键会被铸成 0 或 "false"，那是假语境的近亲`);
+  const badString = /(?:category|tags|aliases|excerpt|cover)[^\n]*z\.coerce\./.exec(src);
+  assert.ok(!badString, `③ category/tags/aliases/excerpt/cover 里出现了 z.coerce.（"${badString && badString[0]}"）—— 空着的键会被铸成 0 或 "false"，那是假语境的近亲`);
   /* 空值那一层必须在：`default()` 只放行 undefined，YAML 里空着的键交来的是 null（同 hour 那枚先例的口径） */
   assert.ok(/const blankSlot = t => z\.preprocess\(\s*v => \(v === null \|\| v === ''\) \? undefined : v\s*,\s*t\)/.test(src),
     '③ blankSlot 那层 preprocess 没了或换了口径 —— `tags:`／`category:` 空着（null）会撞进 zod 的英文堆栈');

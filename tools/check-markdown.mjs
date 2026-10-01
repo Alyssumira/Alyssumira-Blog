@@ -11,6 +11,23 @@ assert.equal(root('https://example.com/a.jpg'), 'https://example.com/a.jpg');
 assert.equal(root('#sec-1'), '#sec-1');
 assert.equal(root('mailto:a@b.c'), 'mailto:a@b.c');
 
+/* ---- `/public/…` ⇄ `/…` 同义（2026-10-01 方案 C；规范 §15「路径一律钉到站点根」那一格）----
+   两侧都有格子：正向钉"该剥的剥了"，反向钉"不该剥的一枚都没动"。反向那四条不是凑数——
+   最省事的写法（贪剥／不要求斜杠后有东西／不分中间与开头）恰好会让它们红，
+   而红的每一枚名字都是作者真可能写进稿子里的地址。 */
+assert.equal(root('/public/assets/posts/x/a.jpg'), '/assets/posts/x/a.jpg', 'Obsidian 给的库根绝对路径落到站内同一处');
+assert.equal(root('public/assets/posts/x/a.jpg'), '/assets/posts/x/a.jpg', '缺前导斜杠也一样：先钉根，再剥前缀');
+assert.equal(root('../../public/assets/x.jpg'), '/assets/x.jpg', '相对层数吃掉之后仍剥得掉');
+assert.equal(root('/public/things.html'), '/things/', '旧站 .html 那一步排在剥前缀之后，照样换成目录式 URL');
+assert.equal(root('/public/public/a.jpg'), '/public/a.jpg', '只许剥第一枚：贪剥会把作者真要的那枚名字吃掉');
+assert.equal(root('/assets/public/a.jpg'), '/assets/public/a.jpg', '中间位置的 public 不是前缀，一枚都不许多剥');
+assert.equal(root('/public'), '/public', '光秃秃一枚不许剥——剥了就得到站点根');
+assert.equal(root('/public/'), '/public/', '斜杠后面没东西就不算前缀：剥它会静默长出一枚指向首页的活锚（§15 页脚那一格忌的形状）');
+assert.equal(root('https://cdn.example.com/public/a.jpg'), 'https://cdn.example.com/public/a.jpg', '远端地址一律不碰（协议短路住在剥前缀之前）');
+/* 这枚同义前缀不许变成"跳出 public/"的第二条路：剥完之后必须与今天那枚越界写法逐字同串，
+   于是 `tools/media-check.mjs` 与 `src/lib/image-dims.js` 那道 resolve-出界判据照旧罩得住（它们只看见一种形状） */
+assert.equal(root('/public/assets/../../outside.jpg'), root('/assets/../../outside.jpg'), '带前缀的越界写法＝不带前缀那一枚，没开新出口');
+
 const md = [
   '## 起雾的时候',
   '',
@@ -316,5 +333,29 @@ console.log(htmlT.replace(/></g, '>\n<'));
   assert.equal(renderArticle('## 同名\n\n正文一。\n\n## 同名\n'.replace(/\n/g, '\r\n')).html,
                renderArticle('## 同名\n\n正文一。\n\n## 同名\n').html, '带重名 id 的稿子 CRLF 与 LF 产物逐字节相同');
   console.log('\nmarkdown 5 OK  heading-id-shape + duplicate-suffix + empty-normalisation-fallback + per-doc-reset + toc-list-same-source');
+}
+
+/* ---------- markdown 6：`/public/` 那枚同义前缀必须一路走到产物属性，而不只活在 root() 里 ----------
+   上面那一组断言证的是函数，这一组证的是**三条消费路共用同一枚真值**：正文图、正文链接、
+   front matter 的 cover（模板调 `root(p.data.cover)`——`src/components/EssayIndex.astro:146`／
+   `src/components/PostRow.astro:28`，全仓没有第二份剥前缀的实现，所以这里用同一枚函数代表那一路）。 */
+{
+  const mdP = [
+    '正文里放一张：![林线](/public/assets/posts/x/line.jpg "晨雾")',
+    '',
+    '再放两条站内链接：[旧篇](/public/essays/slow-frontend/)，以及旧写法 [页面](/public/things.html)。',
+    '',
+    '不该动的两枚：![中间](/assets/public/keep.png) 与 ![只剥一枚](/public/public/twice.png)。',
+  ].join('\n');
+  const hp = renderMd(mdP);
+  assert.ok(/<img src="\/assets\/posts\/x\/line\.jpg"/.test(hp), '正文图：前缀剥掉之后才进 src');
+  assert.ok(/<a href="\/essays\/slow-frontend\/"/.test(hp), '正文链接走的是同一枚 root()，没有第二套拼法');
+  assert.ok(/<a href="\/things\/"/.test(hp), '`.html → 目录式 URL` 那一步排在剥前缀之后，照样成立');
+  assert.ok(/<img src="\/assets\/public\/keep\.png"/.test(hp), '中间位置的 public 原样进产物');
+  assert.ok(/<img src="\/public\/twice\.png"/.test(hp), '第二枚 public 留在原地：只许剥第一枚');
+  assert.ok(hp.indexOf('/public/assets') === -1, '剥完不该再留下任何 `/public/assets` 的影子');
+  assert.equal((hp.match(/<img /g) || []).length, 3, '三枚图一枚不多一枚不少（映射只改地址，不改形状数量）');
+  assert.equal(root('/public/assets/posts/x/cover.jpg'), '/assets/posts/x/cover.jpg', 'cover 与正文图同一枚落点');
+  console.log('\nmarkdown 6 OK  prefix-into-产物：figure+link+html-rule / middle-不动 / 贪剥被拒 / cover 同源');
 }
 

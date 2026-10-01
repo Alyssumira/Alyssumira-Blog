@@ -14,7 +14,10 @@ const HAS_SCHEME = /^[a-z][a-z0-9+.\-]*:/i;         /* 带协议头又不被允�
    旧站习惯写的 things.html 顺手换成 Astro 的目录式 URL */
 function root(u){
   if (HAS_SCHEME.test(u) || /^[#?]/.test(u)) return u;
-  const p = u.replace(/^(\.\/|\.\.\/)+/, '').replace(/^\/+/, '');
+  let p = u.replace(/^(\.\/|\.\.\/)+/, '').replace(/^\/+/, '');
+  /* Obsidian 的库根是仓库根，它给的绝对路径因此多一层 `public/`；这枚前缀不进任何站上 URL，
+     没有合法住户 ⇒ 只剥第一枚、且后面必须有东西（规范 §15「路径一律钉到站点根」那一格） */
+  p = p.replace(/^public\/(?=.)/, '');
   if (/^[^/?#]+\.html$/.test(p)) return '/' + p.slice(0, -5) + '/';
   return '/' + p;
 }

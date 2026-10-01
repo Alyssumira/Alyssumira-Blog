@@ -30,8 +30,14 @@ const posts = defineCollection({
   schema: z.object({
     title: z.string(),
     date: z.coerce.date(),
-    excerpt: z.string().default(''),
-    cover: z.string().default(''),
+    /* ⚠️ `excerpt`／`cover` 从第十轮起也走 `blankSlot`：Obsidian 的属性面板会替作者把没填的键
+       **写成空值**（`cover:` 后面什么都没有 ⇒ YAML 交来 null），而 `default()` 只放行 undefined。
+       2026-10-01 真撞上过一次：作者新建的稿子带一枚空 `cover:`，`astro build` 当场
+       `[InvalidContentEntryDataError] cover: Expected type "string", received "object"`，
+       红在一句他看不懂的堆栈上。口径与下面 taxonomy 那几枚一模一样——**没填必须渲染成不出现**，
+       摘要空着就是列表里没有那两行、封面空着就是不画那个缩略位，不许炸构建。 */
+    excerpt: blankSlot(z.string().default('')),
+    cover: blankSlot(z.string().default('')),
     hour: hourSlot,
     /* 分类/标签/草稿/置顶（第十轮 `card/taxonomy`）。名字到 URL 的归一化只有一份实现：
        `src/lib/taxonomy.js` 复用 `markdown.js` 导出的 `safe()`（保留 Unicode 字母数字，中文标签过得去；
