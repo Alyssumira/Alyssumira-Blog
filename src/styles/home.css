@@ -243,7 +243,10 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
 }
 .hero-title{
   font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
-  font-size:clamp(38px,6vw,68px); font-weight:600; line-height:1.32;
+  /* 700（二轮 §3.1，规范 §3.4）：区间描述符 `base.css:203` 让 700 落在真轴档上，零新增字体请求；
+     它管笔画，不管字号与行距——下面那两枚一个没动。`.hero-title em`（`:268`）仍旧 300，
+     那一枚斜体词的轻与标题的重是这一屏自己的一对反差，本轮没碰。 */
+  font-size:clamp(38px,6vw,68px); font-weight:700; line-height:1.32;
   letter-spacing:.02em; color:var(--ink);
   text-shadow:0 1px 28px var(--halo);
 }

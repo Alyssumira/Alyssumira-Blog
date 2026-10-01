@@ -219,12 +219,16 @@ html[data-focus="1"] .wrap::before{ display:none; }
 }
 .post-body h2::before{ content:""; display:block; width:32px; height:1px; background:var(--moss); margin-bottom:16px; }
 .post-body em{ letter-spacing:-.015em; color:var(--moss-ink); }
-/* 加粗：这一层唯一的中文粗体字重是 600（§3 那档，`.post-title` / h2 / h3 / `.post-nav a` 全用它），
-   不是 UA 默认的 700——这套 Noto Serif SC 只载到 600，700 要么落进合成假粗（引擎把 600 描粗一圈），
-   要么换一张完全不同的脸。字重是**这一层已有的那一枚**，不新开一档，所以 §3 的层级一个字没动。
+/* 加粗：550（二轮 §3.1，规范 §3.4 那一格逐档签字）。
+   ⚠️ **改前的现状与提案给的起点不一样**：这一枚在 `02835a8` 上是**已声明的 600**（`.post-title` / h2 / h3 /
+   `.post-nav a` 同档），不是提案那句"`<strong>` 从 700 降到 550"里的 700——UA 的 `bolder` 早就被这条声明覆掉了，
+   所以本轮实际发生的是一次 **600 → 550 的降半档**，方向不变：强调仍重于正文 400、轻于本层各档标题。
+   ⚠️ 旧注释那句"这套 Noto Serif SC 只载到 600，700 要么落进合成假粗（引擎把 600 描粗一圈），要么换一张完全不同的脸"
+   的前提已被 `card/cjk-subset` 作废：CJK 两族现在是站内子集＋**区间描述符**（`base.css:203` 的 `font-weight:200 900`），
+   550 与 700 都是真轴档（§3.3 末那格四档墨量 4/4 互异），零新增字体请求。
    ⚠️ 不给 `--moss-ink`：`em` 染色是因为它在这一层根本不带斜体面目（§3 那句"全站只允许 Hero 一个英文斜体词"），
    粗体自己就够显了；再上一色就成了同一页两套强调语言。 */
-.post-body strong{ font-weight:600; }
+.post-body strong{ font-weight:550; }
 .post-body code{
   font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:.85em;
   background:var(--glass); border:1px solid var(--glass-border);

@@ -321,7 +321,11 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
 }
 .page-title{
   font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
-  font-size:var(--title-size); font-weight:600; letter-spacing:.02em;
+  /* 700（二轮 §3.1，规范 §3.4）：这一枚吃的是 `base.css:203` 那枚**区间描述符** `font-weight:200 900`，
+     所以 700 是真轴档、不是合成假粗（§3.3 末那格的 300/400/550/700 墨量读数 4/4 互异）。
+     ⚠️ 只动字重：`--title-size`（`:301`）与从它派生的 `--title-box`（`:317`）一个字没改，
+     §15 那格"带子的中心钉在标题行盒上"的等式与"实测三档 drift 全 0px"那条读数**照旧成立**。 */
+  font-size:var(--title-size); font-weight:700; letter-spacing:.02em;
 }
 .sec-label{
   font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; letter-spacing:.14em;
