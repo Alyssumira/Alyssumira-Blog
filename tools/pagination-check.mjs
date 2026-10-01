@@ -460,7 +460,9 @@ cell('③', '判据读得到被测对象：dist 里有目录页、页里有行�
   assert.ok(REAL, '③ dist/ 不存在');
   const p1 = REAL.pages.find(p => p.page === 1);
   assert.ok(p1, '③ 第 1 页 /essays/ 读不到 ⇒ 整条判据在空转');
-  assert.ok(/<main class="wrap"><header class="page-head reveal">/.test(p1.html), '③ 第 1 页的 <main> 开口形状与在册序列不符（模板换了宿主 ⇒ 本卡所有正则要一起核对）');
+  /* 在册开口形状：页头那枚 `head-essays` 修饰类是 §2.1 子页雾线族的宿主锚（`v5b/heads`，规范 §13b 那一格），
+     写死整串类名而不是放宽成通配——模板换宿主时这一格必须当众红一次，逼人来核对全部正则。 */
+  assert.ok(/<main class="wrap"><header class="page-head reveal head-essays">/.test(p1.html), '③ 第 1 页的 <main> 开口形状与在册序列不符（在册＝`page-head reveal head-essays`；模板换了宿主 ⇒ 本卡所有正则要一起核对）');
   assert.ok(p1.rows.length > 0, `③ 第 1 页读出 0 行 ⇒ 收集器读不到 data-slug（今天整份名单有 ${roster.length} 篇，一枚都不该漏）`);
   assert.ok(p1.density !== null, '③ 第 1 页读不到密度尺那一块 ⇒ ④"各页同一把尺"那一格在空转');
   assert.ok(p1.cap && p1.cap.length > 0, '③ 第 1 页读不到图例那句 ⇒ "共 N 篇"那一格在空转');
