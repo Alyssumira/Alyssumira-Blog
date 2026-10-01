@@ -360,11 +360,19 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
    三条牙，缺一条这关就会长成"跑了但什么都管不到"：
    ① 零消费又不在例外表 ⇒ 红（防"加了令牌忘了它没人用"）；
    ② 例外表里躺着一枚**其实有消费者**的 ⇒ 也红（防例外表变成长期免检的黑名单，C4 落地之后这一格必须销账）；
-   ③ 例外表的枚数与 `EXC_REGISTERED` 那枚登记值对不上 ⇒ 红（"三处同源"在这一关的形态：规范句子 / 字面量 / 表）。 */
-const CONSUMED_EXCEPTIONS = {
-  '--moss-solid': '零载体，载体在 C4（二轮 §1.1 那三处用途＋§6.1 页脚整版＋§4.1 主按钮）；C4 若最终不落，这枚连 base.css 两行、BASE_SET 两枚、REGISTERED 与例外表这一行一起撤',
-};
-const EXC_REGISTERED = 1;
+   ③ 例外表的枚数与 `EXC_REGISTERED` 那枚登记值对不上 ⇒ 红（"三处同源"在这一关的形态：规范句子 / 字面量 / 表）。
+   ⚠️ **C4（`v4/surface`，2026-10-01）开始还这一格欠的账**：`--moss-solid` 今天被 `home.css` 的
+   `.hero-cta{background:var(--moss-solid)}` 吃到（二轮 §4.1 那枚主按钮，本卡第一档；第二枚载体在同卡的
+   第二档——二轮 §6.1 那块页脚地面，落点在 `mistwood.css`），零消费掉到 0 ⇒ 牙②当场要求销账，
+   于是例外表清空、登记值改 `0`。**这一张表现在是空的，但这一关不是空转**：三条牙照旧逐条跑，
+   而防空转的两枚闸还在——`uniq`（BASE_SET 那 20 枚）非空是结构性事实，任何一枚在册令牌一旦丢了消费者就
+   必须出现在 `zero` 里并被"① 零消费又不在例外表 ⇒ 红"点名。⚠️ 别把这张空表读成这一关作废了：
+   它管的是**下一枚**冒出来的零载体令牌（C1 那条"零载体不许长期在场"的出口），表空＝今天没有欠账，
+   不是没有牙。真要重新启用这张表（比如将来又落一枚无消费者的令牌），`EXC_REGISTERED` 那枚字面量与
+   规范 §2.4「C1 色板加深」第五段、§17 那一格、`docs/部署与复现.md` §4 的 ③ 那一行是**同一句话的四处**，
+   动一处必红另三处。 */
+const CONSUMED_EXCEPTIONS = {};
+const EXC_REGISTERED = 0;
 let useDrift = 0;
 {
   const uniq = [...new Set(Object.values(BASE_SET).flat())];

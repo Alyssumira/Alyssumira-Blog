@@ -348,6 +348,50 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
 @keyframes rise{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
 @keyframes fade-in{ to{ opacity:1; } }
 
+/* ============ Hero 那一枚主行动（二轮 §4.1，规范 §9「主/次按钮」那一格）============ */
+/* `--moss-solid` 的第一枚载体：全站唯一一块**实心可点面**（第三张脸——玻璃面、纸张面之外）。
+   四条口径钉死在这里：
+   ① **色零新增**：底吃在册 `--moss-solid`，字吃**当档的纸**——亮档 `--bg-base`（压 `#2E4331` 现算 9.07，
+     `palette-check` 亮色表那一行的压底列）、夜档 `--ink`（压 `#20261F` 现算 12.43）。
+     ⚠️ 夜档**不许照抄亮档那一枚 `--bg-base`**：夜里 `--bg-base` 是 `#0B100A`，压在同为夜档深苔的面上只有
+     1.24:1，那就是比底还深的一口字——§2.2 那句「暗色不是反色，是重新打光」管到这一格，两档各给各的字。
+   ② **形状零新增**：`border-radius` 这一格**一条都不写**。方角是判据不是省事——§4 那根 11 档圆角梯子与
+     `gap-check` 的圆角尺子（现值 30 枚／12 种写法，逐档枚数与登记一致才绿）都不许被本卡牵动：写 `8px`
+     会让 `8px` 那一档从 3 枚变 4 枚、写 `0` 会冒出新字面写法、写 `var(--radius…)` 站内根本没有那枚令牌。
+     方角切面站内有在册先例——梯子末档那个 `0`（抹平，`essay.css` 图版框里那枚），把一块面切成方这条路
+     本来就在梯子上。
+   ③ **间距零新增**：上下内衬与离标题那段距离全走 `em`（跟着它自己那行 13px 的行盒派生＝§4 的 B 档口径），
+     `gap-check` 文件头那句量具边界明写「百分比不认领」⇒ 142 枚一个不动；横向那枚 `1.5em` 它本来也不看。
+     同一招的先例就在 `mistwood.css:570`（原话「那 142 枚一枚不增」）。
+   ④ **字号字距零新增**：`IBM Plex Mono` 13px／`.12em` 与下面 `.hero-log`（`:395` 起，字体那行是 `:398`）逐字符同值——这一行的
+     身份是标签层那副嗓子，拉丁 `read` 做结构标签、中文做内容（§7 两层），形状同 `rss — 订阅`／`search — 搜全文`。
+     ⚠️ 它**不是** `.post-act` 那一族（`.post-act` 住在 `essay.css`，首页不加载那份表；且那一族的语义是"文字动作"，
+     这一枚是"面"），所以复用的是同一档**值**、不是同一个类。 */
+.hero-cta{
+  /* `.hero` 是 flex column、`align-items` 没写＝默认 stretch ⇒ 不钉这一枚，块级 `<a>` 会被拉成一整栏宽的板。
+     同一格 §9 为 `.post-nav` 与 `.row::before` 记过两次 flex 默认值偷偷改几何。 */
+  align-self:flex-start;
+  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; letter-spacing:.12em;
+  margin-top:2.6em; padding:.85em 1.5em;
+  color:var(--bg-base); background:var(--moss-solid);
+  /* 悬停只动 `transform` 一枚属性（§1 预算表那句「每个可点元素 1 个主反馈，悬停变化 ≤ 3 个属性」，位移/透明度/缩放那一族），
+     位移取已签的那个数：`mistwood.css:610` 图鉴卡悬停 `translateY(-4px)`＝§8.3「上浮 4px」，`.thing[href]`
+     那条过渡也是逐字符同一条。**没有铺底、没有第二档形状**：§1 那一格今天全站只许一枚「钉死形状的铺底」，
+     名额在目录行 `.row::before` 上，本卡不开第二档。 */
+  transition:transform .5s cubic-bezier(.22,1,.36,1);
+  /* 入场与日志同一拍：`.7s`／`.22,1,.36,1`／延迟 `.9s` 三枚逐字符抄自下面 `.hero-log`（`:395`，那行的
+     `animation` 写在 `:400`），关键帧复用 `rise`——**没有给 §8.2 那条时间轴添第四个数**。
+     ⚠️ 起手态 `opacity:0` 是这一格最脆的一处：减弱动态偏好下 `base.css:546` 那条 `animation:none` 会把
+     它永远钉在 0（看不见的主行动，与 §19.3 那一格「起手态是致命陷阱」同族），所以下面那一档 `prefers-reduced-motion`
+     的名单里必须点名它，那一行是本行的承重墙，不是配套装饰。 */
+  opacity:0; animation:rise .7s cubic-bezier(.22,1,.36,1) .9s forwards;
+}
+html[data-theme="dark"] .hero-cta{ color:var(--ink); }
+.hero-cta:hover{ transform:translateY(-4px); }
+/* 按下那一下：`scale(.98)` ＋回弹档是 §8.3 已签的形状（§8.1 那档回弹缓动的唯一合法用途就是"按下"），
+   写法逐字符照 `.thing[href]:active`（`mistwood.css:612`）＝悬停位移留着、再叠那枚 .98。 */
+.hero-cta:active{ transform:translateY(-4px) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
+
 .hero-log{
   /* margin-top:auto 把它推到 flex 柱的底端，8vh 是它与视口底的呼吸 */
   margin-top:auto; margin-bottom:8vh;
@@ -449,5 +493,9 @@ html[data-revisit] .hero-watch{ animation-delay:.9s; }
 @media (prefers-reduced-motion:reduce){
   /* 词盒的静止态本身就是 translateY(112%)，animation:none 不落到终态会让标题整块消失在 mask 里 */
   .hero-title .w > span{ transform:none; }
-  .hero-title em,.hero-name,.hero-log,.hero-watch,.nav,.bg-photo{ opacity:1 !important; }
+  /* ⚠️ `.hero-cta` 在这一串名单里**不是可选项**：它的起手态是 `opacity:0`（`:387`），而这一档的
+     `animation:none` 会把 `rise` 掐死在半路——名单少它一枚，主行动就在减弱偏好下**整枚消失**
+     （§1 预算表末行那句「不算降级」的同族，只是这一格反过来：不落到终态就是没有）。
+     它是全站第四枚进这份名单的 hero 元素（前面是 em／name／log／watch）。 */
+  .hero-title em,.hero-name,.hero-log,.hero-watch,.hero-cta,.nav,.bg-photo{ opacity:1 !important; }
 }

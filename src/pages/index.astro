@@ -24,6 +24,21 @@ const counts = { essays: posts.length, things: things.length, notes: notes.lengt
 /* 首页下半段只是"最近三篇"，不是第二个 /essays/：超过三条就把尾巴剪掉，宁缺不挤 */
 const recent = posts.slice(0, 3);
 const walk = notes[0];
+/* 「读最近一篇」那一枚主行动（二轮 §4.1，规范 §9）指的就是**目录的第一行**：上面那枚 `posts` 是
+   `visiblePosts()` 排好的（置顶在最前、其余按日期倒序），`recent[0]` 与首页下面那三篇的第一篇、
+   `/essays/` 第 1 页的第一行是同一枚值——同一把尺子（§15 分页容量 3）。
+   ⚠️ 站内不许出现第二枚"最新一篇"的算法：另起一处 `sort((a,b)=>b.date-a.date)` 就是给哪一篇算最新
+      立第二处真值（§16 派生字段铁律：值 = f(同一张表里的参数)，只许一个出处）。
+   ⚠️ 今天三篇稿子的 `pinned` 全空（`src/content/posts/*.md` 逐篇 front matter 实测没有这一枚键）⇒
+      此刻 `recent[0]` **也就是**日期最晚那篇；作者哪天置顶一枚，这一枚入口跟着走到置顶那篇，
+      措辞的账登记在规范那一格，不由这行注释替它改口。
+   ⚠️ 零 JS、构建期定死：href 在烘出来的 HTML 里就是一个地址，脚本一段都没有（`hero.js` / `site.js`
+      一个字没动）。`posts` 为空（草稿全被滤光那天）时 `{newest && …}` 短路 ⇒ **整枚按钮一个字节都不落**，
+      不许留一枚指 `/essays/undefined/` 的死锚点（§12 死锚点那一族）。
+   ⚠️ 这一段说明走 frontmatter 注释、不走模板里的 HTML 注释：Astro 把后者原样落进每一页产物，而
+      `tools/font-subset.mjs` 的码点并集读的正是**产物里的每一个字符**（`distUnion()`，`--check` 在
+      `gate` 里排在 build 之后）——写进模板注释的新汉字会在门禁那一步报成"域外字"，代价是重切两枚子集。 */
+const newest = recent[0];
 ---
 <Layout title="mistwood · 晨雾森林" here="home">
   <div class="scene" aria-hidden="true">
@@ -53,6 +68,10 @@ const walk = notes[0];
       <span class="line"><span class="w" style="--i:0"><span>在森林</span></span><span class="w" style="--i:1"><span>与代码</span></span><span class="w" style="--i:2"><span>之间，</span></span></span>
       <span class="line"><span class="w" style="--i:3"><span>收集</span></span><span class="w" style="--i:4"><span>微风、</span></span><span class="w" style="--i:5"><span><em>light</em></span></span><span class="w" style="--i:6"><span>和</span></span><span class="w" style="--i:7"><span>好文章。</span></span></span>
     </h1>
+    {/* 全站唯一一枚实心面（二轮 §4.1）：深苔底 + 反白字，指向目录第一行那一篇文章。
+        材质、悬停那一族、配额与打印的账都在规范 §9 那一格与 `home.css` 的注释里；
+        这一行不落 HTML 注释（上面 frontmatter 那段说清了为什么）。 */}
+    {newest && <a class="hero-cta" href={`/essays/${newest.id}/`}>read — 读最近一篇</a>}
     <!-- 观察日志：数字 = 构建期真实条数。⚠️ 搜索入口挂在**这一行末尾**（裁决与账在 §11 的"导航"那一整格：
          胶囊里不加第三枚按钮 ⇒ 首页这一行就是它在这一屏的宿主）。这一行没有 `.page-head`，但它与子页
          扉页那一行是同一族（13px 等宽 + 宽字距 + 构建期真数），所以"同族的位置"落在这里；
