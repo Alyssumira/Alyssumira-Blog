@@ -296,7 +296,7 @@ const BASE_SET = {
 /* ⚠️ 这枚登记值是 §17 那"三处同源"的第三处：规范句子（§2 那批基础令牌）/ 上面那份清单 /
    `src/styles/base.css` 的实际声明。三处一起动，动一处就红——所以清单不是注释，是判据。
    46 = hex 26 + rgba 20（第十一轮 `card/visited-ink` 从 42 抬到 44：`:root` 与 dark 各多一枚
-   `--ink-visited`，共 +2；rgba 那一族一枚没动。C1（`v1/palette`，2026-10-02）再从 44 抬到 46＝
+   `--ink-visited`，共 +2；rgba 那一族一枚没动。C1（`v1/palette`，2026-10-01）再从 44 抬到 46＝
    `--moss-solid` 在 `:root` 与 dark 各一枚，两枚都是 hex；夜林那五处只是把三元组字面量
    `(14,19,13)` 换成 `(11,16,10)`，枚数不变，所以 rgba 那一半仍旧 20）。
    下面两条牙：① 清单里的必须在 base.css 里（旧那条，防"删光就绿"）；
@@ -345,6 +345,57 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
   console.log('\n=== 一处真值（base.css ← mistwood.css / home.css / essay.css）===');
   console.log(`  ${drift ? '✗ 这一关没过' : '✓'} base.css 集中了 ${baseHex} 枚 hex + ${baseRgba} 枚含 rgba() 的色板令牌（面/影/纱）；` +
     `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 ${dupKeys} 处、基础板 ${needTotal - missingKeys}/${needTotal} 枚在位（登记值 ${REGISTERED}＝清单里 hex ${regHex} 枚 + rgba ${regRgba} 枚，这两串是现算不是抄的）、未登记的反向多枚 ${orphans} 处`);
+}
+
+/* ---------- ①c 消费对账：一枚"声明而不消费"的令牌就是参照站那个病 ----------
+   来历：C1（`v1/palette`）落 `--moss-solid` 这一档**故意不落载体**（页脚、主按钮、导航当前页胶囊那三处
+   用途全在 C4），于是盘上出现一枚"两档都声明了、四份表里一个 `var()` 都没吃它"的令牌。这恰好是我们
+   对照参照站时批评过的那个形状（机制写了、没接进真链路 ⇒ 站里留着一枚没人用的数）。
+   卡面给两条路：(A) 加这一关并把零载体的点名进在册例外表、例外条目写明它是哪张卡的活；(B) 不加尺子、
+   只在规范里写死"零载体，载体在 C4，C4 若不改这枚必须撤"。**选 A**，实测理由：先把在册 20 枚唯一令牌
+   逐枚数了消费者（抹注释后找 `var(--令牌` 后面紧跟 `,` 或 `)` 的出现次数——只认 `var(` 打头会漏掉
+   `var(--x, 兜底)` 那种带 fallback 的写法，也会把 `var(--xy)` 读成 `var(--x)`，所以两枚分隔符都要认），
+   **每一枚都至少有一处消费者**，最薄的是 `--straw`（home.css 1 处）与 `--ink-visited`（mistwood.css 1 处），
+   所以这一关不会误伤任何在册令牌，唯一落进例外表的就是 C1 自己那一枚。
+   三条牙，缺一条这关就会长成"跑了但什么都管不到"：
+   ① 零消费又不在例外表 ⇒ 红（防"加了令牌忘了它没人用"）；
+   ② 例外表里躺着一枚**其实有消费者**的 ⇒ 也红（防例外表变成长期免检的黑名单，C4 落地之后这一格必须销账）；
+   ③ 例外表的枚数与 `EXC_REGISTERED` 那枚登记值对不上 ⇒ 红（"三处同源"在这一关的形态：规范句子 / 字面量 / 表）。 */
+const CONSUMED_EXCEPTIONS = {
+  '--moss-solid': '零载体，载体在 C4（二轮 §1.1 那三处用途＋§6.1 页脚整版＋§4.1 主按钮）；C4 若最终不落，这枚连 base.css 两行、BASE_SET 两枚、REGISTERED 与例外表这一行一起撤',
+};
+const EXC_REGISTERED = 1;
+let useDrift = 0;
+{
+  const uniq = [...new Set(Object.values(BASE_SET).flat())];
+  const bodies = ALL_SHEETS.filter(f => existsSync(f))
+    .map(f => ({ file: f.split(/[\\/]/).pop(), src: readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')) }));
+  const consumers = name => bodies.map(b => {
+    let n = 0, i = 0; const key = 'var(' + name;
+    while ((i = b.src.indexOf(key, i)) >= 0){ const c = b.src[i + key.length]; if (c === ')' || c === ',') n++; i += key.length; }
+    return n ? `${b.file} ${n}` : null;
+  }).filter(Boolean);
+  const zero = [], rows = [];
+  for (const name of uniq){
+    const hits = consumers(name);
+    if (!hits.length) zero.push(name);
+    rows.push(`    ${name.padEnd(17)}${hits.length ? '消费 ' + hits.join(' / ') : '零消费 ⇒ 例外表：' + (CONSUMED_EXCEPTIONS[name] || '✗ 没登记')}`);
+  }
+  for (const name of zero) if (!(name in CONSUMED_EXCEPTIONS)){
+    useDrift++;
+    console.log(`  ✗ ${name} 在 ${bodies.length} 份样式表里被声明进基础板、却没有一处 var() 消费它，也不在例外表里 —— "声明而不消费"没人管（参照站那个形状）`);
+  }
+  for (const name of Object.keys(CONSUMED_EXCEPTIONS)) if (!zero.includes(name)){
+    useDrift++;
+    console.log(`  ✗ 例外表里还挂着 ${name}，但它今天已经有消费者了 —— 例外要销账，不然这张表会变成长期免检的黑名单`);
+  }
+  if (Object.keys(CONSUMED_EXCEPTIONS).length !== EXC_REGISTERED){
+    useDrift++;
+    console.log(`  ✗ 例外表实际 ${Object.keys(CONSUMED_EXCEPTIONS).length} 枚、登记值 ${EXC_REGISTERED} 枚 —— 这关的"三处同源"断了（规范句子 / 这一枚字面量 / 表）`);
+  }
+  console.log('\n=== 消费对账（每枚在册基础令牌必须被 var() 吃到 ≥1 次）===');
+  console.log(`  ${useDrift ? '✗ 这一关没过' : '✓'} ${bodies.length} 份表（${bodies.map(b => b.file).join(' / ')}）里，BASE_SET 的 ${uniq.length} 枚唯一令牌有消费者 ${uniq.length - zero.length} 枚、零消费 ${zero.length} 枚（在册例外 ${Object.keys(CONSUMED_EXCEPTIONS).length} 枚，登记值 ${EXC_REGISTERED}）`);
+  if (process.env.PALETTE_CONSUMER_ROWS) console.log(rows.join('\n'));
 }
 
 /* ---------- ①b 成对声明（`light-dark()` 一处写两档）与它的退路镜像 ----------
@@ -542,5 +593,5 @@ console.log(`  两层光（方向光 + 正文脚下地面光）复算 ${groundCh
   `${groundChecked < litChecked ? `少于方向光的 ${litChecked} 档＝有档位被第二层漏掉了` : '与方向光同档数＝两盏灯跑的是同一批档'}）`);
 if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相、方向光与两层光的合成都没有把任何一档推下它的地板');
 
-if (bad || bad2 || drift || ldDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账`); process.exit(1); }
+if (bad || bad2 || drift || ldDrift || useDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');
