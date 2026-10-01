@@ -328,5 +328,11 @@ function fmtDate(d){
    ② **缺协议头**（`example.com/x`）时 `root()` 把它当站内相对路径钉到站点根（⇒ `/example.com/x`），
    长出一枚看着像真链接、点开 404 的活锚，比 `#` 更隐蔽。front matter 这两枚键要的是"**要么能用、要么没有**"，
    所以在这里多导出第二枚函数，而不是让页面或 `tools/` 各写一份协议判据。正文那条路（`link()` / `href()`）
-   一个字没动——改的只有导出表这一行与它上面这段说明。 */
-export { renderMd, renderArticle, inlineMd, fmtDate, root, safe, splitBlocks, href, strictHref };
+   一个字没动——改的只有导出表这一行与它上面这段说明。
+   ⚠️ `attr()`（:10）自 `v7a/reading`（窄屏"在读哪一章"那一枚替身）起也对外导出：详情页 `#progress-marks`
+   那一排 `<span>` 现在各带一枚 `data-label`，值是**章名**，而章名只有 `heads[].text` 这一份出处——它已经过
+   `esc()`，直接进 Astro 的属性表达式会被**再转义一遍**（`&amp;` 长成 `&amp;amp;`，屏上出现字面 `&amp;`，
+   `[slug].astro` 目录那一格为同一枚坑写着 `set:html`）。属性要的是"只补引号、不重 Esc"，那句判据本来就住在这
+   一枚函数里（`:9` 那句注释就是它的原文），所以这里导出它，而不是在模板里抄一遍 `.replace(/"/g,'&quot;')`
+   ——抄的那份改了没人知道（§13a）。渲染逻辑仍一个字没改。 */
+export { renderMd, renderArticle, inlineMd, fmtDate, root, safe, splitBlocks, href, strictHref, attr };
