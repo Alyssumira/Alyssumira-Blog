@@ -2,7 +2,7 @@
 
 一个人的静态博客。Astro 7 构建期渲染，产物是纯静态文件，没有服务端、没有数据库、没有访问统计——关于页上那句"拿不到访客数"是实话，不是谦虚。
 
-线上地址：**https://mistwood-blog.pages.dev**
+线上地址：**https://alyssumira.living-the.life**（同一份产物另有一枚镜像 `https://alyssumira.pages.dev`，它是上面那条域名的 CNAME 目标，不是"旧地址"）
 
 - 视觉与写作的规矩：[`docs/设计规范.md`](docs/设计规范.md)（这份是权威，改效果先改它）
 - 部署与复现：[`docs/部署与复现.md`](docs/部署与复现.md)
