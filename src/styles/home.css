@@ -247,7 +247,12 @@ html[data-phase="dawn"] .mist-band{ opacity:var(--fog); }   /* 清晨雾最浓�
      它管笔画，不管字号与行距——下面那两枚一个没动。`.hero-title em`（`:268`）仍旧 300，
      那一枚斜体词的轻与标题的重是这一屏自己的一对反差，本轮没碰。 */
   font-size:clamp(38px,6vw,68px); font-weight:700; line-height:1.32;
-  letter-spacing:.02em; color:var(--ink);
+  /* 字距收到 -0.01em（二轮 §3.2 那枚不动几何的便宜备选，规范 §3.4 ②）：字号与行距一枚没动，
+     所以 `.page-head` 的 `--title-box` 等式（`mistwood.css:317`）与它那句 0px 读数不归本轮。
+     ⚠️ §3 那句"中文标题字距统一 +2%"从这一枚起分叉——子页页头／详情页标题／目录行仍旧 .02em。
+     ⚠️ 这是**占行宽**的一枚：两行标题各少约 .27em / .30em（字符数与算式在 §3.4 ②），
+     折行与 `.w` 词级 mask 盒的屏上读数本轮没量，欠着。 */
+  letter-spacing:-.01em; color:var(--ink);
   text-shadow:0 1px 28px var(--halo);
 }
 .hero-name{
