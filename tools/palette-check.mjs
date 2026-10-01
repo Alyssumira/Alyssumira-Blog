@@ -282,11 +282,11 @@ function toOkLchSafe(hex){ try { return toOklch(hex) } catch (e) { return { L: 0
               ② §2 那批基础令牌必须确实在 base.css 里各声明一次 ⇒ 缺一枚就红，
                  否则"把色板全删掉"反而能让这一关变绿（越少越绿＝另一个形状的空转）。 */
 const BASE_SET = {
-  ':root': ['--bg-base', '--bg-top', '--ink', '--ink-visited', '--ink-2', '--ink-3', '--moss', '--moss-deep', '--moss-ink',
+  ':root': ['--bg-base', '--bg-top', '--ink', '--ink-visited', '--ink-2', '--ink-3', '--moss', '--moss-deep', '--moss-ink', '--moss-solid',
             '--straw', '--moon', '--line', '--glass', '--glass-border', '--mist', '--halo',
             '--shadow', '--shadow-contact', '--glass-edge'],
   'html[data-theme="dark"]': ['--bg-base', '--bg-top', '--ink', '--ink-visited', '--ink-2', '--ink-3', '--moss', '--moss-deep',
-            '--moss-ink', '--line', '--glass', '--glass-border', '--mist', '--halo',
+            '--moss-ink', '--moss-solid', '--line', '--glass', '--glass-border', '--mist', '--halo',
             '--shadow', '--shadow-contact', '--glass-edge'],
   'html[data-phase="dawn"][data-theme="light"]': ['--bg-top', '--shadow'],
   'html[data-phase="dusk"][data-theme="light"]': ['--bg-top', '--shadow'],
@@ -295,11 +295,13 @@ const BASE_SET = {
 };
 /* ⚠️ 这枚登记值是 §17 那"三处同源"的第三处：规范句子（§2 那批基础令牌）/ 上面那份清单 /
    `src/styles/base.css` 的实际声明。三处一起动，动一处就红——所以清单不是注释，是判据。
-   44 = hex 24 + 值里含 rgba() 20（第十轮 `card/visited-ink` 从 42 抬上来：`:root` 与 dark 各多一枚
-   `--ink-visited`，共 +2；rgba 那一族一枚没动）。
+   46 = hex 26 + rgba 20（第十一轮 `card/visited-ink` 从 42 抬到 44：`:root` 与 dark 各多一枚
+   `--ink-visited`，共 +2；rgba 那一族一枚没动。C1（`v1/palette`，2026-10-02）再从 44 抬到 46＝
+   `--moss-solid` 在 `:root` 与 dark 各一枚，两枚都是 hex；夜林那五处只是把三元组字面量
+   `(14,19,13)` 换成 `(11,16,10)`，枚数不变，所以 rgba 那一半仍旧 20）。
    下面两条牙：① 清单里的必须在 base.css 里（旧那条，防"删光就绿"）；
    ② base.css 里的必须都在清单里（第九轮新加，防"加完令牌忘了登记"——旧判据对多出来的一枚是瞎的）。 */
-const REGISTERED = 44;
+const REGISTERED = 46;
 let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingKeys = 0, needTotal = 0, orphans = 0;
 {
   const table = new Map();
@@ -326,10 +328,13 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
   const inBase = new Map();
   for (const [id, hits] of table) for (const h of hits) if (h.file === 'base.css' && !h.mirror) inBase.set(id, h);
   const listed = new Set();
+  let regHex = 0, regRgba = 0;      /* 登记值里 hex 与 rgba 各占几枚——**从盘上的 kind 现算**，不抄字面量 */
   for (const [sel, list] of Object.entries(BASE_SET)) for (const k of list){
     needTotal++;
     const id = `${sel} ${k}`;
     listed.add(id);
+    const hit = inBase.get(id);
+    if (hit) hit.kind === 'hex' ? regHex++ : regRgba++;
     if (!inBase.has(id)){ missingKeys++; console.log(`  ✗ base.css 里没有 ${sel} 的 ${k} —— 基础色板缺了一枚（判据不许靠"删掉就绿"过关）`); drift++; }
   }
   /* 反向那条（第九轮）：base.css 里冒出一枚清单没登记的色板令牌也算红。
@@ -339,7 +344,7 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
   if (needTotal !== REGISTERED){ console.log(`  ✗ 清单实际 ${needTotal} 枚、规范登记值 ${REGISTERED} 枚 —— §17 那句计数与这份判据对不上了（三处同源）`); drift++; }
   console.log('\n=== 一处真值（base.css ← mistwood.css / home.css / essay.css）===');
   console.log(`  ${drift ? '✗ 这一关没过' : '✓'} base.css 集中了 ${baseHex} 枚 hex + ${baseRgba} 枚含 rgba() 的色板令牌（面/影/纱）；` +
-    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 ${dupKeys} 处、基础板 ${needTotal - missingKeys}/${needTotal} 枚在位（登记值 ${REGISTERED}＝hex 24 + rgba 20）、未登记的反向多枚 ${orphans} 处`);
+    `扫了 ${per.length} 份表共 ${table.size} 个 (选择器,令牌) 键，跨文件重复 ${dupKeys} 处、基础板 ${needTotal - missingKeys}/${needTotal} 枚在位（登记值 ${REGISTERED}＝清单里 hex ${regHex} 枚 + rgba ${regRgba} 枚，这两串是现算不是抄的）、未登记的反向多枚 ${orphans} 处`);
 }
 
 /* ---------- ①b 成对声明（`light-dark()` 一处写两档）与它的退路镜像 ----------
