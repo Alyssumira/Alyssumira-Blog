@@ -74,8 +74,8 @@ const newest = recent[0];
       <span class="line"><span class="w" style="--i:0"><span>在森林</span></span><span class="w" style="--i:1"><span>与网络</span></span><span class="w" style="--i:2"><span>之间，</span></span></span>
       <span class="line"><span class="w" style="--i:3"><span>收集</span></span><span class="w" style="--i:4"><span>微风、</span></span><span class="w" style="--i:5"><span><em>light</em></span></span><span class="w" style="--i:6"><span>和</span></span><span class="w" style="--i:7"><span>文字。</span></span></span>
     </h1>
-    {/* 全站唯一一枚实心面（二轮 §4.1）：深苔底 + 反白字，指向目录第一行那一篇文章。
-        材质、悬停那一族、配额与打印的账都在规范 §9 那一格与 `home.css` 的注释里；
+    {/* 首屏唯一的那枚可点面（二轮 §4.1 立项、规范 §2.6 于 2026-10-02 退成玻璃胶囊）：导航那副材质 + 墨字，
+        指向目录第一行那一篇文章。材质、读数、悬停那一族、配额与打印的账都在 §2.6 与 `home.css` 的注释里；
         这一行不落 HTML 注释（上面 frontmatter 那段说清了为什么）。 */}
     {newest && <a class="hero-cta" href={`/essays/${newest.id}/`}>read — 读最近一篇</a>}
     <!-- 观察日志：数字 = 构建期真实条数。⚠️ 搜索入口挂在**这一行末尾**（裁决与账在 §11 的"导航"那一整格：
