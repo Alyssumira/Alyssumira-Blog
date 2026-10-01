@@ -153,7 +153,7 @@ if (fonts.some(f => !f.self)) throw new Error(`fonts 清单里这些族没有 se
 {"prerender":[{"where":{"href_matches":["/*"]},"eagerness":"conservative"}]}
 </script>
 <script is:inline>
-(function(){try{var t=localStorage.getItem('mistwood-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m&&t==='dark')m.setAttribute('content','#0E130D');}catch(e){}})();
+(function(){try{var t=localStorage.getItem('mistwood-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m&&t==='dark')m.setAttribute('content','#0B100A');}catch(e){}})();
 /* 显示偏好先落地再首帧：雾和颗粒是"看得见的面"，等模块脚本跑完再改会闪一下 */
 (function(){var r=document.documentElement,d={};try{d=JSON.parse(localStorage.getItem('mistwood-display'))||{};}catch(e){}
  var enter=d.enter||'auto';r.setAttribute('data-fog',d.fog||'normal');r.setAttribute('data-grain',d.grain||'on');r.setAttribute('data-fireflies',d.fireflies||'on');r.setAttribute('data-enter',enter);

@@ -26,7 +26,7 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     /* 浏览器外壳那一条色带跟着改：Layout 里的 theme-color 写的是亮色基准，内联脚本只在首帧之前
        按系统偏好对一次，用户手动开关是第三个场合——漏掉它就会出现"夜林页面配着晨雾顶栏" */
     const tc = document.querySelector('meta[name="theme-color"]');
-    if (tc) tc.setAttribute('content', t === 'dark' ? '#0E130D' : '#EBEDE8');
+    if (tc) tc.setAttribute('content', t === 'dark' ? '#0B100A' : '#EBEDE8');
     if (iconSun) iconSun.style.display = t === 'light' ? 'block' : 'none';
     if (iconMoon) iconMoon.style.display = t === 'dark' ? 'block' : 'none';
     announce();

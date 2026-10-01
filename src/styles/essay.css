@@ -389,7 +389,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 /* 三条口径钉在这里，逐条对着 §1.4 / §12 / §8.4：
    ① **材质没开第四种**：面 = 图版框那一枚 `--glass` + `--glass-border` + 圆角 16（同一个 `.frame` 的画法），
       遮罩 = `::backdrop{ background:var(--halo) }`——`--halo` 是 base.css 那两份板子里的在册令牌
-      （亮 `rgba(242,244,239,.55)` / 夜林 `rgba(14,19,13,.6)`），所以零新 hex、零 `rgba(255,255,255,…)`、
+      （亮 `rgba(242,244,239,.55)` / 夜林 `rgba(11,16,10,.6)`，夜林那一枚的三元组随 C1（`v1/palette`）沉底一起搬过），所以零新 hex、零 `rgba(255,255,255,…)`、
       零第四种模糊：**这里一枚 blur 半径都没有**，散开那一下走的是 §8.4 已有的入场虚焦
       （`mistwood.css` 那条 filter 声明，`--photo-look` + `blur(10px)` → `.in` 之后 0.6s 吐纳收清，
       灯箱里的图是它新增的第五个使用点，数值一处真值）。

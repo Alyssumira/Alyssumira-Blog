@@ -45,7 +45,7 @@
    ① `data-revisit`：只在 `sessionStorage.getItem('mistwood-seen')` 已存在时才写（`Layout.astro:115` 那枚 `r.setAttribute('data-revisit','1')`），
       而 sessionStorage 是标签页级的 ⇒ 要同一浏览器**进程内两次导航**。`--dump-dom` 只有一次导航，
       给不出真判据；写一条永远断言不到的判据就是造假门禁。所以只**打印**、不判定。
-   ② 暗色下 `meta[name="theme-color"]` 改成 #0E130D（`Layout.astro:107` 里那句 `m.setAttribute('content','#0E130D')`）：这版 Edge 不认
+   ② 暗色下 `meta[name="theme-color"]` 改成 #0B100A（`Layout.astro:107` 里那句 `m.setAttribute('content','#0B100A')`；那两枚数＝两档 `--bg-base` 的字面量副本，C1（`v1/palette`）沉底时与 `Layout.astro:110`、`src/scripts/site.js:29` 一起搬的，见规范「C1 色板加深」那一格第二问③）：这版 Edge 不认
       `--force-prefers-color-scheme`（§16 ②），暗色只能靠 profile 预置 `localStorage.mistwood-theme=dark`，
       上一轮的做法是往 `dist/` 写一枚一次性种子页——门禁不该往构建产物里写文件（那会让 dist 的内容
       取决于门禁跑没跑过）。要做得先验证"预置 profile 可复跑"，本轮没验 ⇒ 不进自动化。
