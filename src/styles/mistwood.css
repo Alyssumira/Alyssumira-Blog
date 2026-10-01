@@ -322,6 +322,41 @@ html[data-tier="lost"] .page-head{ --head-top:14vh; --band-h:22vh; --band-a:.95;
   height:var(--band-h); opacity:calc(var(--band-a) * var(--fog));
   background:linear-gradient(180deg,transparent,var(--mist) 42%,var(--mist) 58%,transparent);
 }
+/* ============ 404 专属的浓雾图（三轮 §4.3；母题三族的第一枚，规范 §13b／§9／§12） ============
+   四条口径，写在这儿是因为每一格都在别人家签过：
+   ① 只在 lost 档存在——选择器带 `html[data-tier="lost"]`，look／read 两档拿不到这一层，
+      所以 §9 那格「404 是全站雾最浓的一页」的三档排序（`--band-a` .75／.75／.95）一个字节没动。
+      ⚠️ 这一条排序今天没有机器牙（`grep -rn "band-a" tools/` 零命中，判据只有规范句子本身），
+      所以它靠的是"新层只长在 lost 那一格上"这个构造，不是靠尺子；口径见 §13b 与 §17。
+   ② 浓度不新起常数：opacity 照 `:322` 那层的画法吃 `calc(var(--band-a) * var(--fog))`——上限仍旧是
+      lost 的 .95，乘的仍旧是用户抽屉里那枚 `--fog`（§9 那句"改的是 --band-a 不是 --fog"、§8.8
+      "只乘在氛围层的 opacity 上"同一口径）；浓档 .95×1.35 撞 opacity 上限 1 是上面那格登记过的已知撞顶。
+      线自己的深浅走 `color-mix()` 的百分比（先例 `.life-cell` 那枚 `color-mix(in srgb,var(--moss) 42%,transparent)`），
+      两族都吃在册令牌：亮族 `--mist`、暗族 `--ink-3` ⇒ 零新 hex、零新 rgba 字面量、零第五色（§12）。
+   ③ 线条不是模糊：这一层零 `blur()` 半径，§1.4 那三枚名额一个没占（那格"mask-image 不是模糊"同族）。
+      也零 `animation`、零滚动驱动 ⇒ `prefers-reduced-motion` 天然免疫（§8.7／§19.3 那一族病它没有）。
+   ④ 零新垂直槽位：`top:0`／`height:100%` 不是 margin·padding·gap，gap-check 那 142 枚的账不动；
+      绝对定位 ⇒ 撤掉它（减透明档与打印档都整层 `display:none`）不改一行版面、不改一次换行。
+   ⚠️ 中央一枚苔点都不给（提案 §4.3 原话"迷路了，没有生命迹象"）：这一层只有横的那一族。
+   ⚠️ 纯装饰，承认纯装饰（§13b 第二道闸）：下面每一枚 stop 的位置与深浅都不从任何真值派生，
+      不许将来给它挂读数、也不许把它读成"计数"；它表达的是这一页走错了，不是任何一条数据。 */
+html[data-tier="lost"] .page-head::after{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  /* 全出血照上面那层的 `left:50% + width:100vw + translateX(-50%)`（§11 那格点名过"负内边距救不了横向的边"），
+     但画幅是整块开场（top:0／height:100%），不是那条 22vh 的带子——要的就是"雾从页头顶灌进来"。 */
+  left:50%; width:100vw; transform:translateX(-50%);
+  top:0; height:100%;
+  opacity:calc(var(--band-a) * var(--fog));
+  /* 六条线、两种深浅、三处倾角穿过：近标题行（中段）只放亮族、暗族让到上下两头，
+     为的是 §2.4 那笔"开场把底提亮几个 sRGB 单位"的账只往亮的一侧走——屏上复算欠着（见 §13b 末那格）。 */
+  background-image:
+    linear-gradient(176deg,transparent 6%,color-mix(in srgb,var(--ink-3) 14%,transparent) 12% 16%,transparent 24%),
+    linear-gradient(184deg,transparent 18%,color-mix(in srgb,var(--ink-3) 12%,transparent) 25% 29%,transparent 38%),
+    linear-gradient(179deg,transparent 34%,color-mix(in srgb,var(--mist) 70%,transparent) 42% 50%,transparent 60%),
+    linear-gradient(174deg,transparent 48%,color-mix(in srgb,var(--mist) 62%,transparent) 56% 62%,transparent 72%),
+    linear-gradient(187deg,transparent 62%,color-mix(in srgb,var(--ink-3) 14%,transparent) 70% 75%,transparent 84%),
+    linear-gradient(181deg,transparent 78%,color-mix(in srgb,var(--mist) 70%,transparent) 86% 91%,transparent 98%);
+}
 .page-title{
   font-family:"Noto Serif SC","Noto Serif SC-fallback","Songti SC","STSong",serif;
   /* 700（二轮 §3.1，规范 §3.4）：这一枚吃的是 `base.css:203` 那枚**区间描述符** `font-weight:200 900`，
@@ -892,8 +927,10 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
     box-shadow:var(--shadow-contact),var(--shadow) !important;
   }
   /* 开场那条雾带是半透明的"气"，这里没有"退回实面"的解法——实面就是一块白板。
-     它是氛围不是信息，所以直接撤掉：绝对定位，撤了不改一行版面、不改一次换行。 */
-  .page-head::before{ display:none; }
+     它是氛围不是信息，所以直接撤掉：绝对定位，撤了不改一行版面、不改一次换行。
+     404 那层雾线（`.page-head::after`，只在 lost 档存在）走同一条裁决、同一句理由：它不表达任何数据，
+     撤掉它那一页少的是氛围、一条地址都不少（§13b）。 */
+  .page-head::before,.page-head::after{ display:none; }
   /* ⚠️ 首页雾带的 `blur(28px)`（`home.css:174`）**不在这一档的名单里**，这是裁决不是漏网：
      §1.4 签的是"背景雾化"，不是玻璃材质——它不透视身后内容、没有"实面"可退；
      它与 `prefers-reduced-transparency` 不同向，只有 `prefers-reduced-motion` 那档管它。 */

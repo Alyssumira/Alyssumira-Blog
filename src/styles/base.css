@@ -656,7 +656,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
   html .lantern-rim, html .lantern-glow, html .firefly,
   html .post-tail, html .post-nav,
   html .site-foot,
-  html .wrap::before, html .page-head::before{ display:none; }
+  html .wrap::before, html .page-head::before, html .page-head::after{ display:none; }
 
   /* 主行动那一枚实心面（二轮 §4.1，规范 §2.5）在纸上也整体撤掉：它落在首页 `.hero` 之内，
      而 `.hero` 那一屏在纸上只剩 `--photo-look` 撤掉之后的字——一枚印在纸上的深苔方块既点不动、
