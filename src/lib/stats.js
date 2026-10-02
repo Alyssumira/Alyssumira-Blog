@@ -92,6 +92,56 @@ export function yearArc(d){
   };
 }
 
+/* ── 同心环归档（四轮 §4-3，落的就是 `EssayIndex.astro` 那枚预登记的升级位）──────────────
+   一圈＝一年，圈上的点＝那一年写过的篇数。与上面 `yearArc()` 同一族（年轮弧，§13b 母题②那一族的同心版），
+   所以口径也照它抄：**只交形状、不交读数**——这里返回的是"第几圈、半径多少、点落在哪儿"，
+   不返回百分比、不返回"走过 xx%"那种连续量读数（§12 那格"给年度弧补读数"判不进的原话管的就是这一族）。
+   页面上印得出的是年号与篇数两枚**目录级事实**，由图例那一行说话。
+
+   ⚠️ 几何只在这一处定义（`RING.box/cx/cy/rMin/rMax/dotMax/minYears`），模板与 `tools/ring-check.mjs` 都从
+      返回的对象里拿——与 `yearArc()` 那句"同一个数写两处迟早分叉"同一句话。
+      画幅走 viewBox 的 0–100 用户单位，屏幕上的实际大小由 CSS 那一侧的 `em` 定，这里不写一枚 px。
+
+   ⚠️ **退档（这一格比图形本身重要）**：`years.length < RING.minYears`（＝可见稿件跨的年数少于两枚）
+      一律交回 `null`，模板拿到 `null` 就**整块不落**，不是落一枚"一个点加一个圈"的活壳。
+      判它的两条理由：
+        ① 零篇可见稿——那是作者把三篇都标 draft 之后的真实出厂态。前一代横条在这一档印过
+           `NaN.NaN.NaN → NaN.NaN.NaN（0 天写过）`（`Math.max()` 在空数组上的读数上了纸，登记在 EssayIndex 那段注释里）。
+           这一枚不重犯：**函数里一处 `Math.max`/`Math.min` 都不写**，空名单走不到除法那一步就交回 null。
+        ② 只有一年——一圈加 N 枚点说的是"这一年写过 N 篇"，而那一年下面那个 `.year-block` 的 N 行
+           已经把同一件事逐行说完了。一圈零对比的同心圆不表达任何"之间"的关系，它就是装饰（§12
+           "关掉一档 ⇒ 那条路不生成，不是生成一份空壳"在这一格的读法：环这一族的信息量住在**圈与圈之间**，
+           少于两圈就没有"之间"可读）。
+      ⚠️ 分母那两枚坑各挡一次：`(rMax - rMin) / (years.length - 1)` 只在 `years.length ≥ 2` 时才求；
+         `(k / n)` 里的 `n` 是"那一年数出来的篇数"，而一年能进 `years` 就当且只当 `n ≥ 1`（键是由稿件写进去的，
+         没有第二处往里塞 0）。两处都不靠 `|| 1` 那种把 0 洗成 1 的写法——那正是把空壳擦亮。 */
+const RING = { box: 100, cx: 50, cy: 50, rMin: 17, rMax: 46, dotMax: 3.2, minYears: 2 };
+export function yearRings(posts){
+  const tally = new Map();
+  for (const p of posts){
+    const y = p.data.date.getUTCFullYear();
+    tally.set(y, (tally.get(y) || 0) + 1);
+  }
+  const listed = [...tally.entries()].sort((a, b) => a[0] - b[0]);   /* 由早到新＝由内而外（树轮的读法） */
+  if (listed.length < RING.minYears) return null;                    /* 退档：0 年与 1 年都整块不落 */
+  const step = (RING.rMax - RING.rMin) / (listed.length - 1);        /* listed.length ≥ 2 ⇒ 分母不会是 0 */
+  const dot = +Math.min(RING.dotMax, step * 0.34).toFixed(2);        /* 年数多到圈挤在一起时点自己缩小，不画进相邻那一圈 */
+  return {
+    ...RING, dot, step: +step.toFixed(2),
+    years: listed.length, posts: posts.length,
+    rings: listed.map(([y, n], i) => {
+      const r = +(RING.rMin + step * i).toFixed(2);
+      /* 起点仍旧在 12 点方向（§6 苔时弧那一句）：角度从 −90° 起算，N 枚点均分一整圈。
+         n === 1 时 (k / n) 只走 0 这一枚 ⇒ 那一枚点正落在 12 点上，不是随机撒。 */
+      const dots = Array.from({ length: n }, (_, k) => {
+        const a = -Math.PI / 2 + (k / n) * Math.PI * 2;
+        return { x: +(RING.cx + r * Math.cos(a)).toFixed(2), y: +(RING.cy + r * Math.sin(a)).toFixed(2) };
+      });
+      return { y, n, r, dots };
+    }),
+  };
+}
+
 export function siteFacts(posts){
   const styles = readdirSync(join(ROOT, 'src', 'styles')).filter(f => f.endsWith('.css'));
   const cssBytes = styles.reduce((n, f) => n + statSync(join(ROOT, 'src', 'styles', f)).size, 0);

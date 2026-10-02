@@ -4,7 +4,7 @@ import SearchEntry from './SearchEntry.astro';
 import { fmtDate } from '../lib/markdown.js';
 import { coverSrc } from '../lib/covers.js';
 import { intrinsicProps } from '../lib/image-dims.js';
-import { readMinutes, bodyLen, wordRuler } from '../lib/stats.js';
+import { readMinutes, bodyLen, wordRuler, yearRings } from '../lib/stats.js';
 import { essaysPerPage, pageRanges, pageHref } from '../lib/pagination.js';
 /* 三族索引页的可见入口（F2 `card/f2entries`）用的那三份分组函数——**就是 `/categories/`、`/tags/`、`/series/`
    三页自己用的那三份**（`groupBy(posts, categoryOf)` / `tagGroups(posts)` / `seriesGroups(posts)`，
@@ -130,6 +130,37 @@ for (const p of items) {
   g.items.push(p);
 }
 
+/* ── 同心环归档（四轮 §4-3，落的就是这一只尺架预登记的那格升级位）──
+   一圈＝一年、圈上的点＝那一年写过的篇数；每一圈是一枚真链接，跳到那一年那一节。
+   家族指认：它和 `stats.js` 的 `yearArc()`、`about.astro` 的 `.yearring`／`.w-dot` 同族（§13b 年轮弧那一族），
+   画法照 `.w-dot` 那一族走 SVG `<circle>`，一枚 `border-radius` 都不写（圆角那 32 枚／12 种在 gap-check
+   的梯子上枚数冻结，多一枚新写法就红）。几何、退档判据与两条理由都只住在 `yearRings()` 那一份里
+   （§17 一处真值：模板这一侧不再判第二次"够不够两枚年"，判据写两处早晚有一处分叉）。
+   ⚠️ 与横条**不同尺**（这句是要入账的判词，不是注释里的闲话）：横条数的是**日粒度**——一年每天一格、
+      深浅＝当天字数，它的通道是连续量（alpha），图例报的是"几天写过"；环数的是**年与篇**——一圈一年、
+      一点一篇，它的通道是离散计数（点数），图例报的是"几几年、几篇"。两枚读同一份 `posts` 的两个粒度，
+      一枚不许替另一枚复核，也不合成一把尺：把横条的年份汇总就是环，把环拆到日就是横条，
+      两句话都是同一份日期数据的两种画法，不是两份真值。
+   ⚠️ 分母读**整份 `posts`**、不读本页 `items`：与上面那两把尺同一条纪律（一页一把尺子＝随页数漂的假尺）。
+      代价是环与下面的分节可能不同页 ⇒ 落点由 `ringTo()` 现算，见那一格。 */
+const rings = yearRings(posts);
+/* 每一圈跳去哪：**本页有那一年 ⇒ 片段 `#y<YYYY>`**（靶就是下面那一枚 `.year-block` 的 id）；
+   本页没有那一年 ⇒ 指到"那一年在整份名单里第一次出现的那一行"所在的页，仍旧吃同一枚片段。
+   ⚠️ 本页优先那一侧不是顺手：一年的行被页界切开时两页各写一次那一年（上面 `byYear` 那一格签过），
+      两页都读得到同一枚 `#y<YYYY>` 的靶；若不分本页外页就一律指首页，第二页上的圈会绕回第一页去跳
+      一跳就在眼前的那一节——那才是真锚点旁的假动作。
+   ⚠️ 这一枚判据的存在理由就是 §12 死锚点禁令的产物级版：**一页上出现的具名片段必须在同一份产物里
+      真有一枚同值 id**。不分页那一态（今天这一态，`ranges.length === 1`）每条环都落 `#y…`，
+      `pageHref()` 一个字节都不拼；分页那态才跨页，而跨页那一串 `isPageHref()` 认不出来
+      （它钉的是 `^/essays/page/<n>/$` 整串），所以 `pagination-check` 那一族翻页账不会被这枚新链接扰动，
+      跨页那一半由 `tools/ring-check.mjs` 第 ③ 格拿产物逐枚验（尺子不吃模板自己的承诺）。 */
+const ringTo = y => {
+  if (byYear.some(g => Number(g.y) === y)) return `#y${y}`;
+  const idx = posts.findIndex(p => p.data.date.getUTCFullYear() === y);
+  const pg = ranges.findIndex(r => idx >= r.from && idx < r.to) + 1;
+  return pg === page ? `#y${y}` : `${pageHref(pg)}#y${y}`;
+};
+
 /* ── 密度自适应的目录行（一轮 §B1，本卡）：两档都是**离散**的构建期档，不是连续缩放 ──
    ⚠️ 阈值吃**整份 `posts`**、不吃本页 `items`：与上面那两把尺同一条口径（一页一把尺子＝随页数漂的假尺）。
       拿本页数的话这一档今天是死的——每页 3 行永远 ≤6，`compact` 那一档一次都切不过来，
@@ -238,7 +269,8 @@ const browse = [
             名字并进群组、声明不复制第二条，§17 那条复用类的口径，先例是 .tax-empty a,.essay-browse a）。
             ⚠️ 它必须排在 .density-cap **之后**：tools/pagination-check.mjs 第 ③ 那枚量具是拿
             `<span class="density" …>(…)<span class="density-cap">` 这一条正则抠尺身字节的，插在中间就是让那把
-            已经签字的尺去读一枚新东西。环（提案那枚更"年轮"的版）留在升级位，本卡不画。 */}
+            已经签字的尺去读一枚新东西。环（提案那枚更"年轮"的版）留在升级位，本卡不画。〔四轮 §4-3 已落地：
+            就是下面那枚 `.rings`——它仍旧排在 `.density-cap` 之后、`.yring` 一族之后，一个字节都没插进尺身里。〕 */}
         {/* 零篇可见稿 ⇒ 这把横条连同它的图例整块不落（作者把三篇都标了 draft: true 之后，产物里印过
             `NaN.NaN.NaN → NaN.NaN.NaN（0 天写过）`——那是 `Math.max()` 在空数组上的读数上了纸）。
             口径照 §12 那句"空着就是不画"，不给空盒擦亮；同页那把 12 月刻度尺不受影响（它按 `.tick.nil` 画空档）。 */}
@@ -250,11 +282,49 @@ const browse = [
         </span>
         <span class="yring-cap">写作年轮 · 每格一天 · {fmtDate(new Date(ringStartTs))} → {fmtDate(ringEnd)}（{ringWrote} 天写过）</span>
         </>}
+        {/* 第三把尺：同心环归档（四轮 §4-3，上面那一格预登记的升级位）。三句话：
+            ① 一圈一年、圈上的点＝那一年写过的篇数，**点数是真数**——一篇都不许画占位点（§12 禁假数字：
+               多一枚点就是替作者多写一篇）。零篇可见稿与只有一年那两档由 `yearRings()` 交回 null ⇒
+               **整块不落**，连同它的图例一个字节都不进产物（判据与两条理由写在那一份里，这里不重写）。
+            ② 每一圈是一枚真链接：靶＝下面那一格 `.year-block` 的 `id`（本轮给它落的真 id，见那一格注释）。
+               尺身 aria-hidden 那一族的口径照旧——图形自己不对读屏说话，读屏吃的是每一圈那枚链接的名字，
+               精确值由下面的目录行逐行说；图例那一句只说"一圈一年、一点一篇"与"由内而外是早到晚"这两件
+               **画法**，不替它编第二份读数（§12 那句"给年度弧补读数"判不进，同一条）。
+            ③ 零新材质：色走 `--moss`／`--ink` 两枚在册令牌，`opacity` 档照 `.density .tick` 那三枚搬
+               （.55 那一档是它的同伴，不是新值）；零 `animation`、零 `transition`、零滚动驱动 ⇒
+               `prefers-reduced-motion` 那一档对它**没有可撤的东西**（不是"免疫"——它不进场、不动，
+               但那两档媒体查询本来就没有点到它的份）；零 `backdrop-filter`、零半透明的"面" ⇒
+               `prefers-reduced-transparency` 那份名单（本文件末尾那一格）管不着它，与 `.density` 同判。
+            ⚠️ 画幅走 `em`（宿栏字高的一档），不新写一枚 px；环与列表之间那口气用的是 `.density-wrap`
+               在册那枚 `gap:14px` 与 `.page-head` 在册那枚 `padding-bottom:64px` ⇒ **零枚新垂直槽位**，
+               gap-check 那 144 枚一枚不多、圆角那 32 枚一枚不添（它走 SVG，`border-radius` 零枚）。 */}
+        {rings && <>
+        <span class="rings" role="group" aria-label="年轮目录">
+          {rings.rings.map(r => <a class="ring" href={ringTo(r.y)} aria-label={`${r.y} 年 ${r.n} 篇`}>
+            <svg viewBox={`0 0 ${rings.box} ${rings.box}`} aria-hidden="true" focusable="false">
+              <circle class="ring-line" cx={rings.cx} cy={rings.cy} r={r.r}/>
+              {r.dots.map(d => <circle class="ring-dot" cx={d.x} cy={d.y} r={rings.dot}/>)}
+            </svg>
+          </a>)}
+        </span>
+        <span class="rings-cap">同心年轮 · 一圈一年 · 一点一篇 · 由内而外是早到晚（{rings.years} 年 · {rings.posts} 篇）</span>
+        </>}
       </span>
     </header>
 
+    {/* 按年分节那一块的靶（四轮 §4-3 落的第一枚真 id）：上面那一圈一跳就落在它身上。
+        ⚠️ 为什么 id 落在 `.year-block` 而不是给 `.year-mark` 那枚 `<h2>` 加：
+           `tools/pagination-check.mjs` 第 ② 格拿 `<h2 class="year-mark">(\d{4})</h2>` 数节头序列，
+           那行的类名与字面形状是签过字的；`<section>` 的开口字节没有尺读它（第 ④ 那格读的是 `<main>`
+           的**直接子元素种类**序列，属性不在判据里），所以靶落在 section 那一层是两处真值最少的一处。
+           名字 `y<YYYY>` 由年份现算，不替作者起名、不抄第二份字面量；一页里同一枚年份只可能落一枚节头
+           （一年的行被页界切开时两页各写一次那一年，见上面 `byYear` 那一格）⇒ 片段不会有两枚靶抢同一枚地址。
+        ⚠️ 分页那态（`ranges.length > 1`）本页只有本页那几行的年份，别的年份由 `ringTo()` 指到它自己在的那一页——
+           本文件里任何一枚具名片段都在同一份产物里有靶，这是 §12 死锚点禁令的产物级版，
+           由 `tools/runtime-check.mjs` 末尾那一格全站扫一遍（它只认 `href="#x"` ⇄ 同页 `id="x"`，
+           跨页那种 `/essays/page/<n>/#x` 它不读，改由 `tools/ring-check.mjs` 第 ③ 格拿产物逐枚验）。 */}
     {byYear.map(g => (
-      <section class="year-block reveal">
+      <section class="year-block reveal" id={`y${g.y}`}>
         <h2 class="year-mark">{g.y}</h2>
         {chunksOf(g).map(c => (<>
           {c.q ? <div class="q-mark">q{c.q}</div> : null}

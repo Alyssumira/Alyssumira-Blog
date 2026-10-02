@@ -654,7 +654,7 @@ a.row:visited{ color:var(--ink-visited); }
 .density .d-lab.tail{ transform:translateX(-100%); }   /* 右缘贴栏右缘（i=11 的 `left` 已经是 100%） */
 .density .d-lab.now{ color:var(--moss-ink); }
 @media (max-width:720px){ .density .d-lab .full{ display:none; } .density .d-lab .short{ display:inline; } }   /* 窄屏退回短标签：display:none 不占位 ⇒ 零新垂直槽位；区间那句仍旧由 .density-cap 说话 */
-.density-cap,.yring-cap{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档。⚠️ 名单并进群组而不是复制第二条声明（§17 复用类，先例 `.tax-empty a,.essay-browse a` 与 `.cover img,.thing .shot,.portrait img,.post-body img`）：页头那只尺架今天有两把尺，图例共用同一副嗓子 */
+.density-cap,.yring-cap,.rings-cap{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.14em; color:var(--ink-2); }   /* 图例是"看得懂那排刻度"的前提，走次要档不是装饰档。⚠️ 名单并进群组而不是复制第二条声明（§17 复用类，先例 `.tax-empty a,.essay-browse a` 与 `.cover img,.thing .shot,.portrait img,.post-body img`）：页头那只尺架今天有三把尺，图例共用同一副嗓子——四轮 §4-3 那枚同心环的 `.rings-cap` 就是并进名单的第三枚名字，声明仍旧只有一处真值 */
 
 /* 写作年轮横条（三轮 §1.1 横条版；母题指认＝§13b 母题②苔点，降级谱与打印在 §13b／§19.1，窄屏那一档在 §11）。
    一片尺架里的第二把尺：过去一年每天一格、按月轻轻分段，写过稿的日子按当天字数上深浅。
@@ -670,6 +670,35 @@ a.row:visited{ color:var(--ink-visited); }
 .yr-month{ display:flex; min-width:0; }
 .yr-month>span{ flex:1 1 0; min-width:0; background:var(--ink-3); opacity:.22; }
 .yr-month>span.yr-lit{ opacity:1; }   /* 深浅那一档由模板的 inline color-mix 给（数据），这里只负责把它从空格的 .22 里捞回不透明 */
+
+/* 同心环归档（四轮 §4-3 落的升级位；家族指认＝§13b 年轮弧那一族的同心版，与 `stats.js` 的 `yearArc()`、
+   `about.astro` 的 `.yearring`／`.w-dot` 同源。规格与判词在 §15、降级谱在 §13b）。
+   一圈＝一年、圈上的点＝那一年写过的篇数；一圈一枚真链接，跳到那一年那一节（靶是 `.year-block` 的 id）。
+   ⚠️ 画圆只剩一条路：SVG `<circle>`——`border-radius:50%` 那 8 枚字面在 gap-check 的梯子上枚数冻结
+      （在册 32 枚／12 种，多一枚新写法就红），给既有规则添名字也救不回来（注册表的键含选择器全文）。
+      `about.astro:139` 的 `.w-dot` 就是这个先例：**几何写在标记属性上、CSS 只管色与档**，这里一枚半径都不写。
+   ⚠️ 零枚新垂直槽位：画幅走 `em`（宿栏字高的一档，`em` 不在 gap-check 的拆值口径里，与 `.row-tick` 同一句），
+      环与环之间没有缝、环与图例之间那口气吃 `.density-wrap` 在册那枚 `gap:14px`、
+      环与下面那列目录之间那口气吃 `.page-head` 在册那枚 `padding-bottom:64px` ⇒ 144 枚一枚不多。
+   ⚠️ 零新色：`--moss`（圈线）与 `--ink`（点）两枚在册令牌，`.55` 那档照 `.density .tick` 搬（同一只尺架里
+      两把尺的 opacity 嗓门一致，不是第三枚值）；`--ink` 跟着主题翻面，与全站那六枚基础墨同一判法。
+   ⚠️ 链接的靶面只给在**画出来的那一线上**：`<a>` 自己 `pointer-events:none`，圈线与点各自收回 `auto`——
+      `fill:none` 的圈按 `visiblePainted` 只有描边那 1.4 个用户单位可点，同心方框互相盖不住对方那一圈。
+      键盘不靠它：焦点由 `base.css:285` 那条全站 `:focus-visible` 苔绿描边管，零新声明。
+   ⚠️ 零 `animation`、零 `transition`、零 hover 换形（§8.3 那枚"悬停预算"在这一页已经排满，
+      也不为它新开一档缓动）⇒ `prefers-reduced-motion` 这一档对它没有可撤的东西；
+      零 `backdrop-filter`、零半透明的"面" ⇒ `prefers-reduced-transparency` 那份名单不点名它（与 `.density` 同判）。
+   ⚠️ 打印：**上纸**，归属是 `.density` 那一档而不是 `base.css:794` 那一行（`html .yring, html .row-tick,
+      html .word-river`）。那一行撤的三枚都是"通道在纸上没有分母"的连续量（alpha／条长／点径），
+      而这一枚的通道是**点数**——离散、可在纸上逐枚数出来，年号与篇数由 `.rings-cap` 那句照旧上纸的字说话
+      （§19.2 那句"图例在纸上照旧上纸"管的正是这一族）。它与同架那把 12 月刻度尺同一个归属：
+      那一把也没进撤场名单。⚠️ 一句实话：纸上点不动，所以纸上读的是形状与那句图例，跳年是屏幕那侧的事。 */
+.rings{ position:relative; display:block; width:8em; height:8em; }   /* 画幅一枚 px 都不写：8em＝宿栏字高的八档，与 `.row-tick` 拿 em 当画幅同一口径 */
+.rings .ring{ position:absolute; inset:0; display:block; pointer-events:none; }   /* 方框盖方框：可点的只有线，见上面那一格 */
+.rings .ring svg{ display:block; width:100%; height:100%; }   /* viewBox 由模板给（几何只住在 `stats.js` 那一份里） */
+.rings .ring-line{ fill:none; stroke:var(--moss); stroke-width:1.4; opacity:.55; }   /* .55 照 `.density .tick` 那枚搬：同一只尺架的嗓门 */
+.rings .ring-dot{ fill:var(--ink); }   /* 点走基础墨，跟着主题翻面；圈线走苔——两枚都在册，零新色 */
+.rings .ring-line,.rings .ring-dot{ pointer-events:auto; cursor:pointer; }   /* 只有画出来的那一圈与那几点可点；一枚 `border-radius` 都不写 */
 
 /* ============ 404：把真实存在的地址一次性列全（零请求，也不留死锚点） ============ */
 .lost{ padding-bottom:22vh; }

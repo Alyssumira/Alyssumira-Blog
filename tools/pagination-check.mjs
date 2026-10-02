@@ -491,7 +491,16 @@ cell('④', '第 1 页与不分页那一版逐字节相同：结构序列在册 
   const VOID = new Set(['img', 'input', 'br', 'hr', 'meta', 'link', 'source', 'path', 'circle']);
   const tagRe = /<(\/?)(header|section|nav|div|p|ol|ul|span|h1|h2|h3|li|a|img|time|button|input|label|svg|circle|path)\b[^>]*?(\/?)>/g;
   for (const m of inner.matchAll(tagRe)){
-    if (m[1] === '/'){ if (depth > 0) depth--; continue; }
+    /* ⚠️ 四轮 §4-3（同心环归档）改的就是这一行，而且只改这一行：空元素的**闭合 tag** 过去也减一次深度，
+       而它的开标签从来没加过（上面那枚 `VOID` 只在开标签那一侧查）——这是一枚左右不对称的账。
+       它以前读不出来，是因为本工具只读 `/essays/` 那几页，而那些页的 `<main>` 里今天一枚 `<circle>` 都没有
+       （改动前实测：`dist/essays/index.html` 的 `<main>` 里 `<circle>` 0 枚、`<path>` 0 枚——全站那八枚 SVG
+       都在 `<main>` 之外或别的页上：`about` 页 `<main>` 里那 5 枚 `.w-dot` 没有一把尺读过它）。
+       这一卡是本仓第一枚往 `/essays/` 的 `<main>` 里画 `<circle>` 的东西 ⇒ 本卡不躲它：不改钉法、
+       不放宽 `wantSeq`、也不把环挪出页头，只把那一枚多减的账补回来。判据的强度一处没动——
+       `uniqTops` 仍旧必须逐位等于 `wantSeq`（多一枚包裹层、少一枚 `section` 都照样红：
+       本轮拿变异过的产物各跑过一次，两条红名分别指着 `<div>` 与 `section`，见回执）。 */
+    if (m[1] === '/'){ if (depth > 0 && !VOID.has(m[2])) depth--; continue; }
     if (depth === 0) tops.push(m[2]);
     if (!VOID.has(m[2]) && m[3] !== '/') depth++;
   }
