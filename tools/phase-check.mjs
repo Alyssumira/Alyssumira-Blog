@@ -85,8 +85,8 @@ const CONTRA_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧
    反例、偷偷删掉一枚"在四份 id 清单上完全无痕（id 还在、格还在、集合照样同源 ⇒ selftest 少跑一枚仍然
    exit 0）。枚数一钉，拔牙就要连这两枚数字一起改——改数字在 diff 里比删代码显眼。
    ⚠️ 加反例/朝窄必须把这两枚一起抬；抬不动的那一次，往往就是"这一枚其实没力气"的那一次。 */
-const CONTRA_ENTRIES = 22;
-const NARROW_ENTRIES = 10;
+const CONTRA_ENTRIES = 26;
+const NARROW_ENTRIES = 11;
 /* 第四份清单在**另一份文件**里：规范 §16 那枚 bullet。它是签字文档，动它会在 diff 里显形。
    ⚠️ 认的是"以 `- **phase-check 登记表**` 开头的那一行"（bullet 本体），不是"哪一行提到了这个词"——
    规范正文里引用这个短语的地方不止一处，用 includes 会挑到错的那一行（本卡实测挑到过 §14 的论述）。
@@ -839,8 +839,55 @@ const CELLS = [
       if (!amp) failed.push('⑨ 幅度常量不是 `const BREATH = .04` —— ±4% 是提案那格带取值进来的数，改它要回规范那一格');
       asserted++;
       if (!/bs = 1;/.test(js)) failed.push('⑨ 熄灯时不再把 `bs` 复位为 1 —— 静止态就会停在一个偏掉的乘数上，§5.1 那 12 枚字面量在盘上就不再是唯一读数');
+      /* ---- 停帧闸那一枚（`b29feec` 落盘）：这一组钉的是**源码形状**，不是屏幕读数 ----
+         离屏那一档的屏幕读数在这一台量具上取不到，三条原因都查过：`--dump-dom` 档 `scrollTo()` 不改 `scrollY`
+         （三枚快照全 `y:0`）；`--virtual-time-budget` 那一档只发约 5 帧 ⇒ IO 回调永不触发（抬到 30000 ＋
+         `--disable-frame-rate-limit --disable-gpu-vsync` 能发到 34 帧，但页面变长后撞探针自带的 45s kill）；
+         三篇样例全放开时首页 `docH=1751`、视口 900 ⇒ 最大滚动 851px < `.scene` 高 900px，首屏在这份页面上
+         根本滚不出视野（首页只列目录行不列正文）。⇒ 形状钉在这里，读数仍欠一枚真会话（CDP 直连 page 级
+         `webSocketDebuggerUrl`；`Target.attachToTarget{flatten}` 在本机报 -32001）。 */
+      const OBS_TARGET = "document.querySelector('.scene') || box";
+      const obsLine = (E.shaftJs || '').split(/\r?\n/).findIndex(l => l.includes('.observe(')) + 1;
+      const ioM = /\.observe\(([\s\S]{0,120}?)\)\s*;/.exec(js);
+      const ioBody = /new IntersectionObserver\(([\s\S]{0,400}?)\)\s*\.observe\(/.exec(js)?.[1] ?? '';
+      const visSeg = /document\.onvisibilitychange\s*=[\s\S]{0,200}?\};/.exec(js)?.[0] ?? '';
+      const awakeNow = /const awake\s*=\s*\(\)\s*=>[^;\n]*/.exec(js)?.[0] ?? '读不到 `awake`';
+      const AWAKE_FORM = 'const awake = () => inView && onScreen;';
+      asserted++;
+      if (!/new IntersectionObserver\(/.test(js))
+        failed.push('⑨ `hero.js` 里那枚 `new IntersectionObserver(` 不见了 —— 离屏停帧那一路的闸被整枚摘掉，首屏滚出视野之后那枚 rAF 照样排帧（这一档的屏幕读数在本量具上取不到，形状就更不许无声换掉）');
+      else {
+        asserted++;
+        if (!ioM) failed.push('⑨ `new IntersectionObserver(` 在，但读不到它的 `.observe(…)` 那一枚靶 —— 观察器没挂上靶就等于没挂（fail closed）');
+        else if (norm(ioM[1]) !== OBS_TARGET)
+          failed.push(`⑨ 那枚 IntersectionObserver 的靶不是 \`${OBS_TARGET}\`（现在是 \`${norm(ioM[1])}\`，在 \`hero.js\` 第 ${obsLine} 行）—— 靶换成 \`.scene\` 之外的东西（换成 \`box\`／\`document.body\`／一枚不存在的节点）就是把"首屏滚出视野"这一路改判：\`.scene\` 是 absolute、随页滚走的那一枚，而 \`document.body\` 永远与视口相交 ⇒ 那一档从此恒绿，离屏那一路的绿再也不是离屏那一路的`);
+      }
+      asserted++;
+      if (!new RegExp(AWAKE_FORM.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(js))
+        failed.push(`⑨ 那枚闸不再是 \`inView && onScreen\` 两枚独立布尔的**合取**（现在是 \`${norm(awakeNow)}\`）—— 本格的真值在这一条：可见性那一路的绿不许冒充离屏那一路的绿。两路并成一枚赋值／把 awake 折成单变量之后，"标签页可见"就盖住了"首屏不在场"，往后没人能从读数上分清是哪一路在跑`);
+      asserted += 2;
+      if (!/inView\s*=\s*e\.isIntersecting/.test(ioBody))
+        failed.push(`⑨ 那枚 IntersectionObserver 的回调不再写 \`inView = e.isIntersecting\`（回调体现是 \`${norm(ioBody)}\`）—— 合取的左半边没了写者，就成了没人喂的常量 true`);
+      if (!/onScreen\s*=\s*document\.visibilityState\s*!==\s*'hidden'/.test(visSeg))
+        failed.push(`⑨ \`document.onvisibilitychange\` 那一段不再写 \`onScreen = document.visibilityState !== 'hidden'\`（那一段现在是 \`${norm(visSeg)}\`）—— 合取的右半边没了写者`);
+      asserted += 2;
+      if (/onScreen\s*=/.test(ioBody))
+        failed.push('⑨ 离屏那一路（IntersectionObserver 的回调）里冒出给 `onScreen` 的赋值 —— 两路并成一枚：标签页可见性会被 IO 回调覆写，回可见时那一档再也读不出是谁说的');
+      if (/inView\s*=/.test(visSeg))
+        failed.push('⑨ 可见性那一路（`document.onvisibilitychange`）里冒出给 `inView` 的赋值 —— 两路并成一枚：滚出视野那一档会被"标签页可见"就地抹掉');
+      asserted++;
+      if (!/cancelAnimationFrame\(/.test(js)) failed.push('⑨ 暂停那一路不再走 `cancelAnimationFrame(` —— "停帧"退成了"跑着但不写"，注释里那句"连已经排上的那一帧也撤掉"作废');
+      const pump = /rafPump = on =>\s*\{([\s\S]*?)\n\s*\};/.exec(js);
+      asserted++;
+      if (!pump) failed.push('⑨ 读不到恢复那一段（`rafPump = on => {…}`）—— 停与恢复的分工没有形状可钉，判据读不到就不许当通过（fail closed）');
+      else {
+        const reset = ['cx', 'cy', 'lx', 'ly', 'bs'].filter(v => new RegExp(`\\b${v}\\s*=(?!=)`).test(pump[1]));
+        asserted++;
+        if (reset.length) failed.push(`⑨ 恢复那一段里冒出把累积量归回初值的赋值：${reset.map(v => `\`${v}\``).join(' ')} —— 那三枚平滑量用的都是**每帧固定系数**（.04／.06／.017），式子里没有 dt ⇒ 停多久都不改变下一帧的步长，接着跑才是连续的；在这里重置就是让恢复的第一帧从上一帧的位置跳回起手位，那一次跳变正是这一枚闸要消掉的东西`);
+      }
       out.push(`  ⑨ 光柱  ✓ 规则 ${rules.length}/${RULES} 枚 · opacity 声明 ${withOp.length} 枚（表达式 ${withOp.length === 1 ? '`' + norm(withOp[0][1]) + '`' : '—'}）· 底 12 枚 ${bases.length === 12 ? `[${bases.join(' ')}]` : '—'}`
-        + ` · 两枚 @property 在册 · rAF ${loops} 枚 / addEventListener ${listeners} 枚 / 写者 ${writers} 处 · 幅度 .04`);
+        + ` · 两枚 @property 在册 · rAF ${loops} 枚 / addEventListener ${listeners} 枚 / 写者 ${writers} 处 · 幅度 .04`
+        + ` · 停帧闸：合取 \`${AWAKE_FORM.slice('const awake = '.length, -1)}\`（两枚独立布尔各有各的写者）· IO 靶 ${ioM ? '`' + norm(ioM[1]) + '`' : '—'}（形状钉，离屏那一档没有屏幕读数）· 暂停走 \`cancelAnimationFrame\` · 恢复段不重置 cx/cy/lx/ly/bs`);
       return { asserted, failed, out };
     },
     contra: [{
@@ -858,10 +905,25 @@ const CELLS = [
     }, {
       name: '为呼吸另挂一枚 pointermove 监听（第二枚跟随光标的东西）',
       env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace("addEventListener('focusout', e => {", "addEventListener('pointermove', () => {});\n  addEventListener('focusout', e => {") }),
+    }, {
+      name: '把 IntersectionObserver 的靶换成 document.body（body 永远与视口相交 ⇒ "滚出视野"那一路从此恒绿）',
+      env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace(".observe(document.querySelector('.scene') || box)", '.observe(document.body)') }),
+    }, {
+      name: '把那枚闸折成单变量（awake 只认 onScreen：可见性的绿冒充离屏的绿）',
+      env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace('const awake = () => inView && onScreen;', 'const awake = () => onScreen;') }),
+    }, {
+      name: '让 onvisibilitychange 直接写 inView（两枚独立布尔并成一枚赋值）',
+      env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace("document.onvisibilitychange = () => { onScreen = document.visibilityState !== 'hidden'; syncPause(); };", "document.onvisibilitychange = () => { inView = document.visibilityState !== 'hidden'; syncPause(); };") }),
+    }, {
+      name: '恢复那一段把 cx/cy/lx/ly/bs 归回初值（恢复的第一帧跳一帧）',
+      env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace('looping = on;', 'looping = on; cx = 0; cy = 0; lx = 0; ly = 0; bs = 1;') }),
     }],
     narrow: [{
       name: '只换时间常数（BREATH_K .017→.02，§8.5 那族的标定，不是这一格的东西）：不许误红',
       env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace('BREATH_K = .017', 'BREATH_K = .02') }),
+    }, {
+      name: 'observe 那一枚靶换了换行写法（靶逐字没动，只是实参折成两行）：不许误红',
+      env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace(".observe(document.querySelector('.scene') || box)", ".observe(document.querySelector('.scene')\n      || box)") }),
     }],
   },
 ];
