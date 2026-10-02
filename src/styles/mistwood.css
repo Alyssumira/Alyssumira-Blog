@@ -673,6 +673,20 @@ a.row:visited{ color:var(--ink-visited); }
 
 /* ============ 404：把真实存在的地址一次性列全（零请求，也不留死锚点） ============ */
 .lost{ padding-bottom:22vh; }
+/* 404 那一档萤火的容器（第 ㉖ 轮 c11a，提案「404 as lost-in-fog: … three fireflies drift towards links」）。
+   这一页没有 `.scene` ⇒ 盒子自己就是那一层装饰的画幅：全出血照上面 `.page-head::before`／`:after`
+   那一族已有的写法（`left:50% + width:100vw + translateX(-50%)`，`.wrap` 有 1120px 上限，
+   负内边距救不了横向的边），画幅是整块 `.lost`（`top:0`／`height:100%`）。
+   ⚠️ `z-index:-1` 与 `pointer-events:none` 都不是可选项：前者照 §15 那两条"气必须在 -1"的理由
+   （装饰层不许蒙在正在读的字上，而这一页的字就是那六条地址），后者不许三枚 3px 的点抢走链接的命中区。
+   ⚠️ 零新垂直槽位、零新圆角：这里只有 position／top／left／width／height／transform／z-index／
+   pointer-events／overflow ⇒ gap-check 那 144 枚与 32 枚一个不涨。萤火自己的 3px／50%／`--firefly`／
+   光晕**不在这里重抄**：它只住在 `home.css` 那份 `.firefly` 里（这一页载同一份表，见 `src/pages/404.astro`），
+   关键帧只住在 `hero.js` 注入的那一段里——两处各一份就是 §17 那笔"迟早分叉"的债。 */
+.lost > #fireflies{
+  position:absolute; top:0; left:50%; width:100vw; height:100%;
+  transform:translateX(-50%); z-index:-1; pointer-events:none; overflow:hidden;
+}
 .lost-note{ margin:0 0 40px; color:var(--ink-2); font-size:15px; }
 .lost-list{ list-style:none; margin:0; padding:0; }
 .lost-list li{ border-top:1px solid var(--line); }

@@ -1,5 +1,26 @@
 ---
+import '../styles/home.css';
 import Layout from '../layouts/Layout.astro';
+/* 404 那一档的三枚萤火（第 ㉖ 轮 c11a，提案「404 as lost-in-fog: Fog covers the screen, and three fireflies
+   drift towards links to Essays, Notes and Things. Following one takes you home.」）。三条口径先写死在这儿：
+   ① **这一页不载 home.css 就没有萤火**：萤火那一族的几何（3px／圆／`--firefly`／光晕）只住在
+      `home.css` 的 `.firefly` 里，而 `gap-check` 把那一枚 `border-radius:50%` 认在 `home.css / .firefly`
+      这个键上（注册表里逐枚认领），所以它不许搬去第二份表——搬走就是"在册的扫不到、扫到的不在册"。
+      于是这一页改成载同一份表，而不是在这里重抄一遍。Astro 把 `Layout.css`（base + mistwood）排在
+      页面 CSS 之后（`home.css:317-319` 与 `:494` 两处实测点过名），所以两页同名的那几条（`.nav` 一族、
+      `body`）在 404 上仍旧由 `mistwood.css` 那一份说话——**这一条不是推断，是量过的**：改前／改后同参数
+      各跑一趟逐元素普查（106 枚元素的 rect 全字符串 ＋ 16 项 computed style：display／position／上下
+      margin·padding／字体族·号／行高／color／background-color／opacity／transform／z-index／圆角／字距），
+      差异 1 条＝新加的那枚空盒子 `#fireflies` 自己，其余 105 枚逐字节相同，`scrollHeight` 两趟都是 1289。
+      读数与量法在卡回执那一格（这一趟跑在 `prefers-reduced-motion` 档，两页都没有萤火，比的就是壳）。
+   ② **萤火不藏地址**：`.lost-list` 那六条 `<a>`（含萤火飘向的 essays／things／notes 三条）照旧全量、
+      常显、零 JS 地印在页面上，一行不撤、一处不遮——§12 那格"把 404 的地址藏起来让人找"判不进，
+      这次改动没去碰它。萤火只是往**已经在页面上**的地址飘，读的是同一枚 `href`。
+   ③ **降级与首页同一个 return**：`prefers-reduced-motion` 那一档、`narrow`（≤720）那一档、以及抽屉里
+      把萤火关掉（`data-fireflies="off"`）那一档，404 上同样是 0 枚——判的是首页那一条同一个口径
+      （"这一档本来就没有萤火可生成"），不另立第二根判据。
+   说明写在 frontmatter 注释里、不写成模板里的 HTML 注释：Astro 把后者原样落进产物，而
+   `tools/font-subset.mjs` 的码点并集读的正是产物里的每一个字符（同一件事见 `index.astro` 上面那一段）。 */
 ---
 <Layout title="走进雾里了 · mistwood" desc="这个地址没有对应的页面。" tier="lost">
   <main class="wrap lost">
@@ -16,5 +37,12 @@ import Layout from '../layouts/Layout.astro';
       <li><a href="/about/">关于<span>是谁在写这些</span></a></li>
       <li><a href="/rss.xml">rss<span>订阅，不需要账号</span></a></li>
     </ul>
+    {/* 萤火的盒子：与首页同一枚 id（`hero.js` 只认这一处容器），纯装饰 ⇒ aria-hidden，
+        里面没有一条信息、没有一枚可点面（地址全在上面那份清单里）。 */}
+    <div id="fireflies" aria-hidden="true"></div>
   </main>
 </Layout>
+
+<script>
+  import '../scripts/hero.js';
+</script>

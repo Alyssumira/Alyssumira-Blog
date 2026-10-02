@@ -290,6 +290,19 @@ html[data-theme="dark"][data-fireflies="off"] .mist-band.b3{ display:block; }
    这一枚跟 §8.5 那条"暗色光晕月光色 α ≤ .12"不冲突：那是 `--moon` 的雾灯光晕，这是 `--firefly`
    的本体光晕，两族两本账。亮色档的 .5 一个字没动——夜里才放开，白天仍旧是彩蛋。 */
 html[data-theme="dark"] .firefly{ box-shadow:0 0 8px 2px rgba(169,196,160,.56); }
+/* 离屏／标签页不可见：萤火那一族循环当场冻住（第 ㉖ 轮 c11a，提案「Pause them off-screen」）。
+   闸门在 `hero.js` 那一段（IntersectionObserver ⇄ visibilitychange 同一枚 `syncPause()`），
+   JS 那一头是"不再排下一帧"，这一条是 CSS 那一头的"同一帧也不推进"——两族同一个闸，不是一处停一处跑。
+   ⚠️ 这一条只管 `animation-play-state` 一枚属性：零新时长、零新缓动（§8.8 那两枚贝塞尔一个没多）、
+   零几何、零间距 ⇒ gap-check 那 144 枚垂直槽与 32 枚圆角都不涨；`prefers-reduced-motion` 那一档
+   本来就被 base.css 的 `animation:none !important` 收着，这一条对它没有可加的东西（萤火也不在岗）。
+   选择器用 `#fireflies` 那枚 id（盒子只在首页与 404 两处存在），不新增一种类 ⇒ 不改版面、不改换行。
+   ⚠️ `!important` 不是风格问题而是必需：`hero.js` 给每一枚萤火写的是 **`animation` 简写**
+   （`f.style.animation = \`firefly-live …\``），简写会把 `animation-play-state` 一起重置成 `running`
+   并以内联样式压过任何选择器 ⇒ 不加 !important 的话这一条对在岗的萤火一个字都不生效（实测：加之前
+   computed `animation-play-state` 仍旧是 `running`，加了才是 `paused`）。站里同一手法在册：
+   `base.css:603` 那条 `animation:none !important` 为的也是"压过内联与简写"。 */
+#fireflies.paused .firefly{ animation-play-state:paused !important; }
 
 /* 颗粒（`.grain` + `@keyframes grain-shift`）在 `base.css`——它以前在这里和 `mistwood.css`
    各有一份，`steps(4)→steps(1)` 那一修只改了一份，另一份继续跑 13.3 Hz（§1.3 / §16）。
