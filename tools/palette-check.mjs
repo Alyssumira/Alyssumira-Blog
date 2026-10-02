@@ -942,7 +942,7 @@ let fogDrift = 0, fogFixFailed = 0, fogFixRan = 0;
       `步进取并集 Δα ≥ ${(2 * step).toFixed(3)}（两档 × 点名目标里最紧的那条）｜登记的三枚端点 ${FOG_LEVELS.join(' / ')} 分别是这个上界的 ${times}，` +
       `${clampGe.length >= 2 ? '而 ≥1 的那几枚被夹住之后是同一个 α ⇒ ' : '（这一轮没有两枚端点同时撞上限）⇒ '}${ceiling >= 2 * step ? '数学上还剩一条缝（整条行程只有 ' + ceiling.toFixed(3) + '，且必须重选端点）' : '端点不存在'}`);
   }
-  console.log(`  盘上端点 ${fogFound.map(x => `${x.file}:${x.line} ${x.v}`).join(' / ')} ⇄ 本格登记值 ${FOG_LEVELS.join(' / ')}（同源）；` +
+  console.log(`  盘上端点 ${fogFound.map(x => `${x.file}:${x.line} ${x.v}`).join(' / ')} ⇄ 本格登记值 ${FOG_LEVELS.join(' / ')}（${fogLevelDrift(fogFound, FOG_LEVELS).length ? '✗ 不同源' : '同源'}）；` +
     `var(--fog) 消费者 ${fogTotal} 枚（${fogByFile.map(x => `${x.file} ${x.n}`).join(' / ')}）—— 它今天乘在 opacity 上，这就是"已经是响度那一族"的现形`);
   console.log(`  ${fogDrift ? '✗' : '✓'} ④ 这一关：${fogFixRan}/${FOG_FIXTURES_REGISTERED} 枚反例各红在该红的位置、${fog.combos} 组读数、破地板 ${fog.breaches.length} 组、端点同源 ${fogLevelDrift(fogFound, FOG_LEVELS).length ? '✗ 断了' : '✓'}`);
   if (SELFTEST){
