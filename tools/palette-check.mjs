@@ -825,17 +825,26 @@ const FOG_FX = [
 ];
 const FOG_FIXTURES = [
   { id: 'F1 朝宽·把 α 抬到破地板（亮档 .4/1/1.35 压 --ink）', side: 'contra',
-    run: () => { const s = fogSweep([FOG_FX[0]], { light: ['--ink'] }, FOG_LEVELS); return { hit: fogRed(s), note: `破地板 ${s.breaches.length} 组／读数 ${s.combos} 组` }; } },
+    /* ⚠️ 这里写**死**三枚坏 α，不吃 FOG_LEVELS：反例测的是量具有没有行程，不是测登记值。
+       （v12p/W2-P 变异实测：让 F1 吃 FOG_LEVELS 之后，把端点整体收到合法缝里（.01/.015/.02）
+       会把这一枚反例一起拐没——那一次红的是 fixture，不是判据，读数是混的。） */
+    run: () => { const s = fogSweep([FOG_FX[0]], { light: ['--ink'] }, [.4, 1, 1.35]); return { hit: fogRed(s), note: `破地板 ${s.breaches.length} 组／读数 ${s.combos} 组` }; } },
   { id: 'F2 朝窄·同一形状只把 α 收到 .01（合法边界不许误红）', side: 'narrow',
     run: () => { const s = fogSweep([FOG_FX[0]], { light: ['--ink'] }, [.01]); const b = s.bound.get('light --ink'); return { hit: fogRed(s), note: `读数 ${s.combos} 组、天花板 ${b ? b.ceiling.toFixed(3) : '读不到'}` }; } },
   { id: 'F3 朝宽·目标色换成未登记的一枚（必须点名，不许退成"不用算"）', side: 'contra',
     run: () => { const s = fogSweep([FOG_FX[0]], { light: ['--bogus-fog-paint'] }, [.4]); return { hit: fogRed(s), note: `bad ${s.bad.length} 条、idle ${s.idle.length} 条` }; } },
   { id: 'F4 朝窄·点名的四枚目标色全在册（两档 × 两族都不许误红）', side: 'narrow',
     run: () => { const s = fogSweep(FOG_FX, { light: ['--ink', '--moss-solid'], dark: ['--ink', '--bg-base'] }, [.01]); return { hit: fogRed(s), note: `读数 ${s.combos} 组（2 页 × 2 目标 × 4 前景 × 1 α）` }; } },
-  { id: 'F5 朝宽·抽掉 `--fog` 那一档（盘上少一枚端点）', side: 'contra',
-    run: () => { const d = fogLevelDrift([{ file: 'mistwood.css', line: 18, v: .4 }, { file: 'mistwood.css', line: 271, v: 1 }], FOG_LEVELS); return { hit: d.length > 0, note: d[0] || '没报红' }; } },
-  { id: 'F6 朝窄·三枚端点同集不同写序（不许误红）', side: 'narrow',
-    run: () => { const d = fogLevelDrift([{ v: 1.35 }, { v: .4 }, { v: 1 }], FOG_LEVELS); return { hit: d.length > 0, note: d[0] || '判为同源' }; } },
+  { id: 'F5 朝宽·端点少一枚 / 改一枚数（两个方向都不许静默）', side: 'contra',
+    run: () => {
+      const drop = fogLevelDrift([...FOG_LEVELS].slice(1).map((v, i) => ({ file: 'fixture', line: i, v })), FOG_LEVELS);
+      const altered = fogLevelDrift(FOG_LEVELS.map((v, i) => ({ file: 'fixture', line: i, v: i === FOG_LEVELS.length - 1 ? v + 0.05 : v })), FOG_LEVELS);
+      return { hit: drop.length > 0 && altered.length > 0, note: `少一枚→${drop.length ? '红' : '不红'}｜改数→${altered.length ? '红' : '不红'}` };
+    } },
+  { id: 'F6 朝窄·端点同集不同写序（不许误红）', side: 'narrow',
+    /* 吃 FOG_LEVELS 自己倒序，而不是写死一枚三元组：这一枚测的是"同源判据只认集合、不认写序"，
+       登记值换成别的三枚也照样该是绿的（写死的那版在 v12p 变异里误红过一次）。 */
+    run: () => { const d = fogLevelDrift([...FOG_LEVELS].map((v, i) => ({ file: 'fixture', line: i, v })).reverse(), FOG_LEVELS); return { hit: d.length > 0, note: d[0] || '判为同源' }; } },
   { id: 'F7 朝宽·十四档被抽干（0 组读数也红＝失去靶）', side: 'contra',
     run: () => { const s = fogSweep([], FOG_TARGETS, FOG_LEVELS); return { hit: fogRed(s), note: `idle ${s.idle.length} 条、读数 ${s.combos} 组` }; } },
   { id: 'F8 朝宽·某一档的在册前景读不到（抽掉 --ink-2 那枚）', side: 'contra',
@@ -898,16 +907,23 @@ let fogDrift = 0, fogFixFailed = 0, fogFixRan = 0;
   if (process.env.PALETTE_FOG_ROWS) console.log(fog.rows.map(r => `    ${r.pass ? 'ok' : 'BAD'} ${r.theme}｜${r.state}｜目标 ${r.target}｜α ${r.alpha}｜${r.fg} ${r.w.toFixed(2)} vs 地板 ${r.floor}｜底 ${r.base} 顶 ${r.top}`).join('\n'));
   for (const b of fog.breaches.slice(0, 12)) console.log(`    ✗ ${b.theme} ${b.state} 目标 ${b.target} α=${b.alpha} ${b.fg} ${b.w.toFixed(2)} < ${b.floor}（差 ${(b.floor - b.w).toFixed(2)}）`);
   if (fog.breaches.length > 12) console.log(`    …破地板共 ${fog.breaches.length} 组，全表用 PALETTE_FOG_ROWS=1 node tools/palette-check.mjs 逐枚印`);
-  /* 夹住这件事（§12 那句"三档端点当初是为了 opacity 到 1 就夹住选的"的定量版）*/
-  const clampPairs = [];
-  for (const r of fog.rows.filter(x => x.level === 1)){
-    const twin = fog.rows.find(x => x.theme === r.theme && x.state === r.state && x.target === r.target && x.fg === r.fg && x.level === 1.35);
-    if (twin && twin.base === r.base && twin.top === r.top && twin.w === r.w) clampPairs.push(r);
+  /* 夹住这件事（§12 那句"三档端点当初是为了 opacity 到 1 就夹住选的"的定量版）：
+     认的是**登记端点里 ≥1 的那几枚**，不是写死 1 与 1.35——端点换了数这句话就该跟着换形状。 */
+  const clampGe = [...new Set(FOG_LEVELS.filter(l => l >= 1))].sort((a, b) => a - b);
+  let clampPairs = 0;
+  if (clampGe.length >= 2){
+    for (const r of fog.rows.filter(x => x.level === clampGe[0])){
+      const twin = fog.rows.find(x => x.theme === r.theme && x.state === r.state && x.target === r.target && x.fg === r.fg && x.level === clampGe[1]);
+      if (twin && twin.base === r.base && twin.top === r.top && twin.w === r.w) clampPairs++;
+    }
   }
   const deepSame = fog.rows.filter(r => r.alpha === 1 && r.fg === r.target);
-  console.log(`  夹住这件事：α=1.35 与 α=1 的合成结果 ${clampPairs.length} 对逐字符同页（底与顶都变成目标色本身，` +
-    `${deepSame.length ? `同名前景那 ${deepSame.length} 格读回 ${Math.min(...deepSame.map(r => r.w)).toFixed(2)}:1——字与底同色` : '这一轮没有同名前景格'}）` +
-    `——"浓"档这一端不是"更浓"，是**整面涂成目标色**`);
+  console.log(clampGe.length >= 2
+    ? `  夹住这件事：端点 ${clampGe.join(' 与 ')} 都被 opacity 上限夹成同一个 α=1 ⇒ ${clampPairs} 组合成结果逐字符同页（底与顶都变成目标色本身，` +
+      `${deepSame.length ? `同名前景那 ${deepSame.length} 格读回 ${Math.min(...deepSame.map(r => r.w)).toFixed(2)}:1——字与底同色` : '这一轮没有同名前景格'}）` +
+      `——"浓"这一端不是"更浓"，是**整面涂成目标色**`
+    : `  夹住这件事：登记的端点里没有两枚 ≥1（≥1 的那几枚：${clampGe.join(' / ') || '无'}）⇒ 这一轮没有"夹成同一页"的对可读；` +
+      `把任一枚抬到 ≥1，它就和 1 同页（F1 那枚反例常驻跑的就是这一维）`);
   /* 天花板 + "读得出三档"的那条式子：a3 ≤ 天花板 且 相邻两档的通道位移 ≥ ${FOG_READABLE_255}/255 */
   const joint = [];
   for (const [key, b] of fog.bound){
@@ -921,10 +937,10 @@ let fogDrift = 0, fogFixFailed = 0, fogFixRan = 0;
   }
   if (joint.length === 2){
     const ceiling = Math.min(...joint.map(j => j.ceiling)), step = Math.max(...joint.map(j => j.step));
+    const times = FOG_LEVELS.map(l => (l / ceiling).toFixed(1)).join('× / ') + '×';
     console.log(`  合用一枚旋钮（--fog 不分主题）⇒ 天花板取交集 α ≤ ${ceiling.toFixed(3)}、` +
-      `步进取并集 Δα ≥ ${(2 * step).toFixed(3)}（两档 × 点名目标里最紧的那条）｜登记的三枚端点 .4 / 1 / 1.35 分别是这个上界的 ` +
-      `${(.4 / ceiling).toFixed(1)}× / ${(1 / ceiling).toFixed(1)}× / ${(1.35 / ceiling).toFixed(1)}×，` +
-      `而第 2、3 枚被夹住之后是同一个 α ⇒ ${ceiling >= 2 * step ? '数学上还剩一条缝（整条行程只有 ' + ceiling.toFixed(3) + '，且必须重选端点）' : '端点不存在'}`);
+      `步进取并集 Δα ≥ ${(2 * step).toFixed(3)}（两档 × 点名目标里最紧的那条）｜登记的三枚端点 ${FOG_LEVELS.join(' / ')} 分别是这个上界的 ${times}，` +
+      `${clampGe.length >= 2 ? '而 ≥1 的那几枚被夹住之后是同一个 α ⇒ ' : '（这一轮没有两枚端点同时撞上限）⇒ '}${ceiling >= 2 * step ? '数学上还剩一条缝（整条行程只有 ' + ceiling.toFixed(3) + '，且必须重选端点）' : '端点不存在'}`);
   }
   console.log(`  盘上端点 ${fogFound.map(x => `${x.file}:${x.line} ${x.v}`).join(' / ')} ⇄ 本格登记值 ${FOG_LEVELS.join(' / ')}（同源）；` +
     `var(--fog) 消费者 ${fogTotal} 枚（${fogByFile.map(x => `${x.file} ${x.n}`).join(' / ')}）—— 它今天乘在 opacity 上，这就是"已经是响度那一族"的现形`);
