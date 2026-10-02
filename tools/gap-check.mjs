@@ -54,7 +54,7 @@
         ⚠️ 边界：`:908` 的静止 `padding-left:0` 吃零口径不进账；`:910` 是 `transition` 名单不是槽位；`home.css:466`
            `.home-note:hover,.home-note:focus-visible{transform:translateX(6px)}` 走 transform、不在 `HPROPS` 里，同一族的位移今天数不到，已写进未验到。
    ⚠️ **三张表、三把尺**（从本卡起；立圆角那一轮写下的那句"两张表、两把尺"讲的是垂直＋圆角那一年的形状）：
-     下面 `REGISTERED` 那 144 枚是**垂直间距**的账，`H_REGISTERED` 那 84 枚是**横向间距**的账，`RADIUS_LADDER` 那 32 枚／12 种写法是**圆角**的账，
+     下面 `REGISTERED` 那 144 枚是**垂直间距**的账，`H_REGISTERED` 那 85 枚是**横向间距**的账，`RADIUS_LADDER` 那 32 枚／12 种写法是**圆角**的账，
      三本互不相干、谁也不许并进谁（立圆角那一轮的 142 枚这个数字，那一轮一枚都没动；
      后来 `v7b/density` 的一轮 §B1 把 X 抬了一枚、总数成 143，再后来 `v5b/heads` 的一轮 §C2 把 X 抬到 68、
      总数成 144——两笔账都写在下面 `REGISTERED` 那一格里；本卡立横向那一维，垂直与圆角两本账一枚未动）。
@@ -67,7 +67,7 @@
    在册枚数（顶部这一行、下面 `REGISTERED` 那枚字面量、§16 那一格、§4 那三行是同一句话的四处，动一处必红）：
      **A 14 ／ B 10 ／ C 52 ／ X 68 ＝ 144 枚垂直间距槽位，覆盖 src/styles/ 五份样式表。**
      横向那一本另立一句（与下面 `H_REGISTERED` 字面量、`HREGISTRY` 条数、盘上声明四处同源，动一处必红）：
-     **A 6 ／ B 0 ／ C 24 ／ X 53 ／ H 1 ＝ 84 枚横向间距槽位，覆盖同五份样式表。**
+     **A 6 ／ B 0 ／ C 24 ／ X 54 ／ H 1 ＝ 85 枚横向间距槽位，覆盖同五份样式表。**
    ⚠️ 防空转是硬要求（§16 记过一次"rgba 漂移检查静默空转、退出码 0、长得像全绿"）：
      注册表为空 ⇒ 红；扫描器一枚都没抓到 ⇒ 红并打印"判据正在空转"；
      注册表里一条盘上找不到（幻影）⇒ 红；盘上一枚没人认领 ⇒ 红；
@@ -96,14 +96,14 @@ const TIERS = { A: '视口比例', B: '行距派生', C: '纯块间距·已上�
    只多立一档 H；两本的区别只在打印那一节的标题上（"横向间距槽"）。B 在这一本恒 0 枚（判据⑦ 的反面）。 */
 const HTIERS = { ...TIERS, H: '悬停位移·状态态' };
 /* ⚠️ 横向在册枚数（`HREGISTRY` 条数 / 盘上声明 / §4 那本间距账将来单列的横向一条，四处同源，动一处必红）：
-   **A 6 ／ B 0 ／ C 24 ／ X 53 ／ H 1 ＝ 84 枚横向间距槽位，覆盖 5 份样式表。**
-   逐份：base.css 10 ／ mistwood.css 42 ／ home.css 13 ／ essay.css 18 ／ notes.css 1。
+   **A 6 ／ B 0 ／ C 24 ／ X 54 ／ H 1 ＝ 85 枚横向间距槽位，覆盖 5 份样式表。**
+   逐份：base.css 10 ／ mistwood.css 42 ／ home.css 13 ／ essay.css 18 ／ notes.css 2。
    这一串同样是 `node tools/gap-check.mjs` **实跑打印**的那一串，不是相加出来的。
    ⚠️ 立尺这一轮（本卡 `v11b/hgap`）从盘上现值全量登记，`src/**` 一个字节未改：垂直那 144 枚与圆角那 32 枚／12 种一枚未动、
    两本旧账的逐位读数与本卡之前一致（横向这一本是新立的第三本，不与前两本共享任何一枚槽位记录）。
    ⚠️ B 档登记 0 是**判断**不是"没扫到"：横向没有"行与行之间"那种东西（文件头那一段写了理由），
       谁把横槽登记成 B，判据⑦ 那一段会点名它，而不是让枚数加法悄悄把它收进去。 */
-const H_REGISTERED = { A: 6, B: 0, C: 24, X: 53, H: 1 };
+const H_REGISTERED = { A: 6, B: 0, C: 24, X: 54, H: 1 };
 /* needle：四种形状各一枚，扫不到就是在空转（长手 margin-left／长手 padding-left／column-gap／双值 gap 的列距） */
 const H_NEEDLES = [
   ['mistwood.css', '', '.chip-n', 'margin-left', '6px', 'X'],
@@ -382,12 +382,13 @@ const HREGISTRY = [
   ['essay.css', '', '.post-body .sn-mark', 'margin', '5px', 'X', '边注上标号的左距（第 4 值）：左右不等 ⇒ 一条声明两枚横槽，各记一条'],
   ['essay.css', '@media (min-width:1240px)', '.post-body .sidenote', 'margin', '-232px', 'C', '边注浮进 680 栏左侧留白那 232px 负左距：照算术 232＝29×8 落 C，登记它是为了"格子管得住它"，不是把它认成留白档（负位移的语义与 .dayring 那枚同族）'],
   ['essay.css', '@media (min-width:1240px)', '.post-body .sn-mark', 'margin', '8px', 'C', '浮注那一档上标号的右距（`margin:2px 8px 0 0` 第 2 值，左 0 不收）'],
-  ['essay.css', '', '.post-body figcaption::before', 'margin-right', '6px', 'X', '图注那枚齿孔点与"图"字之间的 6px 右距：essay.css:581-583 那段注释明写"margin-right 是横向槽位、gap-check 一概不看、横向不在它那 143 枚垂直账上"——后半句从本卡起过期（它现在在横向这一本的 84 枚里），前半句仍旧只对垂直那一本成立'],
+  ['essay.css', '', '.post-body figcaption::before', 'margin-right', '6px', 'X', '图注那枚齿孔点与"图"字之间的 6px 右距：essay.css:581-583 那段注释明写"margin-right 是横向槽位、gap-check 一概不看、横向不在它那 143 枚垂直账上"——后半句从本卡起过期（它现在在横向这一本的 85 枚里），前半句仍旧只对垂直那一本成立'],
   ['essay.css', '', '.lightbox', 'gap', '14px', 'X', '灯箱里大图／图注／收起钮之间（flex column ⇒ 列距不显形）'],
   ['essay.css', '', '.lightbox', 'padding', '16px', 'C', '面板四边同值 ⇒ 两本各一枚（垂直那一本记上下，这一本记左右）'],
   ['essay.css', '', '.post-nav', 'gap', '32px', 'C', '左右两枚链接之间的列距：这一枚在桌面横排才显形（≤720 转竖排后它变成行距，那一半在垂直那一本）'],
   /* ===== notes.css：/notes/ ===== */
   ['notes.css', '', '.note', 'gap', '10px', 'X', '一条 note 里日期行与句子之间（flex column ⇒ 列距不显形）：垂直那一本把同一条声明记成 B 行距派生，这一本不收 B ⇒ 按算术落 X，枚数冻结'],
+  ['notes.css', '', '.jieqi-scale', 'column-gap', '3px', 'X', '廿四气标尺气与气之间那 3px 缝：与 `.yring`（mistwood.css:669 那一枚，在册也记 X）同值，两条各认各的宿主——那一枚在 mistwood.css、这一枚在 notes.css，两把尺架各自认各自的。⚠️ 这块零枚被撤、零枚被改，只是被登记：`v11d/jieqi` 那枚 `column-gap:3px` 是逐字照 `.yring` 搬的，而横向这一族自 `v11b/hgap` 起已在册，所以它落地那天就该有这一条；notes.css:16 那句"gap-check 的拆值口径明写 column-gap 一概不看"是它基树上的旧说法，登记不改它的设计与值'],
 ];
 
 /* ---------- 第二族的登记表：圆角梯子 ---------- */
