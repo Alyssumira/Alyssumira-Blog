@@ -89,6 +89,10 @@ npm run selftest     # 给判据喂坏数据，自证那八格"有牙"（不接�
 
 `gate` 里有一步会起真浏览器读产物的运行时 DOM。本机用哪一枚浏览器由 `tools/browser-bin.mjs` 现场探（判据是能力探针，不是"文件在不在"）；要指定就传 `--browser=<路径>` 或设 `MISTWOOD_BROWSER`。
 
+`gate` 里 build 之后那十步读的是**产物**，其中四格还额外吃**可见稿件的枚数**：`reading-check`／`search-check`／`runtime-check`／`og-check`。仓库出厂那三篇样例都带 `draft: true`，所以 clone 完第一次跑 `gate` 会停在"这一格没有载体"上——那是设计，不是坏了（读不到被测对象的尺子不许装绿，见 `docs/设计规范.md` §16）。`npm run check` 那八项不吃枚数，出厂就绿。
+
+想在出厂态当场看十二步全绿，两件事都要做（本机 2026-10-02 实测：只放开篇数而不重切子集，会红在 `font-subset --check`；只放开两篇，会红在 `og-check`）：① 把三篇样例的 `draft: true` 各删掉——只放开两篇 `og-check` 仍红，它的 needle 写死在 `forest-blog` 那一篇上；② 按在册顺序重切一次子集 `npm run build` → `node tools/font-subset.mjs --make` → `npm run build`（正文进了产物就会有新字形进码点并集）。放开三篇之后的读数：`imgpipe` 59／`feed` 3⇄3／`pagination` 91／`alias` 53／`lifegrid` 42／`reading` 147／`search` 560／`runtime` 全过／`og` 74。
+
 产物里的绝对地址由一枚开关决定，**没给就还是那枚占位域名**：
 
 ```bash
