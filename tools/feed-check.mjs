@@ -129,7 +129,12 @@ const TAGS = ['p', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'footer', 'em', '
               'sup', 'section', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
               /* 双语注那一族（四轮 §2-1）：这三枚必须进直方图，否则 ③ 那一格对"feed 把 ruby 拆了壳"是**瞎的**——
                  拆壳只丢外壳、字全留，去壳文字因此两侧仍相等，唯一读得出这件事的就是枚数。
-                 登记值：`src/lib/feed.js` 的 ALLOW 25 枚（含这一族三枚＝25 ⇄ 这一串 25 枚，两处等值）→ 见 ③ 那格打印。 */
+                 登记值（`v11c2/ruby` 复算）：`src/lib/feed.js` 的 ALLOW **28 枚** ⇄ 这一串 **28 枚**，两处等值 → 见 ③ 那格打印
+                 （上一版把这笔写成 25——那是加这一族之前的枚数，"两处等值"成立而数字是旧的，没人量过）。
+                 ⚠️ 这一格的行程**吃载体**：三篇跟踪样例今天全 `draft: true` ⇒ 出厂态 dist 里 0 枚 ruby ⇒ 同一枚变异
+                 （把 `rt` 从 ALLOW 摘掉）在没载体时 rc=0、有载体时 rc=1（红话「③ …rt：页面 10 枚 ⇄ feed 0 枚」），两读数都实测过。
+                 `tools/check-markdown.mjs` 那一族 83 行读不到这里——它只 import `markdown.js`，所以"未登记＝拆壳"这一课
+                 今天的牙只住在本工具，而本工具的对象是 `dist/`。 */
               'ruby', 'rt', 'rp'];
 const histOf = frag => TAGS.map(t => [t, (frag.match(new RegExp(`<${t}(?=[\\s/>])`, 'g')) || []).length]);
 const histDiff = (a, b) => {
