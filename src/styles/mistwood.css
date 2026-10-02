@@ -509,10 +509,30 @@ html[data-tier="lost"] .page-head::after{
       字下面那半档 6px 加上行自己那 20/26px 内垫，就是季度名与第一行之间的距离，不必再写第二枚数；
    ④ 窄屏三档零分支：线是横向铺满（跟宿主盒走）、名是两个字符（`q1`…`q4`，340 档也占不到半栏），
       两样都不依赖视口宽度 ⇒ §11 那一格登记"零新行"。打印上不上纸见 §19.1 新增那一行。 */
+/* 大写标签（W2-C 第 2 档，2026-10-03 本卡 `v12c/offset`）：季度名换成 `Q1`…`Q4`。五条口径：
+   ⚠️ **只加声明、不改字面**：模板里 `EssayIndex.astro:330` 那枚字面量 `q{c.q}` 一个字没动 ⇒ 产物字节不变、
+      `pagination-check`／`runtime-check` 那些吃源码字面的绊线一枚不必重签（重签不归本卡）。改的是渲染出来的形。
+   ⚠️ **为什么是这一处**：这一族四枚标签里只有它是"小写不是它的本字"——季度序数在拉丁排版里的通行写法就是
+      `Q1`（序数字母＋序号数字），小写 `q` 在这儿读起来是"没写完的缩写"而不是柔和；而它正好站在那根发丝线下面，
+      "大写字母打头、线在上、名在下"是这一族最省笔墨的说法。§12「大写标签」那枚禁令今天**零载体**，这一枚是第一枚。
+   ⚠️ **为什么不是另外三处**：`.year-mark`（上面 `:494`）与 `.folio`（下面 `.folio` 那一格）渲染出来的字面
+      **只有数字**（`{g.y}` 与 `pad(n)`）——`text-transform` 对数字是空转，给它们加一枚永不生效的声明就是假改动；
+      `.sec-label`（上面 `:472`）确实有拉丁，但它的宿主是**句子**（`essays — 03 →`／`recent essays — 03 →`），
+      一枚声明同时改到六份子页扉页＋首页那一行（`home.css:466` 只覆 `display`／`margin`／`font-weight`，拦不住这一族），
+      而它是 `white-space:nowrap`、§11 那笔"顶不顶穿内容盒"的债还没量，本卡不许 build ⇒ 撤这一处，留给单独一张卡签字。
+   ⚠️ **窄屏退成什么**：零新档、照旧大写。这一族的字是等宽面（12px／`.14em`），`Q` 与 `q` 的 advance width 同一枚
+      （现读 `public/fonts/ibm-plex-mono/` 那三张 latin slice 各 229 枚 cmap，`Q`／`q`／`0-9` 同张在册）
+      ⇒ 大写既不加宽也不换脸、不必走回退栈，上面那格④"340 档也占不到半栏"的读数照旧成立。
+   ⚠️ **三本账一枚不动**：`text-transform` 既不是间距也不是圆角 ⇒ 垂直 144 枚／横向那一本／圆角 32 枚都不为它翻；
+      它也不碰 `EssayIndex.astro` 与 `index.astro` 的任何字面量。
+   ⚠️ **§7「两层各管一种语言」照旧**：这一行的字面只有拉丁＋数字两枚字符，没有中文掺进来（汉字本来也不吃
+      `text-transform`，所以那一层不在本档的范围里）。⛔ 页脚那一族（`base.css:646-648` 的 `.foot-id`／`.foot-acts`）
+      本卡一个字没碰——§7 那两层的账在它身上。 */
 .q-mark{
   border-top:1px solid var(--line);
   font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; line-height:2; letter-spacing:.14em;
   color:var(--ink-3);
+  text-transform:uppercase;
 }
 .essay-index{ list-style:none; margin:0 0 24px; padding:0; }
 .essay-index li{ position:relative; border-top:1px solid transparent; }
