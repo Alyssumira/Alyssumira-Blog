@@ -77,16 +77,16 @@ const atHour = (m, d, h) => new Date(2026, m, d, Math.floor(h), Math.floor((h % 
 
 /* ---------- ⑦ 要读的那三份外部清单：谁都不许由 CELLS 派生 ---------- */
 /* 日常必须跑齐的格。少一格就是 §14 第 14 项的原案：删掉的判据不会自己报告。 */
-const CELL_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'];
+const CELL_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
 /* 反例清单（selftest 的期望数）。⚠️ 它与 CELL_IDS 内容相同是**巧合**，不是派生关系：
    两枚分开写，删一格时要同时删两处才不被发现——这就是"期望数不许由 registry 派生"的落点。 */
-const CONTRA_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'];
+const CONTRA_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
 /* 反例与朝窄的**枚数**同样是独立字面量，不从登记表数出来。为什么要多这一道：M7b 实测到"某格有两枚
    反例、偷偷删掉一枚"在四份 id 清单上完全无痕（id 还在、格还在、集合照样同源 ⇒ selftest 少跑一枚仍然
    exit 0）。枚数一钉，拔牙就要连这两枚数字一起改——改数字在 diff 里比删代码显眼。
    ⚠️ 加反例/朝窄必须把这两枚一起抬；抬不动的那一次，往往就是"这一枚其实没力气"的那一次。 */
-const CONTRA_ENTRIES = 17;
-const NARROW_ENTRIES = 9;
+const CONTRA_ENTRIES = 22;
+const NARROW_ENTRIES = 10;
 /* 第四份清单在**另一份文件**里：规范 §16 那枚 bullet。它是签字文档，动它会在 diff 里显形。
    ⚠️ 认的是"以 `- **phase-check 登记表**` 开头的那一行"（bullet 本体），不是"哪一行提到了这个词"——
    规范正文里引用这个短语的地方不止一处，用 includes 会挑到错的那一行（本卡实测挑到过 §14 的论述）。
@@ -113,6 +113,10 @@ function specRegistry() {
 const readText = u => { try { return readFileSync(u, 'utf8'); } catch { return ''; } };
 const WATCH_SRC = readText(new URL('../src/scripts/site.js', import.meta.url));
 const WATCH_TPL = readText(new URL('../src/pages/index.astro', import.meta.url));
+/* ---------- ⑨ 要读的那两份：光柱的表（CSS）与呼吸的写者（JS）----------
+   读不到就是空串，那一格当场红（fail closed，同 ⑧ 那三份的口径）。 */
+const SHAFT_CSS = readText(new URL('../src/styles/home.css', import.meta.url));
+const SHAFT_JS = readText(new URL('../src/scripts/hero.js', import.meta.url));
 function watchSpecLine() {
   const text = readText(new URL('../docs/设计规范.md', import.meta.url));
   return text.split(/\r?\n/).find(l => l.includes('WATCH_WORD = {')) || '';
@@ -749,6 +753,117 @@ const CELLS = [
       env: () => ({ ...REAL, watchSrc: "const WATCH_WORD = { dawn: '初', dusk: '暮', night: '守夜' };" }),
     }],
   },
+
+  /* ---------- ⑨ ---------- */
+  /* 二轮 §7.1 落盘的格（2026-10-03 `v10d/shaft`）。这一格管三件此前**没有任何尺子读**的事：
+     ① 光柱的强度在 CSS 里只许有**一处** `opacity` 声明，其余各档只许改那枚被乘的底
+       —— 谁再往 `.bg-photo::after` 上直接写 `opacity:`，就是 §5.1 那张表的第 13 枚字面量，
+       而且它会把呼吸绕过（同一屏上两枚真值，一处随鼠标、一处不随）；
+     ② 那条 calc 里除 `--shaft-base` × `--shaft-breath` 不许出现第三个因子
+       —— `--fog` 是用户在抽屉里那枚"雾"的乘数，规范签的是"只乘在氛围层的 opacity 上"，
+       光柱今天不吃它，这一格就不许让它搭车（§18.3 那条旋钮语义扩权）；
+     ③ 呼吸的**写者形状**：全站一处插值、一处复位，跑在雾灯那枚已有的 rAF 里，读早就算好的 `tx`，
+       幅度常量 `.04`，减弱/无 JS/触屏三档的退路由 `@property` 的初值 1 承担。
+     ⚠️ ③ 这一组就是提案那句"不占常驻循环名额"的盘上证据：判的是**环与监听的枚数**
+     （`requestAnimationFrame(` 1 枚、`addEventListener(` 9 枚），不是"没有 animation"那句话说自己不算。
+     时长（`BREATH_K`）故意**不在这一格**——它是 §8.5 那族的读数，钉在这里会让下一次标定时间常数
+     变成"改门禁"，而那件事该在规范里签字、不该在尺子里。 */
+  {
+    id: '⑨', name: '光柱强度一处真值 ⇄ 12 枚签字底 ⇄ 呼吸写者不添环不添监听',
+    run(E) {
+      let asserted = 0; const failed = [], out = [];
+      const codeOnly = s => (s || '').replace(/\/\*[\s\S]*?\*\//g, '');   /* 注释里那些选择器不算一枚规则 */
+      const norm = s => s.replace(/\s+/g, ' ').trim();
+      const css = codeOnly(E.shaftCss), js = codeOnly(E.shaftJs);
+      asserted++;
+      if (!css) failed.push('⑨ 读不到 `src/styles/home.css` —— 判据在评空气，不许当成通过（fail closed）');
+      asserted++;
+      if (!js) failed.push('⑨ 读不到 `src/scripts/hero.js` —— 同上');
+      /* ---- 手写死的期望表：不许由被测源码派生 ---- */
+      const OPACITY = 'calc(var(--shaft-base,0) * var(--shaft-breath,1))';
+      const SIGNED = '.50 .18 .38 0 .30 .12 .20 0 .95 .76 .54 .36';   /* 亮四档 → 暗四档 → 晨昏强四档 */
+      const RULES = 14, WRITERS = 2, LOOPS = 1, LISTENERS = 9;
+      const rules = [...css.matchAll(/([^{};]*)\.bg-photo::after\s*\{([^}]*)\}/g)]
+        .map(m => ({ sel: norm(m[1]), body: norm(m[2]) }));
+      asserted++;
+      if (rules.length !== RULES)
+        failed.push(`⑨ 落在 \`.bg-photo::after\` 上的规则有 ${rules.length} 枚（在册 ${RULES} 枚：底座 1 ＋ 暗色背景 1 ＋ phase 8 ＋ 强档 4）—— 多一枚就是有人给这层新开了一个条件块，少一枚就是签字表被拆了`);
+      const withOp = rules.map(r => /(?:^|;)\s*opacity:([^;]*)/.exec(r.body)).filter(Boolean);
+      asserted++;
+      if (withOp.length !== 1)
+        failed.push(`⑨ \`.bg-photo::after\` 上的 \`opacity\` 声明有 ${withOp.length} 枚（必须 1 枚）—— 第 ${withOp.length + 1} 枚就是 §5.1 那张表的第 13 枚字面量，而且它绕开呼吸：同一层上会出现"一半随鼠标、一半不随"的两枚真值`);
+      else {
+        const expr = norm(withOp[0][1]);
+        asserted++;
+        if (expr.includes('--fog'))
+          failed.push(`⑨ 那条 opacity 里乘进了 \`--fog\`（现在是 \`${expr}\`）—— 那枚旋钮签的是"只乘在氛围层的 opacity 上"，光柱搭车＝§18.3 禁的旋钮语义扩权，而且它与呼吸同层相乘会双计`);
+        asserted++;
+        if (expr !== OPACITY)
+          failed.push(`⑨ 那条 opacity 不是 \`${OPACITY}\`（现在是 \`${expr}\`）—— 底与乘数之外多一个因子／少一个因子，八格就不再是同一张表`);
+      }
+      const bases = rules.map(r => /(?:^|;)\s*--shaft-base:\s*([^;]*)/.exec(r.body)).filter(Boolean).map(m => norm(m[1]));
+      asserted++;
+      if (bases.length !== 12)
+        failed.push(`⑨ 写 \`--shaft-base\` 的规则有 ${bases.length} 枚（应为 12：phase 8 ＋ 晨昏强档 4）—— 少一枚是那档退回初值 0（夜里不画，但白天也可能没），多一枚是没进签字表的档`);
+      else {
+        asserted++;
+        if (bases.join(' ') !== SIGNED)
+          failed.push(`⑨ 那 12 枚底与签字表逐字不同：盘上 [${bases.join(' ')}] ⇄ 签字 [${SIGNED}]（§5.1 与二轮 §2.1 重签的是这十二枚，改数要走规范那一格，不是这里）`);
+        const nights = rules.filter(r => r.sel.includes('data-phase="night"')).map(r => /--shaft-base:\s*([^;]*)/.exec(r.body)?.[1] ?? '?');
+        asserted += 2;
+        if (nights.length !== 2) failed.push(`⑨ night 那两档找不到（现在 ${nights.length} 枚）—— 乘法那一半的理由全靠这两枚是 0：0 乘任何乘数都是 0，"夜里消失"才不会被呼吸造出一束光`);
+        else if (nights.some(v => norm(v) !== '0')) failed.push(`⑨ night 那两档的底不是 0（现在是 ${nights.join(' / ')}）—— 呼吸在夜里就会真的动起来了，§5.1 那句"夜里消失"作废`);
+      }
+      for (const [name, init] of [['--shaft-base', '0'], ['--shaft-breath', '1']]) {
+        const m = new RegExp(`@property\\s+${name}\\s*\\{([^}]*)\\}`).exec(css);
+        asserted++;
+        if (!m) { failed.push(`⑨ 读不到 \`@property ${name}\` —— 这一族没注册就成了裸 \`var()\`：没有 syntax 就没有可插值的类型，没有初值就没有减弱档的退路`); continue; }
+        const body = norm(m[1]);
+        asserted += 2;
+        if (!body.includes("syntax:'<number>'")) failed.push(`⑨ \`@property ${name}\` 的 syntax 不是 '<number>'（现在是 \`${body}\`）`);
+        if (!new RegExp(`initial-value:\\s*${init.replace('.', '\\.')}\\s*;?`).test(body + ';'))
+          failed.push(`⑨ \`@property ${name}\` 的 initial-value 不是 ${init}（现在是 \`${body}\`）—— ${name === '--shaft-breath' ? '那枚 1 就是减弱动态／无 JS／非细指针三档的退路：没有写者时乘出来逐字等于签字表' : '那枚 0 是"没有档就没有光"的起手态'}`);
+      }
+      /* ---- JS 侧：写者形状（提案那句"不占常驻循环名额"的证据在这一组） ---- */
+      const writers = (js.match(/setProperty\('--shaft-breath'/g) || []).length;
+      const loops = (js.match(/requestAnimationFrame\(/g) || []).length;
+      const listeners = (js.match(/addEventListener\(/g) || []).length;
+      asserted += 4;
+      if (writers !== WRITERS) failed.push(`⑨ 写 \`--shaft-breath\` 的站点有 ${writers} 处（在册 ${WRITERS}：\`put()\` 一次、熄灯复位一次）—— 多一处就多一个不随灯灭而停的写者`);
+      if (loops !== LOOPS) failed.push(`⑨ \`hero.js\` 里 \`requestAnimationFrame(\` 有 ${loops} 枚（在册 ${LOOPS} 枚）—— 提案那句"不占常驻循环名额"要靠这一枚数成立：呼吸骑在雾灯那枚环上，另起一环就是首屏第四族常驻循环（§1 预算表首屏 ≤3 族）`);
+      if (listeners !== LISTENERS) failed.push(`⑨ \`hero.js\` 里 \`addEventListener(\` 有 ${listeners} 枚（在册 ${LISTENERS} 枚）—— 再读一次坐标就要再挂一枚监听，那是第二枚跟随光标的东西（§8.5 那句"不做第二枚灯"）`);
+      if (!/bs\s*\+=\s*\(1 \+ tx \* BREATH - bs\)/.test(js))
+        failed.push('⑨ 找不到"向 `1 + tx * BREATH` 插值"那一行 —— 呼吸不再读算好的 `tx` 就是另起了一次坐标读取');
+      const amp = /const BREATH = \.04\b/.exec(js);
+      asserted++;
+      if (!amp) failed.push('⑨ 幅度常量不是 `const BREATH = .04` —— ±4% 是提案那格带取值进来的数，改它要回规范那一格');
+      asserted++;
+      if (!/bs = 1;/.test(js)) failed.push('⑨ 熄灯时不再把 `bs` 复位为 1 —— 静止态就会停在一个偏掉的乘数上，§5.1 那 12 枚字面量在盘上就不再是唯一读数');
+      out.push(`  ⑨ 光柱  ✓ 规则 ${rules.length}/${RULES} 枚 · opacity 声明 ${withOp.length} 枚（表达式 ${withOp.length === 1 ? '`' + norm(withOp[0][1]) + '`' : '—'}）· 底 12 枚 ${bases.length === 12 ? `[${bases.join(' ')}]` : '—'}`
+        + ` · 两枚 @property 在册 · rAF ${loops} 枚 / addEventListener ${listeners} 枚 / 写者 ${writers} 处 · 幅度 .04`);
+      return { asserted, failed, out };
+    },
+    contra: [{
+      name: '第 13 枚字面量：亮/dawn 那一档在底之外又直接写了一枚 opacity（呼吸被绕过）',
+      env: () => ({ ...REAL, shaftCss: REAL.shaftCss.replace('.bg-photo::after{ --shaft-base:.50; }', '.bg-photo::after{ --shaft-base:.50; opacity:.50; }') }),
+    }, {
+      name: '把 --fog 乘进那条 calc（旋钮语义扩权 ＋ 与呼吸同层双计）',
+      env: () => ({ ...REAL, shaftCss: REAL.shaftCss.replace('opacity:calc(var(--shaft-base,0) * var(--shaft-breath,1));', 'opacity:calc(var(--shaft-base,0) * var(--shaft-breath,1) * var(--fog,1));') }),
+    }, {
+      name: '呼吸的 initial-value 从 1 改成 .96（减弱档不再退成签字值，而是退成"永远偏暗一档"）',
+      env: () => ({ ...REAL, shaftCss: REAL.shaftCss.replace('@property --shaft-breath{ syntax:\'<number>\'; inherits:true; initial-value:1; }', '@property --shaft-breath{ syntax:\'<number>\'; inherits:true; initial-value:.96; }') }),
+    }, {
+      name: '给首屏添第二枚 rAF 环（那句话就不成立了）',
+      env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace('requestAnimationFrame(loop);', 'requestAnimationFrame(loop); requestAnimationFrame(loop);') }),
+    }, {
+      name: '为呼吸另挂一枚 pointermove 监听（第二枚跟随光标的东西）',
+      env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace("addEventListener('focusout', e => {", "addEventListener('pointermove', () => {});\n  addEventListener('focusout', e => {") }),
+    }],
+    narrow: [{
+      name: '只换时间常数（BREATH_K .017→.02，§8.5 那族的标定，不是这一格的东西）：不许误红',
+      env: () => ({ ...REAL, shaftJs: REAL.shaftJs.replace('BREATH_K = .017', 'BREATH_K = .02') }),
+    }],
+  },
 ];
 
 /* ---------- 默认吃的那一份 = shipped 的那一份 ---------- */
@@ -772,6 +887,8 @@ const REAL = {
   legalBounds: [{ dawnStart: 5, dawnEnd: 9, duskStart: 16, duskEnd: 20 }],
   /* ⑧ 的三份对象：词表的源码、载体的模板、规范的签字行（谁不在盘上就是空串，判据当场红） */
   watchSrc: WATCH_SRC, watchTpl: WATCH_TPL, watchSpec: watchSpecLine(),
+  /* ⑨ 的两份对象：光柱那张表所在的样式文件、呼吸写者所在的脚本（不在盘上＝空串＝那一格当场红） */
+  shaftCss: SHAFT_CSS, shaftJs: SHAFT_JS,
   shift: 0,
   registryIds: () => CELLS.map(c => c.id),
   cells: CELLS, contraEntries: CONTRA_ENTRIES, narrowEntries: NARROW_ENTRIES,
