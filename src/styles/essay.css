@@ -336,7 +336,40 @@ html[data-focus="1"] .wrap::before{ display:none; }
   font-size:30px; font-weight:600; margin:64px 0 24px; letter-spacing:.02em;
 }
 .post-body h2::before{ content:""; display:block; width:32px; height:1px; background:var(--moss); margin-bottom:16px; }
-.post-body em{ letter-spacing:-.015em; color:var(--moss-ink); }
+/* 强调：换色 + 负字距 + **一枚着重号**（W2-F 第 1 档，2026-10-03）。
+   这一族的记号走 `text-emphasis`：被强调的那一串字，**每一枚字头顶上一枚点**，位置吃初值 `over right`
+   （所以这里只有 `text-emphasis:dot` 这一句，`text-emphasis-position` 不发——发一条把初值抄一遍的声明就是本仓点名的空转声明）。
+   ⚠️ 为什么是"点"而不是"再粗一档"：`strong` 那一族已经占了字重这条通道（下面那条 550，规范 §3.4 逐档签过），
+   `em` 再往字重上走就是同一层两套嗓子抢同一格；着重号走的是**文字装饰层**，与字重／下划线／染色各不相犯。
+   ⚠️ 点落在字**上方**而不是脚下：字底下那一格已经是链接的领地（本节下面那条 `text-underline-offset:3px` 一族），
+   把点压在字下等于让"强调"去借"可点"的位置——同一行里两种意思抢同一个像素带。
+   ⚠️ 记号族对账（站内已有的那几枚点，逐枚点名它哪里不同）：
+     · §9「我在哪儿」那两枚 5px 实心圆盒（`.nav-links a.here::before`／时钟前那枚"现在"的点）——**成对、读的是"哪一项是当前"**，
+       住在导航层，旁边有可点对象；这一枚旁边什么也没有，它不指位置。
+     · 「现在在做」那枚呼吸点——带呼吸，本卡零枚 animation，形状上就分得开。
+     · 换气记号（`.post-body hr::before` 与 `.year-block + .year-block::before` 那枚 13px 字形）——**块与块之间一枚、居中**，
+       读的是"这里换一口气"；这一枚**跟着字走、一串字就是 N 枚**，从不单独出现，撤掉 `em` 就一枚不剩。
+     · 底片齿孔那两枚 2px 点（`.post-body figcaption::before`）——**固定在图注前、两枚成对**，读的是"这是一帧照片"。
+     · `.yring` 那 365 格／`.jieqi-scale` 那廿四格／`.life-cell`／`.word-river` 那片散点河——**数据格**，读深浅与计数。
+     ⇒ 本卡这一枚的原子是"一枚被重读的字"，不是"一天／一篇／一处"，它**不携带任何读数**，
+       与 §13b 苔点那一行在册那句「生命、计数、记录」不同义，也长不出"宿主清单"（每一枚 `em` 都有自己的点）。
+       所以本卡**不**把它报进苔点族的在册宿主名单（它在排印那一层，与 `strong` 的字重、链接的下划线同层登记）；
+       docs/** 在禁改名单里，这一格的对账只落在这段注释里，签不签进 §13b／§3 由签字的人判。
+   ⚠️ 零枚新元素（只动这一条声明，`src/lib/markdown.js` 与 `feed.js` 的 `ALLOW`⇄`feed-check.mjs` 的 `TAGS` 两本账一个字没碰）、
+     零枚新色（不写 color：点吃 `currentColor`，也就是 `em` 自己那枚 `--moss-ink`，色板基础板 46 枚不涨到 47；
+     也不碰 `--ink-3`——那是装饰档，§2.4 不许它用在正文级小字上）、零枚新间距槽位（不写 margin/padding/gap ⇒ 144／85 不动）、
+     零枚新圆角（不写 border-radius ⇒ 32/12 不动）、零枚新动画。
+   ⚠️ 纸上（§19.4／§19.6 那一路，`base.css` 禁改，所以这里只答"撤不撤"）：**不撤，而且不需要谁来撤它**。
+     它是文字层的一口墨：`--moss-ink` 在打印那一节自动折回 `--paper-ink`，点跟着墨一起上纸。
+     这与底片齿孔那两枚正相反——那两枚是 `background`＋`box-shadow` 画的盒子，这一节又不用 `print-color-adjust:exact`，
+     留在纸上就是一枚印不出来的空位，所以 `base.css` 那行 `display:none` 是它的必需品。
+     这一枚若改走伪元素盒子画法，就同批得去求 `base.css` 添一行撤场；`base.css` 在本卡是只读的 ⇒ **画法的选择本身就是这条禁令的结果**。
+   ⚠️ 未验到（本树没 `node_modules`、建不了 dist、起不了浏览器；以下四格只欠读数，不欠设计）：
+     ① 这套站内子集（Noto Serif SC）有没有着重号那一枚字形、缺字形时引擎合成不合成；
+     ② 正文 18px／行距 1.9 那一档的**字上方净空**装得装不下一枚点（隔壁 `{底|注}` 那一格为 +3.000px 记过账，同一把尺）；
+     ③ 一枚 `em` 里套住 `{底|注}` 时，注（`rt`，也在字上方）与点会不会叠在同一格；
+     ④ 点画不画上 `code`／标点那一族（`em` 里混进 `.85em` 的 mono 时跟着走，`text-emphasis` 是继承的）。 */
+.post-body em{ letter-spacing:-.015em; color:var(--moss-ink); text-emphasis:dot; }
 /* 加粗：550（二轮 §3.1，规范 §3.4 那一格逐档签字）。
    ⚠️ **改前的现状与提案给的起点不一样**：这一枚在 `02835a8` 上是**已声明的 600**（`.post-title` / h2 / h3 /
    `.post-nav a` 同档），不是提案那句"`<strong>` 从 700 降到 550"里的 700——UA 的 `bolder` 早就被这条声明覆掉了，
