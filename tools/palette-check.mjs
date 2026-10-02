@@ -4,7 +4,9 @@
          node tools/palette-check.mjs --selftest   （④「雾当明暗」那一格逐枚吃自己的反例：朝宽必须红、
                                                     朝窄不许误红；照 phase-check --selftest 同一条口径，
                                                     它故意让判据吃坏数据，所以不接进 npm run check 的默认链。
-                                                    日常链里那几枚反例照样每跑都吃，只是不逐枚印）
+                                                    日常链里那几枚反例照样每跑都吃，只是不逐枚印；
+                                                    2026-10-03 起它还逐枚印牙⑤「单调上界」那四枚自证 fixture，
+                                                    与那 8 枚常驻反例分账——两族的计数不合并）
          PALETTE_FOG_ROWS=1 node tools/palette-check.mjs   （把 ④ 那张 (主题×档×目标色×前景×α) 全表逐枚印出来）
    换算按 Björn Ottosson 的 OKLab 推导；对比度是 WCAG 2.1 相对亮度比。
 
@@ -26,7 +28,24 @@
    ⚠️ 2026-10-02（二轮 §7.2 落款那一卡）加第五件：**①d 枯草金配额**——`--straw` 的"每屏 ≤2 / 唯一当主角的
       时段是傍晚"这两句从前是**纯人工账**（一轮 A2 年标记号算过一次、本卡又算一次，两份账都没上盘）。
       这一关把可静态核的那一半搬上机器：在册消费者**枚数**与登记值对账（多一枚红、少到 0 也红），
-      并且每一枚都必须带「data-phase="dusk"」＋「data-theme="light"」双闸。口径与三枚 fixture 在 ①d 那一格。 */
+      并且每一枚都必须带「data-phase="dusk"」＋「data-theme="light"」双闸。口径与三枚 fixture 在 ①d 那一格。
+   ⚠️ 2026-10-03（`v12p/fogscale`，W2-P 那张卡的后续卡）换掉的是 ④「雾当明暗」的**落点**，判据一条都没删、
+     读数一个字都没少印。为什么换：
+     ① 旧牙①（覆盖层 α 把在册地板压破）那批读数是**最坏假设模型**的读数——本格把雾当成"整页、压在两层光之上、
+        字之下"的一枚覆盖层，而真实载体不是那个形状（`home.css:251` 那枚是 `160vw` 的椭圆带、
+        `essay.css:293/294` 那一层是 `min(.44, .44*var(--fog))` 的**遮罩深度**），本格**没按各自几何复算过面积与层序**
+        （这是上一张卡自己登记在册的未验到 #1）。拿一枚没复算面积的模型去把作者在册多年的三枚端点评成门禁红，是冤枉。
+     ② 那一族提案（fog-as-darkness 旋钮）已经被这一格判为**不可落**，盘上端点不会为它改动 ⇒ 门禁红会烂成一枚**永久红**；
+        而 `npm run check` 是 `&&` 串，④ 红把链截断在第三项，后面六项（phase／gap／taxonomy／media／jieqi／
+        font-subset／new-post／check-markdown）日常一格都不跑——本仓已经为"链截断"翻过两次车，这是文档里明写的故障签名。
+     ⇒ 于是这一格换成一枚**有方向的、今天活着的**门禁：新牙⑤「单调上界」——`--fog` 的最大端点**不许越过登记上界
+       `FOG_CEILING_REGISTERED`（现值 1.35，一枚**独立字面量**，不许从 `FOG_LEVELS` 里 `Math.max` 推了就算登记——
+       推出来的话"改数组就等于改判据"，那枚牙会跟着靶一起动）。今天 1.35 恰好就是上界 ⇒ 盘上绿；
+       将来谁想把雾往"更浓＝更暗"那一侧推（＝被否决的旋钮重新上岗），必须先跟这枚牙正面交锋。
+       这枚牙判的是"越过上界"这件事**本身**，与那族破地板读数**分开红、分开打印、两族话不合并**。
+     ⚠️ 这一格**没有**降级成零牙的 report-only 绿灯：同源牙（牙③）、反例牙（牙④，8 枚常驻 fixture）、
+       失去靶牙（牙②）继续计入退出码，与换落点之前等价；也没有加任何"零载体就跳过"的条件跳过
+       （§16 明令"读不到被测对象的尺子从来不算绿"，牙⑤ 自己那一枚端点都读不到时也判红、不判跳过）。 */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -717,8 +736,14 @@ if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相、方�
      · 暗档 `--ink` `#E3E8E0`：夜档四枚在册前景**全是纸**，能吃掉它们的方向只有"把底提亮到纸上"。
      · 暗档第二枚 `--bg-base`：压回该档自己那枚最深的底（§2.2「暗色不是反色，是重新打光」在旋钮上的对账）。
      目标色取**当档有效值**（`--bg-base` 在 `dark dusk` 是 `#0F0F06` 而不是基准那枚），与 ②③ 同一口径。
-   ⚠️ 四条牙，缺一条这格就会长成"跑了但什么都管不到"：
-     牙① 破地板：任一 (主题 × 档 × 目标色 × 前景 × α) 组合跌破 `FLOOR` 里那一枚登记值 ⇒ 红并点名差多少。
+   ⚠️ 五条牙。**2026-10-03 换的是牙① 的落点，不是牙① 的读数**（理由见文件头那一格：最坏假设模型没复算面积／层序
+      ＋那一族已判不可落 ⇒ 门禁红会烂成永久红、把 `npm run check` 的 `&&` 链截断在第三项）：
+     牙① 破地板【只印不判】：任一 (主题 × 档 × 目标色 × 前景 × α) 组合跌破 `FLOOR` 里那一枚登记值 ⇒
+          **逐组打印**（那一族读数是"为什么这一族提案不可落"的唯一盘上证据，一句都不许删），但**不计入退出码**——
+          本格把覆盖层当成"整页、压在两层光之上、字之下"，而 `home.css:251` 那枚是 `160vw` 椭圆带、
+          `essay.css:293/294` 那一层是 `min(.44, .44*var(--fog))` 的遮罩深度，本格没按各自几何复算过面积与层序
+          （在册未验到 #1）。拿一枚没复算过的模型把作者在册多年的三枚端点评成门禁红＝冤枉，所以这一族不计入退出码。
+          ⚠️ 它红的时候话也**不许**与牙⑤ 合并在同一句里：两族话、两枚计数、两行打印。
      牙② 失去靶也红：扫到 0 组读数 / 十四档没进来 / 盘上一枚 `var(--fog)` 都没有 / 某一档的在册前景读不到
           ⇒ 红（`v11h1/numtooth` 那一族口径；`litChecked` 那行"复算 N 档，N=0 就是这盏灯根本没进过闸"是它的母本）。
      牙③ 三枚端点 ⇄ 本格登记值**同源**：盘上 `--fog:` 字面量清单 ⇄ `FOG_LEVELS` ⇄ 规范那句计数。
@@ -727,8 +752,22 @@ if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相、方�
      牙④ 反例常驻：`FOG_FIXTURES` 那几枚内置反例每次跑都吃一遍（照 ①d 牙③ 的形状，红进 `fogDrift`），
           `node tools/palette-check.mjs --selftest` 再单独印一张逐枚的表（照 `phase-check --selftest` 的形状：
           朝宽没力气 ⇒ 红、朝窄误红 ⇒ 红、一枚都没跑 ⇒ 红）。⚠️ `--selftest` **故意**让判据吃坏数据，
-          所以它不接进 `npm run check` 的默认链（`package.json` 一枚字没改；日常链里跑的是常驻那几枚 fixture）。 */
+          所以它不接进 `npm run check` 的默认链（`package.json` 一枚字没改；日常链里跑的是常驻那几枚 fixture）。
+     牙⑤ 单调上界【本卡新增，进退出码】：`--fog` 的最大端点**不许越过 `FOG_CEILING_REGISTERED`**（现值 1.35）。
+          判的是"往上拧"这**一个动作**：今天盘上最大端点就是 1.35 ⇒ 绿；谁把它抬过 1.35（＝被否决的
+          fog-as-darkness 旋钮重新上岗）⇒ 单独红，红话现算点名天花板那两枚数字与 binding 档，并写明
+          "这一族不可落，要推翻先复算面积/层序、再按 --selftest 补反例"。
+          ⚠️ 这枚上界**不许从 `FOG_LEVELS` 里 `Math.max` 推**（推出来＝改数组即改判据，牙跟着靶一起动）；
+          它自己那四枚内置自证 fixture（照 ①d 牙③ 的形状）每跑都夹住它的可动区间：抬到 1.5 撞 B1（朝宽必须红），
+          压到 1.35 以下撞盘上今天的真实读数（牙⑤ 本体红）——所以"把上界改大以便过关"这条路本身是红的。
+          一枚端点都读不到时这一格**判红不判跳过**（§16：读不到被测对象的尺子从来不算绿）。 */
 const FOG_LEVELS = [.4, 1, 1.35];            /* 本格的登记值：`mistwood.css:18/270/271` 那三枚字面量 */
+/* ⚠️ 牙⑤ 的登记值：**一枚独立字面量**，与 `FOG_LEVELS` 两不相含——它是"上界"，不是"当前最大端点"。
+   派生（`Math.max(...FOG_LEVELS)`）会把这枚牙变成靶的复读：抬端点就自动抬上界，那一族旋钮就能不改这里地过闸。
+   每一跑都打印它自己（红话、绿话、摘要行三处），改动它只在 diff 里看得见；想绕过牙⑤ 就得改这一枚字面量，
+   而那一步两头都有人夹着：抬到 1.5 撞 B1（"1.5 必须被判为越过"这条自证当场红），
+   压到 1.35 以下撞 B3（"恰好压在上界上不许误红"）与盘上今天的真实读数（牙⑤ 本体红）。 */
+const FOG_CEILING_REGISTERED = 1.35;
 const FOG_TARGETS = { light: ['--ink', '--moss-solid'], dark: ['--ink', '--bg-base'] };
 const FOG_STATES_REGISTERED = 14;            /* ②③ 现印的那十四档；本格吃的档数必须与它相等 */
 const FOG_FIXTURES_REGISTERED = 8;
@@ -763,6 +802,17 @@ function fogLevelDrift(found, registered){
     break;
   }
   return out;
+}
+/* 牙⑤ 的判据本体（**纯函数**：真实读数与内置自证 fixture 吃的是同一枚判据，不许各写一份——
+   ②③ 与 ④ 同一条合成路径、同一个口径，这条纪律在这把尺子上反复被罚）。
+   输入一串端点读数 + 一枚**独立登记**的上界，输出：
+     empty  一枚读数都拿不到（＝尺子读不到对象，调用方判红，不许退成"没有就绿"）；
+     max    读到的最大端点（null＝没有）；
+     over   越过上界的那几枚（判的是 `>` 不是 `>=`：上界登记的就是"合法的最大值"，
+            今天盘上那枚 1.35 恰好压在上面 ⇒ 交付态必须是绿）。 */
+function fogBoundCheck(reads, bound){
+  const nums = reads.map(x => (typeof x === 'number' ? x : Number(x && x.v))).filter(Number.isFinite);
+  return { empty: !nums.length, max: nums.length ? Math.max(...nums) : null, over: nums.filter(v => v > bound) };
 }
 /* 逐 α 扫一遍：给定一档（有效底/顶 + 当档令牌）与一枚目标色，返回"到这儿为止四枚地板全守住"的最大 α。
    ⚠️ 不假设单调：前景可能比目标色更浅，α 拧到底时比值会先降后升，所以取**第一个跌破那一格**之前的界。 */
@@ -851,6 +901,13 @@ const FOG_FIXTURES = [
     run: () => { const thin = { ...FOG_FX[0], eff: { ...FOG_FX[0].eff } }; delete thin.eff['--ink-2']; const s = fogSweep([thin], { light: ['--ink'] }, [.4]); return { hit: fogRed(s), note: `bad ${s.bad.length} 条、读数 ${s.combos} 组（少一枚靶，比 F2 的 4 组少）` }; } },
 ];
 let fogDrift = 0, fogFixFailed = 0, fogFixRan = 0;
+/* 三枚计数各管各的，**不许合并**（2026-10-03 换落点留下的形状）：
+     fogDrift        进退出码：失去靶（牙②）／端点不同源（牙③）／反例没红在该红的位置（牙④）
+     fogFloorPrinted 不进退出码：牙① 那族最坏假设破地板读数——只印不判，这里只数印了几格
+     fogCeilDrift    进退出码：牙⑤ 单调上界（含它自己那四枚自证 fixture 没行程）
+   把后两族并成一句"雾当明暗没过"是这一格最容易犯的错：那样一来"抬上界"与"最坏模型读数破地板"
+   会红在同一行里，而前者是**要拦的动作**、后者是**没复算几何的模型的既成事实**。 */
+let fogCeilDrift = 0, fogFloorPrinted = 0;
 {
   const fogFound = fogLevelsFromBoard();
   const fog = fogSweep(FOG_STATES, FOG_TARGETS, FOG_LEVELS);
@@ -862,6 +919,7 @@ let fogDrift = 0, fogFixFailed = 0, fogFixRan = 0;
   }).filter(x => x.n);
   const fogTotal = fogByFile.reduce((s, x) => s + x.n, 0);
   console.log('\n=== ④ 雾当明暗（`--fog` 三档端点当覆盖层 α，压在 ②③ 那十四档有效底/顶上复算四枚在册地板）===');
+  console.log(`    落点（2026-10-03 换过一次，读数一字不删）：牙① 那族破地板是**最坏假设模型**的读数 ⇒ 只印不判；进退出码的四枚是牙② 失去靶／牙③ 端点同源／牙④ 常驻反例／牙⑤ 单调上界（--fog 最大端点 ≤ 登记上界 ${FOG_CEILING_REGISTERED}）`);
   console.log('  目标色（点名，全是已登记基准令牌、零新色）：亮档 --ink（压暗，这档在册最深）＋ --moss-solid（提案给的"面"那一族）／' +
     '暗档 --ink（提亮，夜档四枚前景全是纸）＋ --bg-base（压回该档自己最深的底）');
   for (const m of fog.idle){ fogDrift++; console.log(`  ✗ ${m}`); }
@@ -892,20 +950,29 @@ let fogDrift = 0, fogFixFailed = 0, fogFixRan = 0;
     fogDrift++;
     console.log(`  ✗ 反例跑了 ${fogFixRan} 枚、清单登记 ${FOG_FIXTURES_REGISTERED} 枚（另有 ${fogFixFailed} 枚没在期望的位置红）—— id 齐不代表牙齐，删掉一枚反例这里就看得见`);
   }
-  /* 牙①：逐 (主题 × 目标色 × 登记端点) 报最紧那一格；完整读数在 PALETTE_FOG_ROWS=1 时逐枚印 */
+  /* 牙①【只印不判】：逐 (主题 × 目标色 × 登记端点) 报最紧那一格；完整读数在 PALETTE_FOG_ROWS=1 时逐枚印。
+     ⚠️ 这一族**不计入 fogDrift**（2026-10-03 换的就是这一枚落点）：它是"最坏假设模型"的读数——本格把覆盖层
+        当成整页、压在两层光之上、字之下，而真实载体不是那个形状（`home.css:251` 那枚是 `160vw` 的椭圆带、
+        `essay.css:293/294` 那一层是 `min(.44, .44*var(--fog))` 的遮罩深度），本格**没按各自几何复算过面积与层序**
+        （在册未验到 #1）。拿一枚没复算过的模型去把作者在册多年的三枚端点评成门禁红是冤枉；
+        但删掉它就是删掉"那一族为什么不可落"的唯一盘上证据——所以：逐格照印，只把身份从"门禁红"改成"读数"。
+        打印里的每一个数字（含 `地板破了 … ✗ 差 X`）都来自 `fog.rows` 现算，没有一处写死。 */
   const worst = new Map();
   for (const r of fog.rows){
     const key = `${r.theme} ${r.target} 端点${r.level}`;
     const cur = worst.get(key);
     if (!cur || r.w - r.floor < cur.w - cur.floor) worst.set(key, r);
   }
+  console.log('  牙① 逐档读数（身份是读数，不计入退出码）：这一族吃的是"整页最坏假设"的覆盖层模型，' +
+    '未按各载体的真实几何复算面积与层序 ⇒ 只印不判；它有多少格破了地板都不构成"那一族能落"的证据，' +
+    '能不能落由下面的天花板与牙⑤ 说话');
   for (const [, r] of worst){
-    if (!r.pass) fogDrift++;
-    console.log(`  ${r.pass ? '✓' : '✗'} ${r.theme} 目标 ${r.target} α=${r.alpha}${r.clamped ? `（登记端点 ${r.level} 被 opacity 上限夹到 1）` : ''}：底 ${r.base} 顶 ${r.top} → 最紧 ${r.fg} ${r.w.toFixed(2)}:1（地板 ${r.floor}）${r.pass ? '✓' : `✗ 差 ${(r.floor - r.w).toFixed(2)}`}｜档 ${r.state}`);
+    if (!r.pass) fogFloorPrinted++;
+    console.log(`  读数 ${r.pass ? '地板守住' : '地板破了'} ${r.theme} 目标 ${r.target} α=${r.alpha}${r.clamped ? `（登记端点 ${r.level} 被 opacity 上限夹到 1）` : ''}：底 ${r.base} 顶 ${r.top} → 最紧 ${r.fg} ${r.w.toFixed(2)}:1（地板 ${r.floor}）${r.pass ? '✓' : `✗ 差 ${(r.floor - r.w).toFixed(2)}`}｜档 ${r.state}`);
   }
-  console.log(`  逐档逐个 (主题 × 档 × 目标色 × 前景 × α) 全表：扫 ${fog.combos} 组读数、破地板 ${fog.breaches.length} 组${fog.breaches.length ? '：' : ''}`);
+  console.log(`  逐档逐个 (主题 × 档 × 目标色 × 前景 × α) 全表：扫 ${fog.combos} 组读数、破地板 ${fog.breaches.length} 组（牙① 那一族的读数，只印不判、不计入退出码）${fog.breaches.length ? '：' : ''}`);
   if (process.env.PALETTE_FOG_ROWS) console.log(fog.rows.map(r => `    ${r.pass ? 'ok' : 'BAD'} ${r.theme}｜${r.state}｜目标 ${r.target}｜α ${r.alpha}｜${r.fg} ${r.w.toFixed(2)} vs 地板 ${r.floor}｜底 ${r.base} 顶 ${r.top}`).join('\n'));
-  for (const b of fog.breaches.slice(0, 12)) console.log(`    ✗ ${b.theme} ${b.state} 目标 ${b.target} α=${b.alpha} ${b.fg} ${b.w.toFixed(2)} < ${b.floor}（差 ${(b.floor - b.w).toFixed(2)}）`);
+  for (const b of fog.breaches.slice(0, 12)) console.log(`    读数 ${b.theme} ${b.state} 目标 ${b.target} α=${b.alpha} ${b.fg} ${b.w.toFixed(2)} < ${b.floor}（差 ${(b.floor - b.w).toFixed(2)}）`);
   if (fog.breaches.length > 12) console.log(`    …破地板共 ${fog.breaches.length} 组，全表用 PALETTE_FOG_ROWS=1 node tools/palette-check.mjs 逐枚印`);
   /* 夹住这件事（§12 那句"三档端点当初是为了 opacity 到 1 就夹住选的"的定量版）：
      认的是**登记端点里 ≥1 的那几枚**，不是写死 1 与 1.35——端点换了数这句话就该跟着换形状。 */
@@ -942,16 +1009,84 @@ let fogDrift = 0, fogFixFailed = 0, fogFixRan = 0;
       `步进取并集 Δα ≥ ${(2 * step).toFixed(3)}（两档 × 点名目标里最紧的那条）｜登记的三枚端点 ${FOG_LEVELS.join(' / ')} 分别是这个上界的 ${times}，` +
       `${clampGe.length >= 2 ? '而 ≥1 的那几枚被夹住之后是同一个 α ⇒ ' : '（这一轮没有两枚端点同时撞上限）⇒ '}${ceiling >= 2 * step ? '数学上还剩一条缝（整条行程只有 ' + ceiling.toFixed(3) + '，且必须重选端点）' : '端点不存在'}`);
   }
+  /* ---------- 牙⑤ 单调上界【本卡新增，进退出码】：`--fog` 的最大端点不许越过登记上界 ----------
+     这一枚判的是"往上拧"这**一个动作**本身，与上面牙① 那族破地板读数是两件事：读数那一族今天只印不判
+     （最坏假设模型没复算面积/层序），这一族是活的门禁。⚠️ 两族话**分开红、分开打印、绝不合并成一句**：
+     今天盘上最浓那枚端点恰好就是上界 ⇒ 牙① 一堆读数 + 牙⑤ 绿 ⇒ rc=0；将来谁把端点抬过那一枚登记上界 ⇒ 只有牙⑤ 红。
+     四枚自证 fixture 照 ①d 牙③ 的形状（量具先自证有行程），**不占** FOG_FIXTURES 那 8 枚的登记值；
+     B1 顺带夹住"把上界登记值抬大以便过关"这条路——它要求 1.5 必须被判为越过，上界一旦抬到 ≥1.5 就当场红。 */
+  const fogJointCeiling = joint.length ? Math.min(...joint.map(j => j.ceiling)) : null;
+  const fogJointNeed = joint.length ? 2 * Math.max(...joint.map(j => j.step)) : null;
+  const ceilNamed = ['light --ink', 'dark --ink'].map(k => {
+    const b = fog.bound.get(k);
+    return b ? `${k} α ≤ ${b.ceiling.toFixed(3)}（binding 档 ${b.state}）` : `${k} 这一轮读不到天花板（点名目标没进闸）`;
+  }).join('／');
+  const fogBoardBnd = fogBoundCheck(fogFound.map(x => x.v), FOG_CEILING_REGISTERED);
+  const fogRegBnd = fogBoundCheck(FOG_LEVELS, FOG_CEILING_REGISTERED);
+  const fogBnd = fogBoundCheck([...fogFound.map(x => x.v), ...FOG_LEVELS], FOG_CEILING_REGISTERED);
+  const fogBndFix = [
+    { id: 'B1 朝宽·最大端点 1.5 必须判为越过上界（这一枚同时夹住"抬上界过关"）', want: true, got: fogBoundCheck([.4, 1, 1.5], FOG_CEILING_REGISTERED).over.length > 0 },
+    { id: 'B2 朝窄·端点整族收到 .3/.8/1.1 不许误红（合法往下调是作者的权利）', want: false, got: fogBoundCheck([.3, .8, 1.1], FOG_CEILING_REGISTERED).over.length > 0 },
+    { id: 'B3 朝窄·端点恰好压在上界上不许误红（判 > 不判 >=，交付态那一枚就靠这一条绿着）', want: false, got: fogBoundCheck([.4, 1, 1.35], FOG_CEILING_REGISTERED).over.length > 0 },
+    { id: 'B4 朝宽·一枚端点都读不到必须算失去靶（不许退成"没有就绿"、也不许当条件跳过）', want: true, got: fogBoundCheck([], FOG_CEILING_REGISTERED).empty },
+  ];
+  for (const f of fogBndFix) if (f.got !== f.want){
+    fogCeilDrift++;
+    console.log(`  ✗ 牙⑤ 的自证 fixture「${f.id}」没落在期望的一侧（读到 ${f.got ? '越过/失去靶' : '没越过'}、期望 ${f.want ? '越过/失去靶' : '没越过'}）—— 这枚上界牙此刻没有行程`);
+  }
+  const fogBndFixOk = fogBndFix.filter(f => f.got === f.want).length;
+  if (fogBnd.empty){
+    fogCeilDrift++;
+    console.log(`  ✗ 牙⑤ 单调上界失去被测对象：盘上读到 ${fogFound.length} 枚 --fog 端点、本格登记 ${FOG_LEVELS.length} 枚，两头的数都拿不到 ⇒ 无从判"越没越过上界 ${FOG_CEILING_REGISTERED}"` +
+      `——按 §16"读不到被测对象的尺子从来不算绿"判红，这不是条件跳过（跳过就是零牙的绿灯）`);
+  } else if (fogBnd.over.length){
+    fogCeilDrift++;
+    const where = [];
+    for (const x of fogFound) if (x.v > FOG_CEILING_REGISTERED) where.push(`盘上 ${x.file}:${x.line} 那枚是 ${x.v}`);
+    for (let i = 0; i < FOG_LEVELS.length; i++) if (FOG_LEVELS[i] > FOG_CEILING_REGISTERED) where.push(`本格 FOG_LEVELS[${i}] 登的是 ${FOG_LEVELS[i]}`);
+    console.log(`  ✗ 牙⑤ 单调上界（独立红名）：--fog 最大端点读回 ${fogBnd.max}，越过本格登记的上界 ${FOG_CEILING_REGISTERED}` +
+      `（上界是独立字面量、不从 FOG_LEVELS 推）—— 越过的那几枚：${where.join(' / ')}`);
+    console.log(`      这一枚拦的就是**这一个动作**：把雾往"更浓＝更暗"那一侧推＝Routes 5 那枚 fog-as-darkness 旋钮重新上岗。` +
+      `本格判"越过上界"这件事本身，与上面那 ${fog.breaches.length} 组破地板读数是两族话（那些只印不判，这一枚进退出码），两句话不许合成一句。`);
+    console.log(`      为什么这一族的结论是不可落（数字全是这一轮现算的，不是抄在源码里的）：②③ 那 ${FOG_STATES.length} 档有效底/顶上的天花板是 ${ceilNamed}；` +
+      `合用一枚不分主题的旋钮 ⇒ 天花板取交集 α ≤ ${fogJointCeiling === null ? '读不到' : fogJointCeiling.toFixed(3)}，` +
+      `而三档要读出相邻两档的差别共需 Δα ≥ ${fogJointNeed === null ? '读不到' : fogJointNeed.toFixed(3)}（本仓那把像素尺：同档两帧差 ≥${FOG_READABLE_255}/255 才算读得出），` +
+      `${fogJointCeiling === null ? '这一轮连有没有缝都读不出' : (fogJointCeiling >= fogJointNeed ? '数学上还剩一条缝，但三枚端点必须整体重选' : '这条缝不存在——既保住 7:1 又能读出三档的端点不存在')}。`);
+    console.log(`      要推翻"不可落"这一句，顺序不许倒：① 先按真实几何复算每一枚载体的**面积与层序**（本格吃的是"整页、压在两层光之上、字之下"的最坏假设，` +
+      `而盘上的形状是椭圆带与遮罩深度）；② 照 --selftest 的形状给复算之后的新结论补上反例（朝宽必须红、朝窄不许误红）；` +
+      `③ 才动 FOG_CEILING_REGISTERED 这一枚 ${FOG_CEILING_REGISTERED}。只把它抬大是绕过判据（而且会先撞 B1 那枚自证），不是推翻判据。`);
+  } else {
+    const aboveTxt = fogJointCeiling === null
+      ? `这一轮读不到天花板（点名目标没进闸），所以"端点在天花板之上"这一句本格说不出`
+      : `登记的三枚端点 ${FOG_LEVELS.join(' / ')} 里有 ${FOG_LEVELS.filter(l => l > fogJointCeiling).length} 枚在天花板 α ≤ ${fogJointCeiling.toFixed(3)} 之上（现算 binding ${ceilNamed}）⇒ 三档端点在天花板之上，这一族既保住地板又能读出三档的端点不存在`;
+    const atBound = fogBnd.max === FOG_CEILING_REGISTERED;
+    const slackTxt = atBound
+      ? '今天最浓那枚端点**恰好就是**这枚上界 ⇒ 绿；再往上拧一格就撞它'
+      : `今天最浓那枚端点还在上界之下（离上界还差 ${(FOG_CEILING_REGISTERED - fogBnd.max).toFixed(3)}）⇒ 绿；这一格只管"不许越过"，朝窄怎么调都不拦`;
+    console.log(`  ✓ 牙⑤ 单调上界：--fog 最大端点 ${fogBnd.max}（盘上最大 ${fogBoardBnd.max === null ? '一枚都没读到' : fogBoardBnd.max}／本格 FOG_LEVELS 最大 ${fogRegBnd.max === null ? '一枚都没读到' : fogRegBnd.max}）未越过登记上界 ${FOG_CEILING_REGISTERED}` +
+      `（独立字面量、不从 FOG_LEVELS 里 Math.max 推）——${slackTxt}。` +
+      `自证 fixture ${fogBndFixOk}/${fogBndFix.length} 枚各在其位。⚠️ 这枚牙绿**不等于**那一族能落：${aboveTxt}；那些读数在上面牙① 那一族里照印、只印不判。`);
+  }
   console.log(`  盘上端点 ${fogFound.map(x => `${x.file}:${x.line} ${x.v}`).join(' / ')} ⇄ 本格登记值 ${FOG_LEVELS.join(' / ')}（${fogLevelDrift(fogFound, FOG_LEVELS).length ? '✗ 不同源' : '同源'}）；` +
     `var(--fog) 消费者 ${fogTotal} 枚（${fogByFile.map(x => `${x.file} ${x.n}`).join(' / ')}）—— 它今天乘在 opacity 上，这就是"已经是响度那一族"的现形`);
-  console.log(`  ${fogDrift ? '✗' : '✓'} ④ 这一关：${fogFixRan}/${FOG_FIXTURES_REGISTERED} 枚反例各红在该红的位置、${fog.combos} 组读数、破地板 ${fog.breaches.length} 组、端点同源 ${fogLevelDrift(fogFound, FOG_LEVELS).length ? '✗ 断了' : '✓'}`);
+  console.log(`  ${fogDrift + fogCeilDrift ? '✗' : '✓'} ④ 这一关（两族计数分开：${fogDrift} 处进门禁的牙②③④／${fogCeilDrift} 处进门禁的牙⑤ 单调上界；牙① 那族破地板读数只印不判）：` +
+    `${fogFixRan}/${FOG_FIXTURES_REGISTERED} 枚反例各红在该红的位置、${fog.combos} 组读数、` +
+    `破地板 ${fog.breaches.length} 组（牙① 只印不判，逐档那一格里 ${fogFloorPrinted} 格是破的）、` +
+    `端点同源 ${fogLevelDrift(fogFound, FOG_LEVELS).length ? '✗ 断了' : '✓'}、` +
+    `上界牙 ${fogCeilDrift ? `✗ ${fogCeilDrift} 处（最大端点 ${fogBnd.empty ? '读不到' : fogBnd.max} vs 登记上界 ${FOG_CEILING_REGISTERED}）` : `✓ 最大端点 ${fogBnd.max} ≤ 登记上界 ${FOG_CEILING_REGISTERED}`}、` +
+    `失去靶 ${fog.idle.length + fog.bad.length ? `✗ ${fog.idle.length + fog.bad.length} 条` : `✓ ${FOG_STATES.length} 档 × ${Object.keys(FLOOR).length} 枚在册前景全读得到`}、` +
+    `牙⑤ 自证 ${fogBndFixOk}/${fogBndFix.length} 枚在其位`);
   if (SELFTEST){
     console.log('\n=== ④ 反例清单（--selftest：朝宽必须红、朝窄不许误红；它故意吃坏数据，所以不接进 npm run check 的默认链）===');
     console.log(fogFixRows.join('\n'));
     console.log(`  ${fogFixFailed ? `✗ ${fogFixFailed} 枚反例没在期望的位置红` : `✓ ${fogFixRan} 枚反例全部落在期望的一侧（登记值 ${FOG_FIXTURES_REGISTERED} 枚）`}`);
-    process.exit(fogFixFailed ? 1 : 0);
+    /* 牙⑤ 那四枚自证 fixture 也逐枚印一遍（它们不在 FOG_FIXTURES 那 8 枚的登记值里，各自管各自的） */
+    console.log('\n=== ④ 牙⑤ 单调上界的自证 fixture（登记上界 ' + FOG_CEILING_REGISTERED + '，与上面那 ' + FOG_FIXTURES_REGISTERED + ' 枚常驻反例分账）===');
+    for (const f of fogBndFix) console.log(`    ${f.got === f.want ? '✓' : '✗'} ${f.id}（期望 ${f.want ? '判为越过/失去靶' : '判为没越过'}）→ ${f.got ? '判为越过/失去靶' : '判为没越过'}`);
+    console.log(`  ${fogCeilDrift ? `✗ ${fogCeilDrift} 处牙⑤ 没过（上界本体或它的自证）` : `✓ 牙⑤ ${fogBndFix.length} 枚自证各在其位，盘上最大端点 ${fogBnd.max} 未越过登记上界 ${FOG_CEILING_REGISTERED}`}`);
+    process.exit(fogFixFailed || fogCeilDrift ? 1 : 0);
   }
 }
 
-if (bad || bad2 || drift || ldDrift || useDrift || strawDrift || fogDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）、${fogDrift} 处「雾当明暗」没过（覆盖层 α 把某枚在册地板压破 / 三枚 --fog 端点与本格登记值不同源 / 反例没红在该红的位置 / 扫到 0 组失去靶）`); process.exit(1); }
+if (bad || bad2 || drift || ldDrift || useDrift || strawDrift || fogDrift || fogCeilDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）、${fogDrift} 处「雾当明暗」的牙②③④没过（某一档的在册前景读不到／扫到 0 组失去靶／盘上 --fog 端点与本格登记值不同源／反例没红在该红的位置）、${fogCeilDrift} 处「雾当明暗」的牙⑤ 单调上界没过（--fog 最大端点越过登记上界 ${FOG_CEILING_REGISTERED}＝把雾往"更浓＝更暗"那一侧推，那一族已判不可落；或这枚牙自己的四枚自证 fixture 没了行程）`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');
