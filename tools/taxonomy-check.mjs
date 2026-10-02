@@ -48,6 +48,13 @@
       整段吃掉（实测改前 title:/date:/excerpt:/cover:/hour: 全"没了"）。§16 的硬规矩：判据两侧都要有格子——
       这里用两枚内置 fixture 钉住"字符串里的假注释符不许吃代码 / 真注释里的坏写法必须照抹"，
       任何一侧红了就说明剥离器又被改坏。不需要动 src/，也不读 dist/。
+   ⑦ **notes 那一层的空态兜底 ＋ 首页那一拍的载体唯一**（第十九轮 `v10b/home`，一轮 §D1 的判词落盘）：
+      `personal.js:4-7` 写着「零枚是**在册状态**，每一处消费点都得有空态兜住」，而这一句今天第一次有牙——
+      四枚消费点（首页 `.home-note`／关于页 `.about-now`／关于页 `.last-walk`／`/notes/` 的 `.tax-empty`）
+      逐枚点名"宿主恰好一枚 ＋ 前面那圈兜底形状在场"，在册清单与 `NOTE_SITES_REGISTERED` 是两枚独立数字。
+      另加两枚针把 §D1 的判定钉住：`</main>` ⇄ `<section class="home-lower">` 之间在册 **零枚**手记渲染
+      （提案要的"Hero 之下那一句"不落），而首页那一拍的载体枚数钉死为 **1**（同一枚值不许在首页画第二次）。
+      同样是零代码改动、不读 dist：判的是 `codeOnly` 之后的形状，注释里怎么说不算数。
 */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
@@ -561,6 +568,65 @@ cell('⑥', 'codeOnly 自己也要有尺子：字符串感知 + 真注释照抹�
   return 4;
 });
 
+/* ---------- ⑦ notes 那一层：四处消费点的空态兜底 ＋ 首页那一拍的载体唯一（一轮 §D1，2026-10-02 `v10b/home`） ----------
+   为什么这一格必须存在：`src/lib/personal.js:4-7` 把"零枚是**在册状态**"写成了那一层的出厂条件，
+   而它下面那句「每一处消费点都得有空态兜住」到今天**一个字节都没被钉过**——四处兜底全靠人肉记住。
+   一轮 §D1（Hero 之下补一句引子）判不进的落点也在这一格：干净检出上 `src/content/notes/` 是零条
+   （`.gitignore:29` 挡着、`git ls-files` 只剩 `.gitkeep`），"一句作者真实写过的话"在出厂态里
+   没有任何合法载体，而规范:1315 那句「零条时这一块整块不出现，不许为首页这一拍编一句」就是唯一合法落法。
+   于是 §D1 交回盘上的不是第二枚引子，是这三枚针：载体枚数钉死（首页一枚）、兜底形状钉死（四枚各一枚）、
+   提案要的那个位置（`</main>` 与 `.home-lower` 之间）在册**零枚**。
+   ⚠️ 判的是 `codeOnly` 之后的**代码形状**——注释里写一百遍"整块不出现"都不算数（口径照 ①②）。 */
+cell('⑦', 'notes 那一层的四处空态兜底在册，而首页那一拍只有一枚上屏载体', () => {
+  let n = 0;
+  /* 在册清单（文件 ⇄ 上屏宿主 ⇄ 那一处认得出的兜底形状 ⇄ 往前看多少字符）与下面那枚独立计数：
+     谁都不许由对方派生（同一格的理由写在 ② 那圈点名里）。 */
+  const SITES = [
+    ['src/pages/index.astro', 'home-note', /\{\s*(?:walk|notes\.length[^)]*)\s*&&\s*\(/, 120],
+    ['src/pages/about.astro', 'about-now', /\{\s*notes\.length\s*>\s*0\s*&&\s*\(/, 120],
+    ['src/pages/about.astro', 'last-walk', /\{\s*(?:walk|notes\.length[^)]*)\s*&&\s*\(/, 120],
+    ['src/pages/notes.astro', 'tax-empty', /\{\s*notes\.length\s*\?/, 1400],
+  ];
+  const NOTE_SITES_REGISTERED = 4;   /* 独立字面量：加一处消费点要把这枚数字一起抬 */
+  assert.equal(SITES.length, NOTE_SITES_REGISTERED,
+    `⑦ 在册清单 ${SITES.length} 行、登记值钉的是 ${NOTE_SITES_REGISTERED} 枚 —— 两边必有一边是错的那一枚（§16：期望数不许由登记表派生）`);
+  n++;
+  for (const [f, host, guard, win] of SITES) {
+    const p = join(ROOT, f);
+    assert.ok(existsSync(p), `⑦ ${f} 不在了 —— 这一格在评空气`);
+    n++;
+    const src = codeOnly(readSrc(p));
+    const found = (src.match(new RegExp(host, 'g')) || []).length;
+    assert.equal(found, 1, `⑦ ${f} 里宿主 ${host} 出现 ${found} 枚（在册 1 枚）—— 上屏的载体一枚只许画一次`);
+    n++;
+    const at = src.indexOf(host);
+    assert.ok(at > 0, `⑦ ${f} 里找不到 ${host} —— 判据读不到对象，不许当通过`);
+    n++;
+    const before = src.slice(Math.max(0, at - win), at);
+    assert.ok(guard.test(before), `⑦ ${f} 的 ${host} 前面没有空态兜底（walk／notes.length 那一族条件）—— 零枚手记时这一处会画出一只空壳，而 §D1 判不进靠的正是"整块不落"那一条`);
+    n++;
+  }
+  /* §D1 的那枚针（第一半）：首页 `</main>` 与 `.home-lower` 之间在代码里必须是空的。
+     提案要的那一块不落 ⇒ 在册枚数 0；谁把它落进来，这里当场从 0 变成非空。 */
+  const home = codeOnly(readSrc(join(ROOT, 'src/pages/index.astro')));
+  const gap = /<\/main>([\s\S]*?)<section class="home-lower"/.exec(home);
+  assert.ok(gap, '⑦ 首页 `</main>` 与 `<section class="home-lower">` 之间读不到了 —— 那两枚兄弟节点换了形状，这一格要跟着改，不许静默跳过');
+  n++;
+  const HERO_GAP_INTRO_HOSTS = 0;   /* 独立字面量：一轮 §D1 判不进 ⇒ 那一拍在 Hero 与目录之间零枚 */
+  const inGap = (gap[1].match(/home-note|\bwalk\b|notes\./g) || []).length;
+  assert.equal(inGap, HERO_GAP_INTRO_HOSTS,
+    `⑦ Hero 与目录之间那一段有 ${inGap} 处手记渲染、在册 ${HERO_GAP_INTRO_HOSTS} 枚 —— 一轮 §D1 那块引子要是被落进来，红的就是这一格（量过的理由：零条 note 的出厂态里它恒为 0 字节，"编一句"是规范:1315 明令禁的）`);
+  n++;
+  assert.equal(gap[1].trim(), '', '⑦ `</main>` 与 `.home-lower` 之间除空白之外还有东西 —— 首页那两个兄弟节点之间被塞进了新块（§9 每个区块只讲一件事）');
+  n++;
+  /* §D1 的那枚针（第二半）：那一拍今天**有**载体，就一枚，住在首页下半段的末尾。 */
+  const HOME_INTRO_HOSTS = 1;       /* 独立字面量 */
+  assert.equal((home.match(/home-note/g) || []).length, HOME_INTRO_HOSTS,
+    `⑦ 首页上屏的"作者真写过的那一句"有 ${(home.match(/home-note/g) || []).length} 枚宿主、在册 ${HOME_INTRO_HOSTS} 枚 —— 同一枚值（最新一条手记）在首页画第二次，就是 §D1 判不进的另一半理由`);
+  n++;
+  return n;
+});
+
 /* ---------- 打印 ---------- */
 if (notes.length) for (const n of notes) console.log(`  ${n}`);
 if (problems.length){
@@ -568,4 +634,4 @@ if (problems.length){
   for (const p of problems) console.log(`  · ${p}`);
   process.exit(1);
 }
-console.log(`\n✓ 分类/标签/草稿/置顶/系列/不列入/旧地址：六格共 ${asserted} 条断言全过，读 posts 的唯一入口没有被绕开`);
+console.log(`\n✓ 分类/标签/草稿/置顶/系列/不列入/旧地址/手记空态：七格共 ${asserted} 条断言全过，读 posts 的唯一入口没有被绕开`);
