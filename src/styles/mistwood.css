@@ -539,8 +539,9 @@ html[data-tier="lost"] .page-head::after{
    负 z 那一格；本仓 `html` 没有 `background`（`base.css:211` 只有 `scroll-behavior`），`body` 那条
    40vh 渐变走的是**画布底**、比什么都先画 ⇒ 面压在字底下但浮在纸面上（产物逐像素差分在案，读数见 §8.3 那一格）。
    ⚠️ 8% 不是新配比：`base.css:391` `.search-row:hover` 与 §9 标签胶囊"悬停填 8% 苔绿"就是这一档，
-   连语义也一样——"碰到才长出底"。这里不用 25%：那一枚的语义是"选中／标记的底"（`base.css:398`、
-   `::selection`），一整块 25% 的苔绿面会把 §1.2"至多两处点缀"的配额一次用完。零新 hex、零新 rgba。 */
+   连语义也一样——"碰到才长出底"。这里不用 25%：那一枚的语义是"标记的底"（`base.css` 的 `.search-row-t mark`；
+   ⚠️ `::selection` 2026-10-02 起换成实心深苔，已经不在这一档，见规范 §10.1 那一格），一整块 25% 的苔绿面
+   会把 §1.2"至多两处点缀"的配额一次用完。零新 hex、零新 rgba。 */
 .row::before{
   content:""; position:absolute; z-index:-1; pointer-events:none;
   top:0; right:-12px; bottom:0; left:-12px;

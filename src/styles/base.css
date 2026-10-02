@@ -269,8 +269,15 @@ html[data-theme="dark"][data-moon="full"]{ --shadow:0 16px 30px -10px rgba(11,16
 /* ============ 基础 ============ */
 *,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
 html{ scroll-behavior:smooth; }
-::selection{ background:rgba(124,154,128,.25); }
-html[data-theme="dark"] ::selection{ background:rgba(169,196,160,.22); }
+/* 选中面（二轮 §6.2 落地，规范 §10.1 那一格，2026-10-02）：两档各一枚**实心苔面 + 该档纸色反白**，
+   不再是一档 alpha 苔绿。零新 hex、零新 rgba、零新令牌——四枚引用全是在册 `var()`；两枚读数都是
+   `palette-check` 现印的那对（比值对称，面压字＝字压面）：亮档 `--moss-solid` 压 `--bg-base` **9.07**、
+   夜档 `--moss-deep` 压 `--bg-base` **7.51**。⚠️ 夜档不跟提案那句 `--moss-solid`：这一档里"深"的对照物
+   是夜底，`#20261F` 对 `#0B100A` 只有 **1.24:1** ⇒ 选中会读成"没动"（这一档的实心面是页脚那块"地面"，
+   它的可读性由 `--ink` 顶着，不是由面顶着）。⚠️ 亮档这一枚与那块地面**同色**：在页脚里选中文字读不出
+   选中态——账与复量登记在规范那一格，本卡不越格去拆页脚。 */
+::selection{ background:var(--moss-solid); color:var(--bg-base); }
+html[data-theme="dark"] ::selection{ background:var(--moss-deep); color:var(--bg-base); }
 ::-webkit-scrollbar{ width:6px; }
 ::-webkit-scrollbar-track{ background:transparent; }
 ::-webkit-scrollbar-thumb{ background:var(--ink-3); border-radius:3px; }
@@ -457,9 +464,10 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 .search-row:hover{ color:var(--ink); background-color:color-mix(in srgb,var(--moss) 8%,transparent); }
 .search-row-t{ display:block; color:var(--ink); }
 .search-row-e{ display:block; margin-top:2px; font-size:12px; color:var(--ink-2); }
-/* 命中的那几枚字：底色取 §10.1 已签字的"选中色 = 苔绿 20–25% 透明"那一档，
-   取上限 25 与 `::selection` 同一枚数——搜索命中在语义上就是"这一处你正在看"，
-   不该比选中更花。字色 inherit：换底色不换字色，才不新开第五色。 */
+/* 命中的那几枚字：底色 = `--moss` 25%，"标记的底"这一族里最深的那一档（8% 悬停、40% 下划线是它的同族）。
+   ⚠️ 2026-10-02（二轮 §6.2）起它**不再**与 `::selection` "同一枚数"——选中面那天换成实心深苔，账在规范 §10.1
+   那一格。这一枚自己的理由：搜索命中说的是"这一处你正在看"，所以取现成配比的上限、不新造数。
+   字色 inherit：换底色不换字色，才不新开第五色。 */
 .search-row-t mark,.search-row-e mark{
   background:color-mix(in srgb,var(--moss) 25%,transparent); color:inherit;
   -webkit-box-decoration-break:clone; box-decoration-break:clone;
@@ -513,10 +521,11 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
    ① **改的是这一枚伪元素的颜色，不是 border**——`mistwood.css:315/316` 那两条 `border:…transparent`
       是**占位**（把线直接拿走会在每行少掉 1px 高度、目录逐行往上漂），上面那格（§9）记过；
       `top:-1px` 与两端那对 mask 一个字不动，撤 mask 就是让线变回机器画的。
-   ② **25% 的出处是 `base.css:398`**（`.search-row-t mark` 那枚"选中／标记的底"，与 `::selection`
-      同档）——**语义不同、只是不新造数**：那一枚说"这一处你正在看"，这一枚说"两行之间的那道界"。
-      不许把它读成"同一条已签字口径的沿用"；作者原话给的是"`--moss` α .18 是新配比……改成 25%，
-      与选中色同档，不新造"，本行按那句落地，没有另签一枚配比。零新 hex、零新 `rgba()`、零新令牌。
+   ② **25% 的出处是本文件 `.search-row-t mark` 那枚"标记的底"**——**语义不同、只是不新造数**：那一枚说
+      "这一处你正在看"，这一枚说"两行之间的那道界"，不许读成"同一条已签字口径的沿用"。作者原话给的是
+      "`--moss` α .18 是新配比……改成 25%，与选中色同档，不新造"，本行按那句落地，没有另签一枚配比。
+      ⚠️ 原话里"与选中色同档"那一半到 2026-10-02 追不动了（选中面换成实心深苔，二轮 §6.2／规范 §10.1 那一格），
+      只剩"不新造数"那半边还成立。零新 hex、零新 `rgba()`、零新令牌。
    ③ 名单只圈 `.essay-index` 这两枚（逐行那根 `::before` 与整列封口那根 `:last-child::after`——
       §9 第 4 条早就判过它俩是同一枚宿主上同一根线，只改半根就成了"每行两端都轻、只有最后那道
       封口是机器画的"）。`.colophon`／`.footnotes`／`.post-nav` 三枚宿主**照旧走 `--line`**，不在这一格。
