@@ -7,3 +7,20 @@
 }
 .note p{ font-size:17px; color:var(--ink); max-width:36em; }
 .note p em{ color:var(--moss-ink); letter-spacing:-.015em; }
+
+/* ===== 廿四气标尺（四轮 §3，notes 页头）=====
+   母题指认：§13b 母题②**苔点（点的）**——"一格＝一段时间"的点阵，`.yring` 一天一格、`.life-cell` 一年一格，
+   这一把一气一格；读的是**深浅**（亮／不亮两档），不是长度 ⇒ 不占横族"线长"那四义（§9 那格记的账）。
+   ⚠️ 三枚数逐字照 `.yring`（mistwood.css 那一条）搬，本站第三把深浅尺不自起新数：画幅 12px、段缝 3px、
+      空格 `--ink-3` ＋ opacity .22、亮格捞回不透明。
+   ⚠️ 零枚新垂直槽位：格与格之间只有 `column-gap`（gap-check 的拆值口径明写 `column-gap` 一概不看，
+      与 `.yring` 那句"段与段之间那 3px 走 column-gap"同一条），`height` 不是间距槽。
+      尺与上面 `.sec-label` 之间那口气是 1.2em —— 同一口径里 em/百分比**不认领**，所以它既不入册也不 unclaimed，
+      代价照实登记在本卡的"未验到"：这一枚垂直呼吸没有机器在册，别把它读成"有尺子管"。
+   ⚠️ 零枚新色：亮档 `--moss-ink`、暗档 `--ink-3` 都是这份表上面那六行已经在用的在册令牌；零 hex、零 rgba、
+      零 `--straw`（那枚枯草金的消费者今天钉死 1 枚、且必须带傍晚＋亮双闸，碰它 palette-check ①d 当场红）。
+   ⚠️ 零枚圆角：格是方的，照 `.yring`／`.life-cell` 那两族的在册形状（§13b：那两族的原子是"一格＝一天"，方角是它们的），
+      不写 border-radius ⇒ gap-check 那 32 枚／12 种一枚不添。 */
+.jieqi-scale{ display:flex; column-gap:3px; width:100%; height:12px; margin-top:1.2em; }
+.jieqi-scale>span{ flex:1 1 0; min-width:0; background:var(--ink-3); opacity:.22; }
+.jieqi-scale>span.jq-lit{ background:var(--moss-ink); opacity:1; }

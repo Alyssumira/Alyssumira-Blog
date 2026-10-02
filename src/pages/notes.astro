@@ -10,12 +10,42 @@ const pad = n => String(n).padStart(2, '0');
    一枚手记＝ `src/content/notes/` 里的一枚 .md：front matter 是日期/天气/节气，正文就是那一句话。
    这一层的文件不进仓库（.gitignore），所以零枚是在册状态而不是坏了——下面那一档空态就是为它准备的。 */
 const notes = await allNotes();
+
+/* 廿四气的封闭词表——**站内只此一份**（`tools/jieqi-check.mjs` 读的就是这一行，工具侧不抄第二份名单）。
+   顺序＝一年从立春起排的那 24 格；它封闭：作者手填的 `jieqi` 命中谁，谁那一格才亮，命中不了的（错字）
+   一格都不点亮——那正是 `jieqi-check` 词表关要当场报的事，这里不替它兜着。
+   ⚠️ 这一串只活在构建期的 front matter 里，**一枚气名都不上纸面**（纸上出现的气名只有作者自己填过的那几枚，
+      走下面那行 time 元素）。把 24 枚名字写进模板就是涨码点：花括号包起来那种注释不进产物、
+      HTML 注释那种进，而这 48 枚字里今天有 14 枚不在 835 码点的子集内 ⇒ font-subset --check 会红在缺字上。
+      ⚠️ 这一格注释走"花括号包起来"那种不进产物的写法（里面不许再出现星号紧跟斜杠的形状，那会提前收口
+      注释本身——about.astro 站点档案那一格为同一枚坑写着原话）。 */
+const JIEQI = ['立春','雨水','惊蛰','春分','清明','谷雨','立夏','小满','芒种','夏至','小暑','大暑',
+  '立秋','处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至','小寒','大寒'];
+/* 亮着的那几格＝被手记填过的气，去重（三条都填同一气也只亮一格）。
+   `includes` 那一层过滤不是宽容，是让"点亮格数"与"命中数"这两个数同源：词表外的值既不进集合、也不画格。
+   ⚠️ 零枚命中 ⇒ 整把尺不落（连那 24 格一起不出现），口径照 §12「关掉一档 ⇒ 那条路不生成」与
+      `EssayIndex.astro` 那把横条的 `posts.length > 0`——出厂态那一层 `*.md` 不进仓库，空着是在册状态。 */
+const jqLit = new Set(notes.map(n => n.data.jieqi).filter(q => JIEQI.includes(q)));
 ---
 <Layout title="notes · mistwood" desc="观察日志：日期，加一两句话。" here="notes">
   <main class="wrap">
     <header class="page-head reveal head-notes">
       <h1 class="page-title">碎碎念</h1>
       <div class="sec-label">notes — <b>{pad(notes.length)}</b> →<SearchEntry /></div>
+      {/* 廿四气标尺（四轮 §3）：24 枚匿名刻度，一格一气，填过的手记把那一格点亮。
+          ⚠️ 母题指认＝§13b 母题②**苔点（点的）**——原子是"一格一气"的点阵，读的是**深浅**不是长度，
+             与 .yring（一天一格）／.life-cell（一年一格）同族同一副嗓子；不指认成雾线：
+             横族"线长"在 §9 那格已被占去四义，这里没有一寸长度要表达。
+          ⚠️ 零枚气名、零图例、零读数：24 格是匿名刻度，"哪一气有手记"这件事由下面每一行 time 上的
+             那枚字自己说（先例＝.word-river 那句"形状只说分布，精确值在上面那行字里"）。
+             容器 aria-hidden ⇒ 尺子不向读屏的人重复报一遍页面上已有的字。
+          ⚠️ 不许在这把尺上长百分比／连续量（§12「给年度弧补读数」那条判不进）；也一毫米都不自起新数：
+             画幅 12px、缝 3px 都照 .yring 逐字搬，缝走 column-gap 即 gap-check 不看的那一支。 */}
+      {jqLit.size > 0 && (
+        <div class="jieqi-scale" aria-hidden="true">
+          {JIEQI.map(q => jqLit.has(q) ? <span class="jq-lit"></span> : <span></span>)}
+        </div>
+      )}
     </header>
 
     {notes.length ? (
@@ -23,8 +53,13 @@ const notes = await allNotes();
         {notes.map(n => (
           <div class="note reveal">
             {/* `weather` 是可空位（schema 的 blankSlot ⇒ 没填是空串）：空着连那枚分隔点都不出现，
-                不许留一行「2026.09.25 · 」那样的活壳（§14 那条"没填 ⇒ 不出现"） */}
-            <time>{fmtDate(n.data.date)}{n.data.weather ? ' · ' + n.data.weather : ''}</time>
+                不许留一行「2026.09.25 · 」那样的活壳（§14 那条"没填 ⇒ 不出现"）。
+                ⚠️ 四轮 §2 把 `jieqi` 并进来之后，两枚同时在场走的是**一枚可空位带一枚 ` · `**：
+                   `2026.09.21 · fog · 秋分`。不并成一枚——并起来就要替"谁在前"再定一次序，还得在空掉
+                   那枚的位置上算点，那是第二种形状；拆开写每段各自 `? ' · ' + 值 : ''`，空掉的那段连点
+                   一起消失。与 `src/pages/about.astro` 那行同一口径，且**不靠记性**：
+                   `tools/jieqi-check.mjs` 第 ③ 格拿同一枚段式把两页逐段对账，长出第二种形状当场红。 */}
+            <time>{fmtDate(n.data.date)}{n.data.weather ? ' · ' + n.data.weather : ''}{n.data.jieqi ? ' · ' + n.data.jieqi : ''}</time>
             {/* 正文走 inlineMd，与首页那一条同一份解析口径（两处两种渲染迟早分叉）；`tone()` 吃的是原句 */}
             <p class={tone(n.body)} set:html={inlineMd(n.body.trim())}></p>
           </div>
