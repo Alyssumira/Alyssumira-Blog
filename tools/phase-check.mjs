@@ -77,16 +77,16 @@ const atHour = (m, d, h) => new Date(2026, m, d, Math.floor(h), Math.floor((h % 
 
 /* ---------- ⑦ 要读的那三份外部清单：谁都不许由 CELLS 派生 ---------- */
 /* 日常必须跑齐的格。少一格就是 §14 第 14 项的原案：删掉的判据不会自己报告。 */
-const CELL_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦'];
+const CELL_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'];
 /* 反例清单（selftest 的期望数）。⚠️ 它与 CELL_IDS 内容相同是**巧合**，不是派生关系：
    两枚分开写，删一格时要同时删两处才不被发现——这就是"期望数不许由 registry 派生"的落点。 */
-const CONTRA_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦'];
+const CONTRA_IDS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'];
 /* 反例与朝窄的**枚数**同样是独立字面量，不从登记表数出来。为什么要多这一道：M7b 实测到"某格有两枚
    反例、偷偷删掉一枚"在四份 id 清单上完全无痕（id 还在、格还在、集合照样同源 ⇒ selftest 少跑一枚仍然
    exit 0）。枚数一钉，拔牙就要连这两枚数字一起改——改数字在 diff 里比删代码显眼。
    ⚠️ 加反例/朝窄必须把这两枚一起抬；抬不动的那一次，往往就是"这一枚其实没力气"的那一次。 */
-const CONTRA_ENTRIES = 14;
-const NARROW_ENTRIES = 8;
+const CONTRA_ENTRIES = 17;
+const NARROW_ENTRIES = 9;
 /* 第四份清单在**另一份文件**里：规范 §16 那枚 bullet。它是签字文档，动它会在 diff 里显形。
    ⚠️ 认的是"以 `- **phase-check 登记表**` 开头的那一行"（bullet 本体），不是"哪一行提到了这个词"——
    规范正文里引用这个短语的地方不止一处，用 includes 会挑到错的那一行（本卡实测挑到过 §14 的论述）。
@@ -104,6 +104,18 @@ function specRegistry() {
   const ids = CIRCLED.filter(c => line.split(SPEC_MARK)[1].includes(c));
   if (!ids.length) return { ids: [], why: `「${SPEC_MARK}」那一行里一个 id 都没有（清单被掏空 = 空转的另一副面孔）` };
   return { ids, why: '' };
+}
+
+/* ---------- ⑧ 要读的三处外部文本：词表 ⇄ 签字行 ⇄ 载体 ----------
+   读不到就是空串，判据那侧当场红（fail closed），不在这里替它兜。
+   ⚠️ 签字行按"含 `WATCH_WORD = {` 的那一行"认，全站唯一（`grep -c` 实测 = 1）；将来规范里引用这个字面量
+      的地方多起来时这一枚要改成认 bullet 行首，与 ⑦ 那格同一口径。 */
+const readText = u => { try { return readFileSync(u, 'utf8'); } catch { return ''; } };
+const WATCH_SRC = readText(new URL('../src/scripts/site.js', import.meta.url));
+const WATCH_TPL = readText(new URL('../src/pages/index.astro', import.meta.url));
+function watchSpecLine() {
+  const text = readText(new URL('../docs/设计规范.md', import.meta.url));
+  return text.split(/\r?\n/).find(l => l.includes('WATCH_WORD = {')) || '';
 }
 
 const LOCS = [
@@ -646,6 +658,97 @@ const CELLS = [
       }),
     }],
   },
+
+  /* ---------- ⑧ ---------- */
+  /* 一轮 §D2 的裁决格（2026-10-02 `v10b/home`）。先说它为什么归这一族：②③④⑤ 管的是"此刻在哪一档"，
+     而**档位之后那串中文**今天没有任何一把尺在读——词表住在 `src/scripts/site.js` 的 `WATCH_WORD`（三枚值）、
+     签字住在 `docs/设计规范.md` §6 那一行、载体住在 `src/pages/index.astro` 那枚 `<p class="hero-watch">`，
+     三处同源一直靠人眼对。§D2 提案要往这串字上补"定性描述"那一半（样例『清晨 · 雾未散』），本轮**判不进**
+     （量出来的理由登记在规范 §6 那一格与 §12 的裁决段）。判不进要有盘上的形状，就是这一格：
+     词表是**封闭**的（枚数、键、逐字值都钉死）、`day` 那一格必须是**空的**、模板里那枚宿主必须**不带字**。
+     谁哪天把「初」扩成一整句、或另起第二枚上屏载体，红的就是这一格——而不是等下一个读者发现词表已经不封闭了。 */
+  {
+    id: '⑧', name: '时刻词表封闭：三枚中文时段字 ⇄ 签字行 ⇄ 模板不带文字',
+    run(E) {
+      let asserted = 0; const failed = [], out = [];
+      /* 手写字面量：期望值不许由被测源码派生（§16 那条"期望数不许由被测对象自己出"）。 */
+      const SIGNED = { night: '守夜', dawn: '初', dusk: '暮' };
+      const KEYS = ['night', 'dawn', 'dusk'];
+      const parseDict = s => {
+        const m = /WATCH_WORD\s*=\s*\{([^}]*)\}/.exec(s || '');
+        if (!m) return null;
+        const o = {};
+        for (const raw of m[1].split(',')) {
+          const kv = raw.trim();
+          if (!kv) continue;
+          const e = /^'?([A-Za-z]+)'?\s*:\s*'([^']*)'$/.exec(kv);
+          if (!e) return null;
+          o[e[1]] = e[2];
+        }
+        return o;
+      };
+      const flat = d => KEYS.concat(Object.keys(d || {}).filter(k => !KEYS.includes(k))).filter(k => d && k in d)
+        .map(k => `${k}=${d[k]}`).join(' ');
+      /* 注释一律先抹：判的是上屏的代码，不是模板里讲这件事的那句话（同一口径见 taxonomy-check 的 codeOnly）。 */
+      const strip = s => (s || '').replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+
+      const defs = (E.watchSrc || '').match(/const\s+WATCH_WORD\s*=/g) || [];
+      asserted++;
+      if (defs.length !== 1) failed.push(`⑧ 源码里 \`const WATCH_WORD =\` 有 ${defs.length} 枚定义（应为 1）—— 词表有两处真值那天，签字的那份就只是装饰`);
+      const srcDict = parseDict(E.watchSrc);
+      asserted++;
+      if (!srcDict) failed.push('⑧ `src/scripts/site.js` 里读不到 \`WATCH_WORD = {…}\` 那枚字面量 —— 判据在评空气，不许当成通过');
+      if (srcDict) {
+        const ks = Object.keys(srcDict);
+        asserted++;
+        if (ks.length !== KEYS.length || KEYS.some(k => !(k in srcDict)))
+          failed.push(`⑧ 词表的键不是 night/dawn/dusk 那一组（现在是 ${ks.join(' / ')}）—— 规范:1475 那句「这一格是空的」被改动：多填一枚键就是"常驻问候语"的开端`);
+        for (const k of KEYS) {
+          asserted++;
+          if (k in srcDict && srcDict[k] !== SIGNED[k])
+            failed.push(`⑧ 词表 ${k} 的值是「${srcDict[k]}」而签字的那枚是「${SIGNED[k]}」—— 逐字不对（再长就要造句，规范:1474 已经判过一次）`);
+        }
+        const longOnes = Object.entries(srcDict).filter(([, v]) => [...v].length > 2);
+        asserted++;
+        if (longOnes.length > 1 || (longOnes.length === 1 && longOnes[0][0] !== 'night'))
+          failed.push(`⑧ 超过两个字的时段词有 ${longOnes.length} 枚（${longOnes.map(([k, v]) => `${k}「${v}」`).join('、') || '无'}）—— 规范:1474 只许「守夜」一枚说整段，清晨与傍晚各给一个字`);
+      }
+      const specDict = parseDict(E.watchSpec);
+      asserted++;
+      if (!specDict) failed.push('⑧ `docs/设计规范.md` 里那条签字行读不到 \`WATCH_WORD\` 的 map —— 签字文档与源码的对账断了（fail closed，不许跳过）');
+      else {
+        asserted++;
+        if (flat(specDict) !== flat(srcDict)) failed.push(`⑧ 源码词表与规范签字行不同源：源码 [${flat(srcDict)}] ⇄ 规范 [${flat(specDict)}]`);
+      }
+      const tpl = strip(E.watchTpl);
+      const hosts = tpl.match(/<p\b[^>]*class="hero-watch"[^>]*>/g) || [];
+      asserted++;
+      if (hosts.length !== 1) failed.push(`⑧ 首页那枚上屏中文时段字的宿主有 ${hosts.length} 枚（在册 1 枚）—— §D2 判不进的那半句若要另起一枚载体，这里当场多一枚（§1263 一个区块只讲一件事）`);
+      const body = /<p\b[^>]*class="hero-watch"[^>]*>([^<]*)<\/p>/.exec(tpl);
+      asserted++;
+      if (!body) failed.push('⑧ 找不到 `<p class="hero-watch" …></p>` 那一枚闭合形状 —— 载体换了形状，这一格要跟着改，不许静默跳过');
+      else if (body[1] !== '') failed.push(`⑧ 静态模板里那枚宿主烘死了文字「${body[1]}」—— 规范:1476 那句「由脚本决定，静态 HTML 里永远是空的」被破坏（把话印在模板上再遮）`);
+      asserted++;
+      const baked = (tpl.match(/守夜/g) || []).length;
+      if (baked !== 0) failed.push(`⑧ 抹掉注释之后的模板里还有 ${baked} 处「守夜」—— 词表里的字不许出现在静态模板里（同一格 1476 点过名的旧形状）`);
+      out.push(`  ⑧ 时刻词表  ✓ 定义 ${defs.length} 枚 · 键 ${Object.keys(srcDict || {}).length} 枚（day 空着）· 值逐字对签字表「${flat(srcDict)}」· 规范行同源 · 模板宿主 ${hosts.length} 枚且不带字（注释外「守夜」${baked} 处）`);
+      return { asserted, failed, out };
+    },
+    contra: [{
+      name: '给 day 填一枚「午安」（规范:1475 那句"这一格是空的"被改动）',
+      env: () => ({ ...REAL, watchSrc: REAL.watchSrc.replace("dusk:'暮' }", "dusk:'暮', day:'午安' }") }),
+    }, {
+      name: '模板把词烘死：`<p class="hero-watch" … hidden>守夜</p>`（1476 点过名的旧形状）',
+      env: () => ({ ...REAL, watchTpl: REAL.watchTpl.replace('id="hero-watch" hidden></p>', 'id="hero-watch" hidden>守夜</p>') }),
+    }, {
+      name: '签字行与源码分叉：规范那一行把「初」写成「清晨」（两枚真值）',
+      env: () => ({ ...REAL, watchSpec: REAL.watchSpec.replace("dawn:'初'", "dawn:'清晨'") }),
+    }],
+    narrow: [{
+      name: '同一份词表的第二种写法（键序改成 dawn/dusk/night、冒号后多一个空格）：不许误红',
+      env: () => ({ ...REAL, watchSrc: "const WATCH_WORD = { dawn: '初', dusk: '暮', night: '守夜' };" }),
+    }],
+  },
 ];
 
 /* ---------- 默认吃的那一份 = shipped 的那一份 ---------- */
@@ -667,6 +770,8 @@ const REAL = {
   probes: [[4, 5], [7, 30], [10, 20], [13, 0], [16, 40], [18, 20], [20, 40], [22, 10], [23, 55]],
   geoCases: GEO_CASES, fallbackStates: ['denied', 'unsupported', 'timeout'],
   legalBounds: [{ dawnStart: 5, dawnEnd: 9, duskStart: 16, duskEnd: 20 }],
+  /* ⑧ 的三份对象：词表的源码、载体的模板、规范的签字行（谁不在盘上就是空串，判据当场红） */
+  watchSrc: WATCH_SRC, watchTpl: WATCH_TPL, watchSpec: watchSpecLine(),
   shift: 0,
   registryIds: () => CELLS.map(c => c.id),
   cells: CELLS, contraEntries: CONTRA_ENTRIES, narrowEntries: NARROW_ENTRIES,
