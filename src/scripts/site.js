@@ -64,6 +64,7 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
        setSearchOpen 是同一作用域里的函数声明（提升），所以这里能直接叫它；
        它只在真开的时候才反手叫回来（v 为假不叫），两条路都不构成回环。 */
     if (v) setSearchOpen(false);
+    if (v) hideKbdHint();   /* 一轮 §C2 那条提示让位：真开的时候才撤（同上一行不成对，见那段注释④） */
   }
   paintSettings();
   if (sBtn && sPanel){
@@ -125,6 +126,7 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     if (v){
       seInput.focus();
       if (sPanel && sPanel.classList.contains('open')) setOpen(false);   /* 与上面 setOpen 里那一条成对 */
+      hideKbdHint();   /* 一轮 §C2 那条提示让位（与 setOpen 里那一枚成对的另一半：两扇门都要撤） */
     }
   }
 
@@ -537,6 +539,58 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
       hit.classList.add('homing');
       setTimeout(() => hit.classList.remove('homing'), 1700);
       writeFlag(HOMING, null);
+    });
+  }
+
+  /* ---------- 键盘导航提示（一轮 §C2，2026-10-02 `v5b/heads`）----------
+     首次按 Tab 浮出的一条薄玻璃，3s 后淡出、淡完自己把节点收掉；形状与全部视觉理由在 `base.css` 那一格。
+     五条口径，逐条都在这段代码里落着：
+     ① **只有键盘真的动过才算**：判据是 `keydown` 里 `key === 'Tab'` 那一条，没有 click／pointerdown 任何
+        旁路 ⇒ "只显示给键盘用户"是**结构**保证的，不是靠藏（鼠标与触屏访客在这一段上一次都不触发）。
+     ② **一次性**：`sessionStorage.mistwood-kbdhint` 那枚**新键**（写法照 `mistwood-greeted`，吃的就是
+        下面那一对现成的 `readFlag`／`writeFlag`）——站内跳转不重播，一次会话最多出现一次；读不到就当
+        已经说过（隐私模式下不说，而不是猜一句要说的）。⚠️ 站内已有的那些键（`mistwood-theme`／
+        `mistwood-display`／`mistwood-opens`／`mistwood-focus`／`mistwood-seen`／`mistwood-homing`／
+        `mistwood-greeted`）一枚不清、一枚不改写：那是访客自己的应用状态，不是我们的账。
+     ③ **减弱动态偏好下整块不出现**（这一档选的是"不出现"，不是"出现但不淡出"）：§1 预算表末行签的是
+        "必须 `animation:none` 并**直接落到终态**"，而这一条走完整段序列之后的终态就是"不在屏上"——
+        它是一次性提示、不是一个可以停在终态的状态位。留下它再让它在 .2s 里硬现硬撤，读起来正是那一格
+        点名的"比不降级更闪"。**代价照登**：减动效的键盘用户拿不到这句提示，但 `:focus-visible` 那圈
+        苔绿描边与 Tab 序本身一枚不少（`base.css` 在册）——他失去的是"有人提醒可以按 Tab"，不是"按了没反应"。
+     ④ **让位**：任一弹层在场就不出现，已经出现而弹层随后被打开就当场撤（`setOpen`／`setSearchOpen` 里各
+        点名一次）。买的是上面 :59 那一格签下的"全站同一时刻只许一块玻璃压在内容上"；needle 用
+        `.settings.open`（抽屉与搜索面板共用那一族类名）与 `dialog[open]`（灯箱，`/` 那一格同一枚）。
+     ⑤ **落点是这一份打包脚本，不是 `<head>` 里那两段 `<script is:inline>`**：§16 第四类门禁断言的对象是
+        "内联脚本在首帧之前同步落地的五枚显示属性"，往里塞一段要等 keydown 的代码只会多出一条永远断言不到
+        的判据（`mistwood-focus` 那一格为同一件事记过两次）。后果说清楚：`tools/runtime-check.mjs` 的
+        **内联隔离档**（对任何 `.js` 回 404）里这一整段不跑 ⇒ 那一档读到的是"屏上没有这条提示"，
+        与无 JS 的访客同一档——而那正是渐进增强要的那一面：**无 JS ⇒ 没有这条提示，但 Tab 照样走、
+        `:focus-visible` 照样描边**（`:focus-visible` 是 CSS，不需要这段脚本）。 */
+  const HINT_KEY = 'mistwood-kbdhint';
+  const HINT_TEXT = 'tab 逐项 · enter 打开 · / 搜索';
+  const HINT_DWELL = 3000;        /* 停在屏上的**时长**，不是"动多久"：动只有那 .6s（§1.3 新签这一档的账在那儿） */
+  const HINT_FADE = 600;          /* ＝ base.css 那条 transition 的 .6s，在册 0.3–0.6s 交互档 */
+  function hideKbdHint(){ const h = document.querySelector('.kbd-hint'); if (h) h.remove(); }
+  if (!reduceMotion && !readFlag(HINT_KEY)){
+    addEventListener('keydown', function onFirstTab(e){
+      if (e.key !== 'Tab') return;
+      removeEventListener('keydown', onFirstTab);                 /* 一次文档最多问一次；说过就不再挂着听 */
+      if (document.querySelector('.settings.open, dialog[open]')) return;   /* ④ 让位：这一档不出现，也不占那枚新键 */
+      writeFlag(HINT_KEY, '1');                                   /* 先记账再画：画到一半被打断也不重播 */
+      const bar = document.createElement('p');
+      bar.className = 'kbd-hint';
+      bar.setAttribute('role', 'status');                          /* 它是递给读者的一句话，不是背景装饰 */
+      bar.textContent = HINT_TEXT;
+      document.body.appendChild(bar);
+      /* 起手态 opacity:0 要先提交一帧，淡入才走得到帧。这里用 20ms 的定时器而不是 requestAnimationFrame：
+         差别是**能不能被量具读到**——`--dump-dom` 那一档在不产帧的场合 rAF 永不落地（§8.2 那条
+         "visibilityState=hidden 时 CSS 动画不走帧"的同族），那一档读回来的 opacity 会一路停在 0，
+         红的是量具不是页面。定时器照样落在下一帧之后，肉眼无差别。 */
+      setTimeout(() => bar.classList.add('in'), 20);
+      setTimeout(() => {
+        bar.classList.remove('in');
+        setTimeout(() => bar.remove(), HINT_FADE + 100);           /* 淡完收节点：`opacity:0` 仍在可读树里，留着它就是留一句屏上没有的话 */
+      }, HINT_DWELL);
     });
   }
 

@@ -1114,9 +1114,14 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    （`base.css:76-77` 压 `mistwood.css:23` #141A14）Δ≈−2 / −9。成对退化成"只剩下面那道暗线"，
    正是 §12·「玻璃只做上沿」 点名的"只做下沿就是纸边上的一道脏印子"——留着它才是违反那枚机器牙的语义。
    先例与公式都照 `mistwood.css:688-693`（≤720 把 .thing-bar 改实面时同一裁决、同样整体撤，
-   实面条的影就是 `--shadow-contact,--shadow` 那对——作者为"实面 thing-bar"已签的那一份）。 */
+   实面条的影就是 `--shadow-contact,--shadow` 那对——作者为"实面 thing-bar"已签的那一份）。
+   ⚠️ 2026-10-02（`v5b/heads`，一轮 §C2）再补 `.kbd-hint`：键盘导航提示条那块薄玻璃住在 `base.css` 最末那一格。
+   它**不是常驻**（首次按 Tab 才出现、3s 后淡出），可这一档问的不是"在多久"而是"这一面透不透"——
+   名单少它一枚，要求减少透明度的访客按一次 Tab 收到的还是一块透视面。退法与上面四枚逐字相同：
+   `--surface` 实面（`--ink` 压它两档都 ≥12，比它玻璃态那枚字还稳，§2.6 那一格量过）、`backdrop-filter:none`、
+   `--glass-edge` 那一对**整体撤**（同一口牙：实面上留半条就是"纸边上的脏印子"）。 */
 @media (prefers-reduced-transparency:reduce){
-  .nav,.thing-bar,.settings,.hero-cta{
+  .nav,.thing-bar,.settings,.hero-cta,.kbd-hint{
     background:var(--surface) !important;
     -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
     box-shadow:var(--shadow-contact),var(--shadow) !important;

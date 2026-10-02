@@ -652,6 +652,46 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
 .foot-act:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; }
 .foot-act:active{ transform:scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 
+/* ============ 键盘导航提示条（一轮 §C2，2026-10-02 `v5b/heads`）============ */
+/* 首次按 Tab 才浮出的一条薄玻璃，三秒后淡出。四条口径钉在这里：
+   ① **面不吃新材质**：`--glass` ＋ `--glass-border` ＋ `backdrop-filter:blur(14px)` 那三件逐字符照
+     `.thing-bar`（`mistwood.css:817-822`）那一族——§1.4 签的是"全站只许三种模糊"，`blur(14px)` 是
+     **在册那一枚半径**（图鉴玻璃条用的就是它），这里不起了第四枚 `blur()`、也不给 `.nav` 那枚 `saturate(1.1)`
+     添第二个宿主（玻璃条那一族本来就没有它）。只有 `box-shadow` 取的是 `.nav` 那三层（接触影／环境影／
+     玻璃上下沿，`mistwood.css:124`）——它离身后内容有一段空气，该有散开的那一圈；三层全是现成令牌。
+   ② **字**：`--ink`（正文档，不是次要档）。判据不是口味而是这笔账——这块面会落在**两种底**上：
+     页面流最末是那整块 `--moss-solid` 地面（`.site-foot`），而它上面还压着一层 `--glass`。
+     拿 palette-check 那套 toLin/lum/ratio 自算（rgba 族它不给算行，§2 末那一格点过名）：
+     亮档玻璃压 `--bg-base` 合成 `#F6F7F4` ⇒ `--ink` **13.53**／`--ink-2` 5.52；玻璃压 `--moss-solid`
+     合成 `#C1C8C0` ⇒ `--ink` **8.51**／`--ink-2` **3.47**（✗ 跌破 4.5 那一档，地板说了算）。
+     夜档同一把尺：压 `--bg-base` 是在册那枚 **13.79**（§2.1 `--glass` 那一行），压夜地面 `#20261F`
+     合成 `#202620` ⇒ `--ink` **12.40**。⇒ 两档、两种宿主底，四枚读数全在正文档 ≥7 之上；
+     `--ink-2` 只在"压地面"那一格就不够，所以这条不拿它当字（先例是 §2.5 ③ 那句"一枚字都没往 4.75 那一侧放"）。
+     字族与字距复用「小字宽字距」那一族（`.foot-id`／`.post-act`／`.post-meta` 都是 IBM Plex Mono 12px／.12em），
+     键名全小写（§12「大写标签」那一枚禁令）。
+   ③ **形状**：`border-radius:12px` 吃的是"玻璃条与悬停铺面"那一档（`.thing-bar`／`.row::before` 同值），
+     不新开写法——`gap-check` 那把圆角尺子逐枚认账，多一枚就要在梯子上签字。
+   ④ **它不是第三块能同时开着的玻璃**：`site.js` 里那条在册判据是"全站同一时刻只许一块玻璃压在内容上"
+     （抽屉与搜索面板互斥那一格），所以这条**让**：任一块 `.settings.open` 在场、或原生 `<dialog>` 开着
+     （灯箱那一档，`/` 那一格用的同一枚 needle）⇒ 不出现；已经出现而弹层随后被打开 ⇒ 当场撤。
+     `pointer-events:none` 是这条的另一半：它身上没有任何可点的东西，所以它连"挡住一下"都不该发生。
+   ⚠️ 减弱动态偏好下这一条**整块不出现**（判据在 `src/scripts/site.js` 那一格，不在 CSS 里）：§1 预算表末行
+     签的是"必须 `animation:none` 并直接落到终态"，而这条的终态就是"不在屏上"——它是一次性提示，
+     不是状态；同格那句"凡是随输入更新的样式都要单独问一句它在减弱偏好下退成什么"问的就是这一族。
+   ⚠️ 打印撤除在下面的 `@media print` 撤场清单里那一行（`html .kbd-hint`，与 `html #progress`／`html .headref` 同批）。 */
+.kbd-hint{
+  position:fixed; bottom:16px; left:50%; transform:translateX(-50%); z-index:11;
+  width:max-content; max-width:84vw; pointer-events:none;
+  padding:12px 18px; border-radius:12px;
+  background:var(--glass); border:1px solid var(--glass-border);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:var(--shadow-contact),var(--shadow),var(--glass-edge);
+  font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em;
+  color:var(--ink); text-align:center; opacity:0;
+  transition:opacity .6s cubic-bezier(.22,1,.36,1);
+}
+.kbd-hint.in{ opacity:1; }
+
 /* ============ 纸上一页脚（§19.5）：屏幕上它不存在 ============ */
 /* ⚠️ `display:none` 不是"藏起来备着"——它在屏幕上**一个像素都不占**，所以 §9 那条"页脚已撤（2026-09-27）"
    没有被翻案：这一行只在纸上出现，说的是"这张纸出自哪儿、是哪一篇"，不是屏幕上那块纯色收尾。
@@ -710,6 +750,11 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
      纸上那句出处仍然只有 `html footer.print-foot` 那一行管（下面那格），`--paper-ink` 那一族一个字不搬它。 */
   html .grain,
   html header.nav, html .settings, html .display,
+  /* 一轮 §C2 那条键盘提示条（`base.css` 末尾那一格）：纸上它本来也不该有——① 它是**交互反馈**，
+     一张纸没有可按的键（与上面撤玻璃导航、撤盖章／上下篇同一理由）；② 它由脚本造、`position:fixed`
+     压在页面流之外，印出来就是一块悬在版心上的灰面，而 §19.1 那句"纸上不留一层面"管的正是这一族。
+     ⚠️ 带 `html ` 前缀：这一节所有选择器同一个权重口径（压过页面层、不靠打包顺序）。 */
+  html .kbd-hint,
   html #progress, html #progress-marks, html #toc, html .headref,
   html .scene, html .bg-gradient, html .bg-photo, html .scrim, html .mist-band,
   html .lantern-rim, html .lantern-glow, html .firefly,
