@@ -29,6 +29,19 @@
      ⑧ **逻辑写法不许从两把间距尺中间滑过去**：`margin-inline*`／`padding-inline*` 带 px／视口比例值 ⇒ 直接红（不认领、只报警）。
         理由：本表收的是物理左右，逻辑属性是同一件事的另一副面孔，认领它就得先定义 `direction` 的解读——那是改口径，不是加一行。
         ⚠️ 垂直那一族的 `margin-block*` 有同一个洞，本卡不补（只动横向这一维），已写进未验到清单。
+   第四格（注释抄本尺，2026-10-03 本卡 `v11h1/numtooth` 新立，判据 ⑨⑩⑪ 是它的三条）：
+     ⑨ **抄进 CSS 注释里的账本现值必须等于本工具实算的那一枚**——靶是 `src/styles/*.css` 里**含注释原文**的那份文本
+        （抄本就住在注释里，剥了注释这一格就没有靶），模式族吃「垂直 144 枚」／「横向 85 枚」／「圆角 32 枚」
+        这种紧邻的现在时陈述，另吃「归横向那本（85 枚，…）」那种同位写法；不等 ⇒ 红，红话点名文件＋行号＋它写的那枚数＋实值。
+        为什么要这一格：那三串数字被人逐处抄进注释当解释用，而 `v11f/slot` 把横向从 84 抬到 85（X 档 53→54）之后，
+        注释里那几处 84 当场过期、没有任何一把尺说一句话（第 0 问实测：把 `mistwood.css:994` 改成「横向 77 枚」，`npm run check` 九项照旧 rc=0）。
+     ⑩ **括号里的分解求和与逐档读数也要对**：出现 `（A6／B0／C24／X54／H1）` 这类分解串时，Σ 要等于同一处写的总数，
+        每一档要等于实算逐档数——"总数没写错而分解写错"（essay.css:621 那种 X53）也红。
+     ⑪ **失去靶就红（fail closed，这一条不许省）**：扫到 0 处陈述 ⇒ 红，不是静默绿。理由：本仓踩过一次
+        "尺子没有靶了还一路绿"（`font-fallback-check --gate` 那一轮）；再把"扫到 N 处"钉成一枚独立字面量
+        `COPY_STATEMENTS`（照上面 `RADIUS_REGISTERED` 那种写法），新增抄本必须显式改这个数，不许静默漂移。
+     ⚠️ 模式族**只吃 `src/styles/`**，不许走到 `docs/**`，也不把 `dist/`、`docs/` 里任何句子拉进来比对；
+        带"那 N 枚"的过去时历史记录（base.css:579、essay.css:221 那种旧账句）**不在靶里、一字不许改**——它说的是那一年。
    横向拆值口径（**下一张卡要靠它拦人，写死在这里**）：
      属性集 `HPROPS` ＝ `margin-left`／`margin-right`／`padding-left`／`padding-right`／`column-gap` 整条即横向；
      `gap` 双值取第 2 值＝列＝横向（第 1 值是行＝垂直，由垂直那一族收），`gap` 单值同时是行距与列距 ⇒ 垂直与横向两本各收一枚同值的；
@@ -433,6 +446,14 @@ const RADIUS_REGISTERED = { hits: 32, kinds: 12 };
 /* needle：盘上扫不到这一条就是这一族在空转，不是"这一档刚好没东西" */
 const RADIUS_NEEDLE = ['mistwood.css', '', '.thing-bar', RPROP, '12px', '玻璃条与悬停铺面'];
 
+/* ---------- 第四格的登记值：抄进 CSS 注释里的账本现值（2026-10-03 本卡 `v11h1/numtooth`）---------- */
+/* ⚠️ 抄本处数（与下面 `copyStatements()` 在 `src/styles/*.css` 里扫到的「陈述三本账总数的句子」处数同源，动一处必红）：
+   **14 处** ＝ base.css 4（:359 垂直／:360 横向＋圆角／:635 横向）＋ essay.css 3（:620 垂直／:621 横向＋圆角）
+   ＋ mistwood.css 7（:662 横向／:994 垂直＋横向＋圆角／:1026 垂直／:1027 横向＋圆角）；home.css、notes.css 零处。
+   以后新增一处抄本就得显式把这个数 ＋1 —— 它是"扫到 N 处"的牙，不许静默漂移：
+   少了就说明某一处抄本被改写或换了写法（换个说法就等于绕过这一格），多了就说明有人新抄了一句却没上账。 */
+const COPY_STATEMENTS = 14;
+
 /* ---------- 圆角逐枚认领：文件 / 上下文 / 选择器 / 属性 / 字面 / 档名 / 这一枚是谁的圆 ---------- */
 const RADIUS_REGISTRY = [
   /* ===== base.css：全站基础层 ===== */
@@ -829,6 +850,63 @@ const rByFile = {};
 for (const d of rdisk) rByFile[d.file] = (rByFile[d.file] || 0) + 1;
 console.log('    逐份：' + FILES.filter(f => rByFile[f]).map(f => `${f} ${rByFile[f]}`).join(' / '));
 console.log(`    总数与种数的登记值：${RADIUS_REGISTERED.hits} 枚 / ${RADIUS_REGISTERED.kinds} 种（梯子逐档相加 ${ladderSum} 枚）`);
+
+/* ---------- 第四格：抄进 CSS 注释里的账本现值（判据⑨⑩⑪，2026-10-03 本卡 `v11h1/numtooth`）---------- */
+/* 口径全文在文件头"第四格"那一段（⑨抄本⇄实值／⑩分解求和与逐档／⑪失去靶就红＋处数登记值）。这里只写实现的两处规矩：
+   ① 读的是 **raw**（剥注释之前的那一份）——`strip()` 一剥这一格就没靶了，抄本恰恰全在注释里；
+   ② 模式族只吃紧邻的现在时陈述「垂直 144 枚」「横向 85 枚（A6／B0／C24／X54／H1）」，另吃 mistwood.css:662 那种
+      「归横向那本（85 枚，…）」的同位写法（`那本（` 那一小段）；带"那 N 枚"的过去时旧账句（base.css:579 那 143 枚、
+      essay.css:221 那 143 枚＋X67 分解）按口径不在靶里，一字不改，也不许被这一格打成红。
+   ⚠️ 只扫 `src/styles/`：模式族不许走到 docs/**，不把 dist/、docs/ 里任何句子拉进来比对（规范那一格的账归规范）。
+   ⚠️ 旗标读 cbad（本格那本账）：与上面三行汇总同一条规矩，别让它冤枉另一本账。 */
+const COPY_RE = /(垂直|横向|圆角)(那本[（(])?[ \t]*([0-9]+)[ \t]*枚(?:[ \t]*[（(]([ABCXH][0-9]+(?:[／/][ABCXH][0-9]+)+)[）)])?/g;
+function copyStatements(){
+  const dir = join(ROOT, 'src', 'styles');
+  const out = [];
+  for (const f of readdirSync(dir).filter(n => n.endsWith('.css')).sort((a, b) => FILES.indexOf(a) - FILES.indexOf(b))){
+    const raw = readFileSync(join(dir, f), 'utf8').replace(/\r\n/g, '\n');   /* raw ＝含注释原文的那一份 */
+    for (const m of raw.matchAll(COPY_RE)){
+      out.push({ file: f, line: raw.slice(0, m.index).split('\n').length, ledger: m[1], n: Number(m[3]), bd: m[4] || null });
+    }
+  }
+  return out;
+}
+const LEDGERS = {
+  垂直: { real: disk.length, tiers: tierCount, keys: ['A', 'B', 'C', 'X'] },
+  横向: { real: hdisk.length, tiers: hTierCount, keys: ['A', 'B', 'C', 'X', 'H'] },
+  圆角: { real: rdisk.length, tiers: null, keys: [] },
+};
+const tierRead = o => Object.keys(o).map(t => `${t}${o[t]}`).join('／');
+let cbad = 0;
+const copies = copyStatements();
+for (const c of copies){
+  const L = LEDGERS[c.ledger];
+  const where = `src/styles/${c.file}:${c.line}`;
+  const said = `${c.ledger} ${c.n} 枚` + (c.bd ? `（${c.bd}）` : '');
+  if (c.n !== L.real){ console.log(`  ✗ 抄本过期：${where} 那句「${said}」写的是 ${c.n} 枚、本工具实算${c.ledger}那一本是 ${L.real} 枚 —— 账本改了现值而抄着它的注释没跟着改（判据⑨：这一格就是拦这个）`); cbad++; }
+  if (!c.bd) continue;
+  const items = c.bd.split(/[／/]/).map(s => [s[0], Number(s.slice(1))]);
+  const sum = items.reduce((s, [, v]) => s + v, 0);
+  if (!L.tiers){ console.log(`  ✗ 抄本带错了分解：${where} 那句「${said}」—— 圆角那一本的账是「多少枚／多少种写法」，没有 A／B／C／X 那种档位可分解（判据⑩）`); cbad++; continue; }
+  if (sum !== c.n){ console.log(`  ✗ 抄本的分解求和对不上：${where} 那句「${said}」逐档相加是 ${sum} 枚、同一处写的总数是 ${c.n} 枚（判据⑩：总数与分解两处得说同一句话）`); cbad++; }
+  for (const [t, v] of items){
+    if (!(t in L.tiers)){ console.log(`  ✗ 抄本里冒出一档 ${t}：${where} 那句「${said}」—— ${c.ledger}那一本只有 ${L.keys.join('／')} 这几档（判据⑩）`); cbad++; continue; }
+    if (L.tiers[t] !== v){ console.log(`  ✗ 抄本的逐档读数过期：${where} 那句「${said}」里 ${t} 档写的是 ${v} 枚、本工具实算 ${L.tiers[t]} 枚 —— 总数没写错而分解写错也红（判据⑩）`); cbad++; }
+  }
+}
+/* 判据⑪：失去靶就红（fail closed）。这一条不许省，也不许退成"零处 ⇒ 静默绿"——本仓踩过一次
+   「尺子没有靶了还一路绿」（font-fallback-check --gate 那一轮）；处数还被钉成 COPY_STATEMENTS 那枚独立字面量，
+   新增抄本要显式改它，改写法绕过就红在处数上。 */
+if (!copies.length){ console.log(`  ✗ src/styles/ 里一处「陈述账本总数」的抄本都没扫到 —— 第四格判据正在空转（扫到 0 处 ⇒ 红，不是静默绿；失去靶这一族见文件头判据⑪ 与 ${COPY_STATEMENTS} 那枚登记值）`); cbad++; }
+else if (copies.length !== COPY_STATEMENTS){ console.log(`  ✗ 扫到 ${copies.length} 处抄本陈述、本文件登记的处数是 ${COPY_STATEMENTS} 处 —— 处数是一枚独立字面量（三处同源之一）：新增抄本要显式改那个数，少了就是有人把某处换成了这一格吃不到的写法`); cbad++; }
+const copyByLedger = { 垂直: 0, 横向: 0, 圆角: 0 };
+for (const c of copies) copyByLedger[c.ledger]++;
+console.log('\n=== 注释抄本（第四格，本卡 `v11h1/numtooth` 新立：src/styles/*.css 的注释里那些「垂直 N 枚／横向 N 枚／圆角 N 枚」的句子 ⇄ 本工具实算）===');
+console.log(`  ${cbad ? '✗' : '✓'} 扫了 ${new Set(copies.map(c => c.file)).size} 份样式表共 ${copies.length} 处抄本陈述` +
+  `（垂直 ${copyByLedger.垂直} ／横向 ${copyByLedger.横向} ／圆角 ${copyByLedger.圆角}，登记值 ${COPY_STATEMENTS} 处），` +
+  `逐处等于实值：垂直 ${disk.length} 枚（${tierRead(tierCount)}）／横向 ${hdisk.length} 枚（${tierRead(hTierCount)}）／圆角 ${rdisk.length} 枚 ${rKinds} 种`);
+console.log('    抄本落点：' + (copies.map(c => `${c.file}:${c.line}`).join(' ') || '（零处）'));
+bad += cbad;
 if (args.includes('--list')){
   console.log('\n=== 整张量表（--list）===');
   const sorted = [...disk].sort((a, b) => (FILES.indexOf(a.file) - FILES.indexOf(b.file)) || (a.line - b.line));
@@ -854,3 +932,6 @@ console.log('\n✓ 间距三档对齐：每一枚固定 px 与视口比例都被
 console.log(`✓ 横向间距落档对齐：盘上 ${hdisk.length} 枚横槽（左右内垫／左右外边距／列距／gap 的列那一半）全在册、逐档枚数与登记一致，` +
   `无人认领 ${hunclaimed.length} 枚、注册表过期 ${hphantom.length} 条、逻辑写法 ${logicalHorizontal().length} 条——下一张卡那种逐行横向错位冒出来就红，不再是"一概不看"那一句放过去的那种静默`);
 console.log(`✓ 圆角落档对齐：盘上 ${rdisk.length} 枚 ${RPROP} 字面（${rKinds} 种写法）全在梯子上、逐档枚数与登记一致，梯子外零冒新写法`);
+console.log(`✓ 注释抄本对齐：src/styles/ 的注释里 ${copies.length} 处陈述三本账总数的句子（登记值 ${COPY_STATEMENTS} 处）逐处等于实值` +
+  `——垂直 ${disk.length} 枚／横向 ${hdisk.length} 枚／圆角 ${rdisk.length} 枚，带括号分解那几处的求和与逐档读数也同源；` +
+  `下一轮谁把账本现值改了而抄在注释里的那句没跟着改，就红在这一格上`);
