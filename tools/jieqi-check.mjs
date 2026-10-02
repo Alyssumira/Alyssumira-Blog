@@ -1,5 +1,6 @@
 /* jieqi-check.mjs —— 「每条手记的日期旁边并上它的节气」那半件事的三向门禁
-   （四轮 §4，`v11d/jieqi` 2026-10-02 新立；挂进 `npm run check` 作**第 ⑨ 项**，位置理由在"挂在哪儿"那一格）
+   （四轮 §4，`v11d/jieqi` 2026-10-02 新立；挂进 `npm run check` 作**第 ⑧ 项**——链从八项长成九项，
+    位置理由在"挂在哪儿"那一格）
 
    用法  node tools/jieqi-check.mjs            （门禁跑这一条：三格的牙都在源码侧，不要求 dist 在场）
          node tools/jieqi-check.mjs --list     （外加逐枚打印每一条手记读到的 jieqi 原文与它的判决）
@@ -23,8 +24,8 @@
       "两页同口径"不许靠记性：注释里写一句"要一致"没有尺子读得到（§16 那一族"两边各自赦免同一个错"）。
 
    ── 为什么三格的牙都长在源码上，产物那一拍只是加映 ────────────────────────
-   `npm run check` 这条链今天**不读 dist**（`tools/taxonomy-check.mjs:4` 原话「跑在 build 之前，不需要 dist/」，
-   链上八项没有一项读产物）。本卡挂进这一条链，所以：
+   `npm run check` 这条链**不读 dist**（`tools/taxonomy-check.mjs:4` 原话「跑在 build 之前，不需要 dist/」，
+   本卡进来之前那八项没有一项读产物）。本卡挂进这一条链，所以：
      · ① 吃 `src/content/notes/*.md` 的 front matter（`tools/frontmatter.mjs` 那枚现成读法，工具侧只此一份，
        不自己再 split 一遍 `---`；行尾先归一成 LF，躲开 `splitFm` 文件头点过的那枚 CRLF 假红）；
      · ② 吃 `src/pages/notes.astro` 里那一段模板形状（格数由**同一枚** `JIEQI.map` 出、点亮集合由**同一枚**
@@ -43,12 +44,15 @@
    一起被改成 23 枚"就查不出来——先例是 `tools/phase-check.mjs` 里那枚故意保留旧实现的 `OLD_phaseOf`。
 
    ── 挂在 check 链的哪一格（§16：判据挂在哪儿由依赖方向定，不是口味）────────
-   **第 ⑨ 项**：`media-check` 之后、`font-subset --verify` 之前。
+   **第 ⑧ 项**：`media-check` 之后、`font-subset --verify` 之前（它因此从链尾第 ⑧ 项退到第 ⑨ 项，位置本身不动）。
    链上今天的形状是「发布预检 → markdown → 源码形状尺那一族（palette／phase／gap／taxonomy）→ 媒体 → 字体盘上对账」。
    本卡是"源码形状尺"那一族的成员（读 `.astro`、读 `content/notes/`、读一枚 CSS 声明），插在媒体之后把这一族
    续全；而 `font-subset --verify` 是链上唯一一枚**二进制字节／sha256 级**的复验，留在链尾最省事——它前面任何
    一项红了就不必跑到它。**为什么不挂 gate**：① 那一格的失效面（作者打错一字）要在**写手记的当天**说话，
    而 gate 排在 build 之后；三格都不需要产物，挂 check 不新增"必须先 build 才能跑"的依赖。
+   ⚠️ `npm run selftest` 今天仍然只有 `phase-check --selftest` 一项——本卡的自证走
+      `node tools/visited-probe.mjs selftest` 那一族的写法（自带、单独调），**没有**动那条脚本：
+      卡上授权进 package.json 的是"把新尺挂进 check 链"这一处，把 selftest 改成两把尺是另一件事。
 
    ── 今天零对象 ⇒ 每一格都不许静默 ─────────────────────────────────────────
    `src/content/notes/*.md` 那一层被 `.gitignore` 单独管着，**干净检出就是零枚**（`src/lib/personal.js:6-8`
