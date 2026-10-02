@@ -357,7 +357,7 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 /* 分隔点：与首页日志那一行 `.hero-log .sep` 同族（8px 左右、透明度 .5），它是入口那一块的一部分，
    所以无 JS 时跟着整块一起消失——留在扉页行末尾的半个接续词就是画坏的那一行。
    取值口径抄 home.css:275 那一份（窄屏那一档也是 8px）。`tools/gap-check.mjs` 现在三本账：垂直 144 枚（A14／B10／C52／X68）／
-   横向 85 枚（A6／B0／C24／X54／H1）／圆角 32 枚 12 种——左右这一枚水平量住在横向那本账里、在册记 C 档，
+   横向 86 枚（A6／B0／C25／X54／H1）／圆角 32 枚 12 种——左右这一枚水平量住在横向那本账里、在册记 C 档，
    上下那两枚 0 两本间距账都不收（零与 auto 是重置，不是间距决策）。 */
 .search .sep{ margin:0 8px; opacity:.5; }
 /* 入口是一枚**文字动作**：`.post-act` 那一族（盖章 / 专注 / 代码块复制，essay.css:30）的语言——
@@ -632,7 +632,7 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
      退成 `999px` 胶囊之后现值是 **31 枚**，页脚这一格照旧方角、一枚没动（"同一判据"那句交叉引用当时指的是
      `.hero-cta` 也不写圆角，那一枚今天已经改了，故在此点名）。
    ④ **间距**：竖向全走 `em`（跟着页脚自己那行 12px 的行盒派生＝§4 的 B 档口径），`gap-check` 文件头
-     「百分比不认领」那一档因此一个不动；横向那一本现在看着这里——`gap-check` 三本账里的横向 85 枚（A6／B0／C24／X54／H1）
+     「百分比不认领」那一档因此一个不动；横向那一本现在看着这里——`gap-check` 三本账里的横向 86 枚（A6／B0／C25／X54／H1）
      里这一格有两条在册：`.foot-in` 那枚 `8vw`（`padding:2.6em 8vw` 第二值位）记 A 档、`.site-foot .sep` 那枚 `8px`
      （`margin:0 8px` 第二值位）记 C 档；仍旧不收的只有第一值位那枚 `0`（零与 auto 是重置，不是间距决策）。
      同一形状的先例是上面 `.search .sep`（`margin:0 8px`，那一枚同样在册记 C 档）与 `mistwood.css:570` 那格。

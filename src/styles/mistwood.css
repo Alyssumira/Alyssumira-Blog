@@ -522,6 +522,42 @@ html[data-tier="lost"] .page-head::after{
   display:flex; align-items:baseline; gap:24px; padding:26px 0;
   transition:transform .5s cubic-bezier(.22,1,.36,1);
 }
+/* 逐行错落（W2-C 第 1 档，本卡 `v12c/offset`，2026-10-03）：目录行一枚挨一枚往右踩一步石头。
+   提案的原话形状是 0／12／0／12 那一类**两枚石头**的节奏（`tools/gap-check.mjs` 文件头判据⑦ 抄着它），
+   本卡把非零那一枚换成 24。逐枚回答"为什么是这个数"：
+   ⚠️ **24 ＝ 这一行自己的列距**（上面 `.row` 那一格那枚 `gap:24px`，横向在册 C 档）：把整行推右"一格内距"，
+      步长与行内编号／标题／日期之间那一步是同一个量——节奏由这一行的自有单位派生，不是新造的一枚数。
+   ⚠️ **24 落 C 档、不落 X**：它在 8 的格子上（3×8）。X 那一档登记的是"盘上还没上格的老值"，一枚**新**数
+      没有理由一落地就先记成偏差；而 H 档不收它——H 的定义是"只在 `:hover`／`:focus` 一类状态态下改横槽"，
+      静态缩进塞进 H 就是判据⑦ 反向那一半要红的那种写法（拿新档当逃生口）。
+   ⚠️ **只有两枚石头、不做四拍**：第三拍要么与第二拍同值（等于两拍），要么另起一枚更大的数（48＝两格），
+      而 48 在 340 档那 269px 的栏宽里一次吃掉 17%，读出来是"这一段是子项"不是"节奏"。零枚随机数、零枚说不出的数。
+   ⚠️ **宿主写 `li:nth-child(2n)` 不写 `.row:nth-child(2n)`**：`.row` 是 `<li>` 唯一的子元素
+      （`EssayIndex.astro:340`／`PostRow.astro:28`／`index.astro:119` 三处同一形状），给 `.row` 自己数 `:nth-child`
+      每一枚都数成第 1 个 ⇒ 全行同值、节奏为零，而盘上照样扫得到那枚槽——这一格最容易踩的就是这种假动作空转。
+   ⚠️ **走 `margin-left` 不走 `padding-left`**：`padding-left` 只把内容推进 padding box，行盒左缘与下面那一格
+      `.row::before` 的悬停铺面（它自己注释写着 `left:-12px` 顶的就是 padding box）都留在原地 ⇒ 只有字在动、
+      面与线框不动；`margin-left` 推的是行盒本身，铺面／悬停那 6px 位移／归巢动画跟着同一枚盒子一起走。
+   ⚠️ **发丝线不动**：行与行之间那根线住在 `li`（上面 `.essay-index li` 那枚透明 border，与 `base.css` 的
+      `.essay-index li::before`／`:last-child::after` 那一族），错落住在 `.row` ⇒ 整列的左缘仍然齐平，
+      读出来是石头而不是断线。
+   ⚠️ **垂直那本账一枚不碰**：这里只写 `margin-left`，同一格 `.row` 里那枚在册 `padding:26px 0` 一个字没改 ⇒
+      `tools/gap-check.mjs` 垂直 144 枚（A14／B10／C52／X68）不增不减；横向那一本为这一枚多认一条（新 C 档一枚）。
+   ⚠️ **键盘与鼠标同一枚值**：静态缩进不挂在任何状态态上，键盘走的是与鼠标同一扇 `:hover` ∪ `:focus-visible`
+      的门（下面那两行 `.row:hover::before,.row:focus-visible::before` 与 `.row-ex` 同条名单），这一枚错落对两者
+      一模一样 ⇒ 不许出现"只有鼠标才错位"的差别待遇。`.row:hover`／`.row:active` 那两行 `transform:translateX(6px)`
+      一字未动——transform 不在 `HPROPS` 里、三本账都数不到它，要不要给键盘补同一枚位移属状态态那一族的账，不归本卡。
+   ⚠️ **首页那三行同吃这一枚**（`index.astro:119` 那三行也在 `.essay-index > li` 里）：不给同一族开页面级例外——
+      §17"复用类不复制声明"的反面就是"同一族不在两页各长一种版面"；`home.css` 本卡一个字没碰，那三行的
+      `padding:18px 0`（`home.css:468`）与 72px 封面也没碰。代价照写：首页下半段那三行跟着踩这一步。
+   ⚠️ **窄屏那一档归零**：见下面 `@media (max-width:720px)` 里新增的那一行，理由与代价写在那一格。
+   ⚠️ **打印只答一句**：`.row` 那一族今天整族上纸——`base.css` 打印层的撤场名单那一行（`html .yring,
+      html .row-tick, html .word-river, html .jieqi-scale{display:none}`）圈的是那四把尺，没有 `.row`，
+      所以这一枚 24px 跟着上行一起上纸；本卡不改 `base.css`、不另开打印档归零。
+   ⚠️ **代价（不许 build ⇒ 不当已验）**：24px 把行盒推窄 24px，`.row-main` 随之收窄 ⇒ 摘要 `.row-ex` 可能重折
+      一行。§15 那格的行盒读数（`.row-ex y=570.72 h=51.00`）里 **y 不受影响**（缩进是横向量，行上下内垫与行高
+      一个字没动），h 要等下一次真 build 复量——这一条挂给下一轮，不在本卡签。 */
+.essay-index li:nth-child(2n) .row{ margin-left:24px; }
 /* 悬停铺面：碰到才在行底铺一块面（规范 §8.3「悬停目录行」那一格的第 0 问落在这儿）。
    ⚠️ `position:absolute` 不是可选的：`.row` 自己就是 `display:flex`，裸一枚 `::before` 会成**第四枚
    flex 项目**，`gap:24px` 把编号／标题／日期整排重新挪一遍——同一族的坑在 §9 为 `.post-nav` 记过
@@ -659,7 +695,7 @@ a.row:visited{ color:var(--ink-visited); }
 /* 写作年轮横条（三轮 §1.1 横条版；母题指认＝§13b 母题②苔点，降级谱与打印在 §13b／§19.1，窄屏那一档在 §11）。
    一片尺架里的第二把尺：过去一年每天一格、按月轻轻分段，写过稿的日子按当天字数上深浅。
    ⚠️ 零枚新垂直槽位：段与段之间那 3px 走 `column-gap`（gap-check 现在三本账：垂直那 144 枚只看
-      `margin`／`padding`／`gap`／`row-gap` 那一族，`column-gap` 与左右两半归横向那本（85 枚，这一枚在册记 X 档）、
+      `margin`／`padding`／`gap`／`row-gap` 那一族，`column-gap` 与左右两半归横向那本（86 枚，这一枚在册记 X 档）、
       圆角是第三本（32 枚 12 种），同 §4 那格"8vw 在第二值位"的口径），格与格之间不留缝（365 枚缝比格还宽）。
    ⚠️ 画幅 12px ＝ 这一页小字那一档（`.row-side`／`.d-lab` 都是 10–12px 族），不是新起的数；
       每格宽度由 `flex` 分（模板按那个月几天给 grow），这里不写死一枚格宽、也不写 365。
@@ -991,7 +1027,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
       它所在那一格 `div` 从 `body`（`:100` 那枚 17px）继承来的字号，**不是 `dd` 自己的 14px**——点落在
       那一行字之外，实测峰值一枚 17.00px、最短那篇一枚 6.92px（画幅仍是"宿主字号的一档到三分之一档"，
       与列表页那根条同一条口径，只是两处宿主字号不同：那儿 12px、这儿 17px）。这里几枚声明落在 gap-check 三本账
-      （垂直 144 枚／横向 85 枚／圆角 32 枚 12 种）上的只有一枚：`display`／`flex-wrap`／`align-items`／`flex`／`fill`
+      （垂直 144 枚／横向 86 枚／圆角 32 枚 12 种）上的只有一枚：`display`／`flex-wrap`／`align-items`／`flex`／`fill`
       三本账都不数，只有 `column-gap:3px` 归横向那本、在册记 X 档（与 `.yring` 那枚同值，两条各认各的宿主）；
       `margin`／`padding`／`row-gap` 一个字不写 ⇒ 那 144 枚垂直槽位与 32 枚／12 种圆角一枚不为它动。
    ⚠️ 不吃 `--fog`、零 `animation`、零滚动驱动；打印整块撤（`base.css` 那段撤场清单里那一行添一枚名字）。 */
@@ -1024,7 +1060,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    gap-check 那根 12 种／30 枚的圆角梯子一枚不为它动）、**零新模糊 / 零新时长档**（一处动处处静，§1.2）。
    ⚠️ **零新垂直间距槽位**：这里只写 column-gap 与 border，margin / padding / row-gap 一个字不写——
    行与行之间那 1px 由 .life-cell 的下边框打出来，它是画的笔画而不是留白。gap-check 现在三本账（垂直 144 枚／
-   横向 85 枚／圆角 32 枚 12 种）：VPROPS 不认 border ⇒ 垂直那本不为这块翻页；`column-gap:2px` 由横向那本收，在册记 X 档。 */
+   横向 86 枚／圆角 32 枚 12 种）：VPROPS 不认 border ⇒ 垂直那本不为这块翻页；`column-gap:2px` 由横向那本收，在册记 X 档。 */
 .life-grid{ border-top:1px solid var(--line); }
 .life-year{ display:grid; grid-template-columns:repeat(52,minmax(0,1fr)); column-gap:2px; }
 .life-cell{ aspect-ratio:1/1; background:color-mix(in srgb,var(--moss) 42%,transparent); border-bottom:1px solid var(--bg-base); }
@@ -1043,6 +1079,20 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
   html[data-tier="look"] .page-head{ --head-top:24vh; --band-h:32vh; }
   html[data-tier="lost"] .page-head{ --head-top:12vh; --band-h:18vh; }
   .row{ gap:14px; padding:20px 0; }
+  /* 逐行错落（W2-C 第 1 档的另一半）：**窄屏归零**，不是保留。三条理由加一句代价：
+     ⚠️ ① 同一枚 24px 在桌面上是栏宽的约 3%、在 340 档那 269px 的栏里就是约 9%——过了一道槛之后它不再读成
+        "节奏"而读成**悬挂缩进**，而这一族里"静态左缩进"今天已经有一枚真语义：`.now-list` 那枚
+        `padding:0 0 0 20px`（苔线披露件列表＝上一块的从属项）。一枚形状两种意思，这个错本仓修过两次（§9）。
+     ⚠️ ② 这一档本来就是减法档（同块里 `.row .cover` 与 `.yring` 整块撤、`.row h3` 收到 19px、`.folio` 收到 20px、
+        列距 24→14），错落是同一类的横向装饰负担，撤它同族同判据，不自开第四种降级形状。
+     ⚠️ ③ 权重：这一行必须带满宿主链 `.essay-index li:nth-child(2n) .row`（(0,4,1)）——裸 `.row{margin-left:0}`
+        是 (0,1,0)，媒体查询不参与权重计算，压不过上面那一行，会写成一条永不生效的假降级（上面那格三档 `page-head`
+        那句"必须用同名选择器覆盖"讲的是同一件事）。
+     ⚠️ 代价照写：窄屏目录行的左缘齐平、没有节奏，转屏或拖窗口时那一步会消失／出现——这与 `.cover`／`.yring`
+        那一族降级同一枚代价，本卡认。零枚新横槽：`margin-left:0` 吃**零口径**（零与 auto 是重置、不是间距决策，
+        `gap-check` 两本间距账都不收）⇒ 横向那一本只为桌上那一枚多认一条。340 那一档不必再写第三行（≤720 已罩住）。
+     ⚠️ 键盘那一路同样归零：静态缩进不挂状态态，鼠标与键盘读到的是同一枚 0。 */
+  .essay-index li:nth-child(2n) .row{ margin-left:0; }
   .folio{ width:20px; }
   .row h3{ font-size:19px; }
   .row .cover{ display:none; }   /* §11：窄屏放不下缩略图，编号和日期留住就够了 */
