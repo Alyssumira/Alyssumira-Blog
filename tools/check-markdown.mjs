@@ -58,7 +58,31 @@ assert.ok(/onerror/.test(html) === false || /&quot;onerror=&quot;/.test(html), '
 const outsideAttrs = html.replace(/"[^"]*"/g, '""');
 assert.ok(!/onerror/i.test(outsideAttrs), 'onerror lives only inside a quoted value, so it is inert');
 assert.equal((html.match(/"/g) || []).length % 2, 0, 'quotes are balanced, nothing escaped the value');
-assert.equal((html.match(/<a /g) || []).length, 5, 'one <a> per link, breakout adds none');
+/* ===== 一轮 §C1 的改钉（编排者 2026-10-02）=====
+   下面那枚 `<a ` 计数尺、与 `H2 id = safe(原文)`／`h3 也带 id`／`同名标题第二枚拿 -2 后缀` 那三格字面，
+   原样钉的其实是"**标题里不许出现 `<a>`**"，而 §C1 要发的恰恰是一枚**结构性**锚
+   （形状预先签在 §15·「标题的锚点记号（一轮 §C1）」那一格：`<h2 id="x">x<a …>#</a></h2>`）——同一形状、两件事。
+   改钉不等于放宽：这把尺把"作者写的链接"与"标题自己那枚锚"**分开数**，并给后者另立三条判据——
+   ① 一枚标题至多一枚 `<a>`；② 那枚锚的 `href` 必须逐字等于 `#` + 它所在标题自己的 `id`（§12 那条"死锚点"禁令的正面）；
+   ③ 锚的字面只有一个字符 `#`。
+   ⇒ 无锚（今天）与有锚（§C1 落地那天）**两侧都要绿**；而 href 指错章、一枚标题发两枚锚、锚字面写成"链接"，当场红。
+   ⚠️ 残余照登：作者若真写出一枚"字面恰好是 `#` 的站内片段链接"，会被这把尺当结构性锚摘掉计数——
+   盘上那种写法今天 0 枚（`href="#"` 空片段在册 0 枚，§9 那格「井号 `#` 这枚记号在站内的归属」量过），
+   而那种写法本身正是 §12 禁的死锚点。 */
+function auditHeadAnchors(s, where) {
+  const heads = [...s.matchAll(/<h([23]) id="([^"]*)"[^>]*>([\s\S]*?)<\/h\1>/g)];
+  assert.ok(heads.length > 0, `${where}：一枚标题都没读到 ⇒ 本格的三条判据在空转`);
+  for (const [, lvl, id, inner] of heads) {
+    const anchors = [...inner.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)];
+    assert.ok(anchors.length <= 1, `${where}：h${lvl}#${id} 里出现 ${anchors.length} 枚 <a> ⇒ 一枚标题至多一枚锚`);
+    for (const [, attrs, text] of anchors) {
+      assert.ok(attrs.includes(`href="#${id}"`), `${where}：h${lvl}#${id} 的锚 href 不是它自己的片段 ⇒ ${attrs}`);
+      assert.equal(text, '#', `${where}：h${lvl}#${id} 的锚字面不是单个 # ⇒ ${text}`);
+    }
+  }
+  return s.replace(/<a\b[^>]*href="#[^"]*"[^>]*>#<\/a>/g, '');
+}
+assert.equal((auditHeadAnchors(html, '第一轮').match(/<a /g) || []).length, 5, 'one <a> per link, breakout adds none（结构性锚先按上面那格摘掉再数；摘掉那一步承不承担判据，M5 那档变异证过）');
 assert.ok(/<img src="\/assets\/bg-light\.jpg"/.test(html), 'relative image pinned to site root');
 assert.ok(/<a href="\/things\/"/.test(html), 'things.html rewritten to the directory URL');
 assert.ok(/<a href="https:\/\/example\.com\/fog" target="_blank" rel="noopener noreferrer">/.test(html), 'external link opens safe');
@@ -71,8 +95,8 @@ assert.equal((html.match(/<h2 id="/g) || []).length, 2, 'two sections');
    —— 它钉的正是"id 归运行期脚本"那一件**机制缺件**（无 JS / 脚本没跑 ⇒ 深链跳不到、目录整块不存在，
    §19.3 那格同族）。今天渲染器自己发 id，所以断言换成"两枚 id 都在、且取值就是那两章的规范化结果"。
    逐篇现值表与算法登记在规范 §15 详情页那一格。 */
-assert.ok(/<h2 id="起雾的时候">起雾的时候<\/h2>/.test(html), 'H2 id = safe(原文)，CJK 原样留着');
-assert.ok(/<h2 id="下一节">下一节<\/h2>/.test(html), 'second section gets its own readable id');
+assert.ok(/<h2 id="起雾的时候">起雾的时候(?:<a\b[^>]*>#<\/a>)?<\/h2>/.test(html), 'H2 id = safe(原文)，CJK 原样留着（§C1 那枚锚在不在都过，三条判据由上面那把尺管）');
+assert.ok(/<h2 id="下一节">下一节(?:<a\b[^>]*>#<\/a>)?<\/h2>/.test(html), 'second section gets its own readable id');
 
 console.log('markdown OK  figures=3  h2=2  links=' + (html.match(/<a /g) || []).length);
 console.log(html.replace(/></g, '>\n<'));
@@ -107,7 +131,8 @@ const md2 = [
 const h2 = renderMd(md2);
 assert.ok(/<ul><li>苔<\/li><li>雾<\/li><li>风<\/li><\/ul>/.test(h2), 'ul: both - and * markers, one <li> per line');
 assert.ok(/<ol start="3"><li>第三件<\/li><li>第四件<\/li><\/ol>/.test(h2), 'ol keeps the author\'s starting number');
-assert.ok(/<h3 id="三级标题">三级标题<\/h3>/.test(h2), 'h3 也带 id（目录与刻度收的就是这一批）');
+assert.ok(/<h3 id="三级标题">三级标题(?:<a\b[^>]*>#<\/a>)?<\/h3>/.test(h2), 'h3 也带 id（目录与刻度收的就是这一批）');
+auditHeadAnchors(h2, '第二轮');   /* §C1 改钉：这一轮的 h2／h3 同样受"至多一枚锚 / href＝#id / 字面只有 #"管 */
 assert.ok(/<hr>/.test(h2) && (h2.match(/<hr>/g) || []).length === 1, 'one divider');
 assert.ok(/<blockquote><p>[^<]*<\/p><footer>某本笔记<\/footer><\/blockquote>/.test(h2), 'quote lines join into one paragraph, attribution becomes <footer>');
 /* 编号按正文里第一次出现排，不按定义顺序；重复引用复用同一个号 */
@@ -306,7 +331,8 @@ console.log(htmlT.replace(/></g, '>\n<'));
 {
   const dup = renderArticle('## 同名\n\n正文一。\n\n## 同名\n\n正文二。\n\n## ！？\n\n纯标点章。\n\n## 用 *斜体* 与 `code`\n');
   /* 重名：第一枚拿裸值，第二枚带 `-2` —— 确定性行为，不是"谁先谁后看运气" */
-  assert.ok(/<h2 id="同名">同名<\/h2>/.test(dup.html) && /<h2 id="同名-2">同名<\/h2>/.test(dup.html), '同名标题第二枚拿 -2 后缀');
+  assert.ok(/<h2 id="同名">同名(?:<a\b[^>]*>#<\/a>)?<\/h2>/.test(dup.html) && /<h2 id="同名-2">同名(?:<a\b[^>]*>#<\/a>)?<\/h2>/.test(dup.html), '同名标题第二枚拿 -2 后缀');
+  auditHeadAnchors(dup.html, '第五轮');   /* §C1 改钉：这一格给"href 必须带 -2 后缀"提供牙——第二枚同名章的锚若还指 #同名，当场红 */
   /* 归一化成空串（纯标点章）⇒ 退 sec-<章序>，绝不发 id=""：空串是一枚点不开的活锚（§12 死锚点） */
   assert.ok(/<h2 id="sec-2">/.test(dup.html), '纯标点章退 sec-章序，不发空 id');
   /* 原料是**原文**不是渲染结果：星号与反引号被规范化成连字符，`em`/`code` 这两个标记名不许进地址 */
