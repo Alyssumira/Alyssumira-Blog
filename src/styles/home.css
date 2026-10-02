@@ -146,9 +146,16 @@ html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
 /* 暗色极性反过来：--bg-top 是近黑，正着画会把整片压黑（连束光一起吞）——所以画成"两侧压暗、
    中间留亮脊"，让照片里本来就有的那道亮靠周围变暗而读出来（压暗周围）。 */
 html[data-theme="dark"] .bg-photo::after{
+  /* W2-A 同法处理：原来中间那一道亮脊只有两枚 transparent（32/72），今天把它分成三段亮谷——亮谷是照片
+     自己那道亮透出来的地方，谷与谷之间补 --bg-top 的暗缝隔开（40%、64%），左右两缘照旧压暗。主束＝最宽的
+     第一段谷（transparent 22），往右两谷逐级收窄（transparent 54、transparent 70），于是读出三束的明暗层次。
+     仍只用 --bg-top 与 transparent、角度 65deg、180deg --mist 层、那条 opacity、两枚 @property 与 12 枚签字底
+     全没动，也没新开规则。 */
   background:
     linear-gradient(180deg, var(--mist) 0%, transparent 40%),
-    linear-gradient(65deg, var(--bg-top) 0%, transparent 32%, transparent 72%, var(--bg-top) 100%);
+    linear-gradient(65deg,
+      var(--bg-top) 0%, transparent 22%, var(--bg-top) 40%,
+      transparent 54%, var(--bg-top) 64%, transparent 70%, var(--bg-top) 100%);
 }
 /* 八格：2 主题 × 4 phase，只有强度在动，角度/色相都不动。
    清晨最亮 → 正午收起 → 傍晚偏暖（暖度由 --bg-top 的时段值自己带）→ 夜里消失。
