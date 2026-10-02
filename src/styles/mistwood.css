@@ -933,6 +933,25 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
 .col-grid > div{ display:flex; flex-direction:column; gap:5px; min-width:0; }
 .col-grid dt{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:11px; letter-spacing:.18em; color:var(--ink-2); }
 .col-grid dd{ margin:0; font-size:14px; line-height:1.65; }
+/* ============ 站点档案里那片散点河（三轮 §1.4，2026-10-02 `v8b2/profile`） ============
+   一篇一枚点、点径＝这篇的字数 ÷ 这批里最长那篇（比值住在 `stats.js` 的 `wordRuler()`，与列表页
+   那根 `.row-tick` 同一个数，§17 一处真值）。上面那行读数一个字没撤：形状给分布、字给精确值。
+   ⚠️ 点是**圆**而故意不是 `.yring`／`.life-cell` 那种方格：那两族的原子是"一格＝一天"，方角是它们
+      自己签在册的嗓子；"一篇"画成方格就是拿那一族的语法说另一件事。
+   ⚠️ 圆不走 `border-radius`：全站 8 枚 50% 字面在 gap-check 的圆角梯子上枚数冻结（31 枚／12 种），
+      新写一枚、或给现成那条规则的名单添一枚名字，都会让逐枚认领当场对不上（注册表的键含选择器全文）
+      ⇒ 圆由 SVG `<circle>` 画，色仍是 `var(--moss)`，与同一页 `.yearring` 那一族同一副嗓子：
+      零枚新圆角字面、零新 hex、零新 rgba、零第五色。
+   ⚠️ 径本身是数据，所以 CSS 里一枚尺寸都不写：`width`／`height` 由模板按 `em` 给。这一片的 em 基准是
+      它所在那一格 `div` 从 `body`（`:100` 那枚 17px）继承来的字号，**不是 `dd` 自己的 14px**——点落在
+      那一行字之外，实测峰值一枚 17.00px、最短那篇一枚 6.92px（画幅仍是"宿主字号的一档到三分之一档"，
+      与列表页那根条同一条口径，只是两处宿主字号不同：那儿 12px、这儿 17px）。这里几枚声明没有一枚在
+      gap-check 的两把尺上（`display`／`flex-wrap`／`align-items`／`column-gap`／`flex`／`fill`），
+      `margin`／`padding`／`row-gap` 一个字不写 ⇒ 那 143 枚垂直槽位与 31 枚圆角一枚不为它动；
+      `column-gap:3px` 与 `.yring` 同值（横向不在它账上）。
+   ⚠️ 不吃 `--fog`、零 `animation`、零滚动驱动；打印整块撤（`base.css` 那段撤场清单里那一行添一枚名字）。 */
+.word-river{ display:flex; flex-wrap:wrap; align-items:center; column-gap:3px; }
+.w-dot{ flex:none; fill:var(--moss); }
 /* 年度弧（§6 苔时弧那套画法的第二次使用，规格见 §15）：这一层只有尺寸与形状，**一枚新的颜色声明都没有**——
    描边走 var(--moss)、装饰档 opacity .42、1px，三样和 .dayring 逐字同值。
    弧画到哪（dasharray / dashoffset）、起点在几点（那个 rotate）都是 about.astro 标记上的属性，

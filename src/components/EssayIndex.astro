@@ -4,7 +4,7 @@ import SearchEntry from './SearchEntry.astro';
 import { fmtDate } from '../lib/markdown.js';
 import { coverSrc } from '../lib/covers.js';
 import { intrinsicProps } from '../lib/image-dims.js';
-import { readMinutes, bodyLen } from '../lib/stats.js';
+import { readMinutes, bodyLen, wordRuler } from '../lib/stats.js';
 import { essaysPerPage, pageRanges, pageHref } from '../lib/pagination.js';
 /* 三族索引页的可见入口（F2 `card/f2entries`）用的那三份分组函数——**就是 `/categories/`、`/tags/`、`/series/`
    三页自己用的那三份**（`groupBy(posts, categoryOf)` / `tagGroups(posts)` / `seriesGroups(posts)`，
@@ -112,8 +112,11 @@ const ringWrote = ringMonths.reduce((n, g) => n + g.days.filter(c => c.w).length
    ⚠️ 字数向 `stats.js` 的 `bodyLen()` 要（`cjkCount` ＋ `latinWords` 那一对，与 `readMinutes`、
       关于页那个总数同一把尺），这一页不自己数；画幅走 `em`（宿栏 12px 的一枚字高为上界、
       三分之一为下界），不新增一枚 px。它是旁边那枚 `N min` 的图形，不是第二份真值。 */
-const maxLen = Math.max(1, ...posts.map(p => bodyLen(p.body)));
-const tickEm = len => (0.35 + (len / maxLen) * 0.65).toFixed(3);
+/* ⚠️ 2026-10-02（三轮 §1.4，`v8b2/profile`）这两行整对搬进 `src/lib/stats.js` 的 `wordRuler()`：
+   关于页那片散点河是同一把字数尺的第二个消费者，两处各写一份归一化就是 §17 点名的第二处真值。
+   搬的只是位置——峰值归一、画幅 0.35em～1em、分母读整份 `posts` 这三条口径一个字没改，
+   `tickEm(len)` 的调用点与产物里那几串 `…em` 都不动（这一条改前改后各取一份产物对过）。 */
+const tickEm = wordRuler(posts);
 
 /* 按年分节；年份只写一次，行内就剩 MM.DD（Rachel Andrew 那套去噪法）
    ⚠️ 分页之后这一格分的是**本页那几行**（`items`），不是整份名单：同一年的行被页界切开时，两页各写一次那一年

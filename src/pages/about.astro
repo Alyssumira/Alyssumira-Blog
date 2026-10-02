@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import SearchEntry from '../components/SearchEntry.astro';
-import { siteFacts, tone } from '../lib/stats.js';
+import { siteFacts, tone, wordRuler, bodyLen } from '../lib/stats.js';
 import { fmtDate, inlineMd } from '../lib/markdown.js';
 import { intrinsicProps } from '../lib/image-dims.js';
 /* 人像那两枚宽高原先是模板里手写的字面量 276/276（**值是对的，但是抄来的**）：换成构建期读真文件头。
@@ -26,7 +26,11 @@ const GITHUB = 'https://github.com/Alyssumira';
 /* ⚠️ 站点档案那几个数（篇数 / 字数 / 通读分钟）必须和列表页同一把尺子——尺子就是 visiblePosts()：
    直接 getCollection('posts') 的话，一篇草稿会在关于页被数进去，而列表页搜不到它（stats.js 文件头那句
    "列表页与关于页必须是同一把尺子"讲的正是这一族；runtime-check 拿产物对这一笔账）。 */
-const f = siteFacts(await visiblePosts());
+const posts = await visiblePosts();
+const f = siteFacts(posts);
+/* 苔点河的点径与列表页那根条同源：`stats.js` 的 `wordRuler()`（三轮 §1.2 那把尺，§17 一处真值）。
+   名单就是上面那一份 `visiblePosts()`，不多取一次集合、也不换一把尺。 */
+const dotEm = wordRuler(posts);
 const fontNames = fonts.map(x => x.name).join(' · ');
 
 /* 一生格子（`card/lifegrid`）：两枚输入——出生日与构建日，别的都不参与。
@@ -112,6 +116,24 @@ const walk = notes[0];
           <div>
             <dt>文章</dt>
             <dd>{f.posts} 篇 · 约 {f.words} 字 · 通读 {f.minutes} 分钟</dd>
+            {/* 站点档案的图形化（三轮 §1.4，2026-10-02 `v8b2/profile`）：上面那一行一个字不动，下面补一片点。
+                提案原话是"把三项换掉"——这一格不换：`通读 N 分钟` 不可图形化，而零篇那天连字带形一起没了
+                就是档案静默少一行（§12「编一个访问量」与下面那两枚实话立的反面）。
+                画法：一篇一枚苔点（母题②，那一族在册的气质就是"计数、记录"），直径吃 `wordRuler()` 那枚比值
+                ——与列表页每行那根条同一个数，两处不各写一份归一化（§17）。
+                圆只剩一条路：`border-radius:50%` 那 8 枚字面在 gap-check 的梯子上枚数冻结，给现成那条规则
+                的名单添一枚名字也会让逐枚认领对不上（注册表的键含选择器全文）⇒ 走 SVG `<circle>`，
+                接同一页 `.yearring` 那一族：几何写在标记属性上、CSS 只管色与档。
+                不给名字（零 `aria-label`、零图例、容器 `aria-hidden`）：形状只说分布，精确值在上面那行字里，
+                与下面 `.life-grid` 那格在册的口径同条——文字行已经把数说给读屏的人了。
+                今天可见零篇 ⇒ 这一片一枚都不落（与 `.yring` 同一条 `posts.length > 0` 的条件）。
+                ⚠️ 这一格注释走"花括号包起来"那种不进产物的写法（里面不许再出现这两个符号相邻的形状）：
+                模板里的 HTML 注释会原样烘进 dist 并牵动子集。 */}
+            {posts.length > 0 && (
+              <span class="word-river" aria-hidden="true">
+                {posts.map(p => <svg class="w-dot" viewBox="0 0 2 2" style={`width:${dotEm(bodyLen(p.body))}em;height:${dotEm(bodyLen(p.body))}em`}><circle cx="1" cy="1" r="1"/></svg>)}
+              </span>
+            )}
           </div>
           <div>
             <dt>构成</dt>

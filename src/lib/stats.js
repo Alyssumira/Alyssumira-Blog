@@ -43,6 +43,19 @@ export const latinWords = body => (String(body).replace(CJK, ' ').match(/[A-Za-z
 /* 单篇字数：全站只有这一把尺（`siteFacts` 那个总数就是逐篇相加它）。列表页那两枚新图形
    （写作年轮／每行字数尺）吃的也是它——尺子不许由渲染器自己出。 */
 export const bodyLen = body => cjkCount(body) + latinWords(body);
+/* 每篇长短那把尺（三轮 §1.2 落地时这两行写在 `src/components/EssayIndex.astro` 里，三轮 §1.4 关于页那片
+   散点河是它的第二个消费者 ⇒ 搬进这一份，两页同吃一条派生，§17 那句"一处真值"管的正是这一族）。
+   ⚠️ 分母向这批稿子自己要：`maxLen` ＝ 这份名单里最长那篇（峰值归一，没有一毫米来自常数——§12 否
+      "1 min = 20px" 那格开出的药方就是这一句）。名单由调用方交进来，两页交的都是 `visiblePosts()`，
+      所以列表页那条"分母读整份、行读本页 items"（一把随页数漂移的是假尺）在这一份里天然成立。
+   ⚠️ 画幅 ＝ 宿主字号的三分之一档到一档：那枚 0.35 的地板是给最短那篇留的可见刻痕，不是换算常数。
+      通道随宿主走——列表页拿它当竖条的高，关于页拿它当一枚苔点的径：**同一枚比值、两副画法，
+      没有第二个分母**。⚠️ 不做面积归一（`Math.sqrt` 就是第二处真值），提案写的就是"点径"。
+   ⚠️ 1 / 0.35 / 0.65 三个数逐字符照 EssayIndex 搬来那两行的原值：搬的是位置，不是口径。 */
+export const wordRuler = posts => {
+  const maxLen = Math.max(1, ...posts.map(p => bodyLen(p.body)));
+  return len => (0.35 + (len / maxLen) * 0.65).toFixed(3);
+};
 
 const git = cmd => {
   try { return execSync(cmd, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); }
