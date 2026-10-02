@@ -50,6 +50,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { splitFm, readTaxonomy } from './frontmatter.mjs';
 import { isDraft, isUnlisted, sortPosts } from '../src/lib/taxonomy.js';
+import { FEED_TAGS } from '../src/lib/feed.js';   /* 源码级两本账那一条判据的读法（W1-H2）：feed.js 是纯模块、
+                                                     不 import astro:content / 不读 process.env / 不碰 astro.config.mjs，
+                                                     所以这里 import 它不等于"读 build 产物"——ALLOW 键集在盘上就有。 */
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
@@ -60,6 +63,103 @@ const problems = [];
 const notes = [];
 const red = m => problems.push(m);
 const die = (m, hint = '') => { console.error(`\n✗ feed-check 出不了结论：${m}${hint ? `\n  ${hint}` : ''}`); process.exit(1); };
+
+/* ---------- 源码级两本账（W1-H2）：不读 `dist/`；ALLOW 摘一枚标签也必须红 ---------- */
+/* 本工具今天的牙分两族：一族读 `dist/` 的产物直方图（下面 ③ 那一格），一族读本文件与 `src/lib/feed.js`
+   的字面量（这两条）。第二族是这一档新添的——过去它不存在 ⇒ 出厂态零载体时"把 `rt` 从 ALLOW 摘掉" rc=0，
+   那是 §2-1 台账上的在册假绿（旧读数见本段末 TAGS 那枚历史注，原样留着）。
+   ⚠️ 两条判据必须跑在下面 `if (!existsSync(DIST)) die(...)` 之前—— die 一 exit 就没人再读它们，
+      而 M1/M2 那两枚变异要的正是"没有 build、没有 dist，摘掉 `rt` 也必须红"。
+      两条都跑完再判红：`problems.length` 非零时立刻按本工具口径打印"✗ 源码级判据红了 N 条"并 exit(1)，
+      不许让下面那枚"没有 dist/"的 die 掩盖红话。 */
+
+/* 双语注那一族（四轮 §2-1）：这三枚必须进直方图，否则 ③ 那一格对"feed 把 ruby 拆了壳"是**瞎的**——
+   拆壳只丢外壳、字全留，去壳文字因此两侧仍相等，唯一读得出这件事的就是枚数。
+   登记值（`v11c2/ruby` 复算）：`src/lib/feed.js` 的 ALLOW **28 枚** ⇄ 这一串 **28 枚**，两处等值 → 见 ③ 那格打印
+   （上一版把这笔写成 25——那是加这一族之前的枚数，"两处等值"成立而数字是旧的，没人量过）。
+   ⚠️ 这一格的行程**吃载体**：三篇跟踪样例今天全 `draft: true` ⇒ 出厂态 dist 里 0 枚 ruby ⇒ 同一枚变异
+   （把 `rt` 从 ALLOW 摘掉）在没载体时 rc=0、有载体时 rc=1（红话「③ …rt：页面 10 枚 ⇄ feed 0 枚」），两读数都实测过。
+   `tools/check-markdown.mjs` 那一族 83 行读不到这里——它只 import `markdown.js`，所以"未登记＝拆壳"这一课
+   曾经的牙只住在本工具，而本工具的对象是 `dist/`。从今天起这一格还有源码级牙：下面两条判据不依 `dist/`，
+   本串 ⇄ `FEED_TAGS` 集合等值 ＋ ruby/rt/rp 三枚逐枚点名在 ALLOW；摘掉 `rt` 而无 dist 也 rc=1（M1/M2 在本卡跑过）。 */
+const TAGS = ['p', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'footer', 'em', 'strong',
+              'pre', 'code', 'a', 'img', 'figure', 'figcaption', 'hr',
+              'sup', 'section', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+              'ruby', 'rt', 'rp'];
+
+/* 独立字面量登记值：第三本账。
+   ⚠️ 它独立于 ALLOW/TAGS 的长度 ⇒ 单改 ALLOW 或单改 TAGS 而忘了同步登记值也红。
+   ALLOW ＋ TAGS ＋ 这一枚同时进一格（比如把 `br` 三处都登记上），三处一起走 ⇒ 绿。
+   枚数走这一枚字面量而不是从 ALLOW 派生：拿被检物自己算期望就是 runtime-check 那条老规矩的反面。 */
+const EXPECTED_ALLOW_TAG_COUNT = 28;
+
+/* 双语注三枚：本卡真价值那一枚独立判据的名字。
+   ⚠️ 上面第 1 条那种同源比对在 ALLOW 与 TAGS **同时**删掉 `rt` 时是绿的（两本账一起走 ⇒ 集合等值仍成立）——
+      这正是 ③ 那格吃载体假绿的**加强版**：出厂态无载体、ALLOW/TAGS 两串同时摘走 ruby/rt/rp 三枚，
+      直方图与白名单一致，③ 那格读不到，同源比对读不到，只有这一条能读到。 */
+const RUBY_FAMILY = ['ruby', 'rt', 'rp'];
+
+/* 判据 1：两本账同源（ALLOW 键集 ⇄ 本工具 TAGS 集合等值 ＋ 与登记值枚数对账） */
+function cellSource1(){
+  const allowSet = new Set(FEED_TAGS);
+  const tagSet = new Set(TAGS);
+  const onlyAllow = FEED_TAGS.filter(t => !tagSet.has(t));
+  const onlyTags  = TAGS.filter(t => !allowSet.has(t));
+  const allowOk = FEED_TAGS.length === EXPECTED_ALLOW_TAG_COUNT;
+  const tagsOk  = TAGS.length === EXPECTED_ALLOW_TAG_COUNT;
+  const ok = !onlyAllow.length && !onlyTags.length && allowOk && tagsOk;
+  if (!ok){
+    if (onlyTags.length){
+      red(`源码级 ① 两本账：TAGS 有 ${onlyTags.length} 枚不在 ALLOW 里（${onlyTags.join('、')}）`
+        + ` ⇒ 直方图对那一族瞎掉——③ 那格按 TAGS 逐枚比页面 ⇄ feed，ALLOW 里没有它就意味着 feed 会把壳拆掉；`
+        + `TAGS 里还留着它，就是在指一根 ALLOW 不承认的尺子（真出现的话就是"ALLOW 摘了而 TAGS 没同步"的形状）`);
+    }
+    if (onlyAllow.length){
+      red(`源码级 ① 两本账：ALLOW 有 ${onlyAllow.length} 枚不在 TAGS 里（${onlyAllow.join('、')}）`
+        + ` ⇒ feed 白名单比直方图宽：那一族页面若出现就直接进 feed，本工具不会数它、③ 那格对它瞎掉；`
+        + `ALLOW 多出来的一枚是"没人核对的开放接口"`);
+    }
+    if (!allowOk){
+      red(`源码级 ① 两本账：ALLOW 是 ${FEED_TAGS.length} 枚，独立登记值 EXPECTED_ALLOW_TAG_COUNT = ${EXPECTED_ALLOW_TAG_COUNT}`
+        + ` ⇒ ALLOW 被改而登记值没同步（改 ALLOW 的人忘了这条同源判据的存在）`);
+    }
+    if (!tagsOk){
+      red(`源码级 ① 两本账：本工具 TAGS 是 ${TAGS.length} 枚，独立登记值 EXPECTED_ALLOW_TAG_COUNT = ${EXPECTED_ALLOW_TAG_COUNT}`
+        + ` ⇒ TAGS 被改而登记值没同步（同上，反方向）`);
+    }
+  }
+  const line = `源码级 ① 两本账（ALLOW ⇄ TAGS 集合等值 ⇄ 登记值 ${EXPECTED_ALLOW_TAG_COUNT}）：`
+    + `ALLOW ${FEED_TAGS.length} 枚 ⇄ TAGS ${TAGS.length} 枚`
+    + (ok ? '，同一集合' : `，only-ALLOW ${onlyAllow.length ? onlyAllow.join('、') : '—'}／only-TAGS ${onlyTags.length ? onlyTags.join('、') : '—'}`);
+  if (ok) console.log('✓ ' + line);
+  else console.error('✗ ' + line);
+  return ok ? 1 : 0;
+}
+
+/* 判据 2：三枚必须在 ALLOW 里（独立一枚，防的是"两边一起摘"，判据 1 那种同源比对不成立的那一格） */
+function cellSource2(){
+  const allowSet = new Set(FEED_TAGS);
+  const missing = RUBY_FAMILY.filter(t => !allowSet.has(t));
+  const ok = !missing.length;
+  if (!ok){
+    red(`源码级 ② 双语注三枚在册：ALLOW 缺 ${missing.join('、')}（${RUBY_FAMILY.join('／')} 三枚逐枚要求）`
+      + ` ⇒ {底|注} 在页面由 \`markdown.js\` 的 \`rubyEl()\` 画成 \`<ruby>底<rp>(</rp><rt>注</rt><rp>)</rp></ruby>\``
+      + `（\`markdown.js:110\` 那行形状注），feed.js 的 ALLOW 少哪一枚就拆哪一枚的壳——"两边一起摘"时判据 ① 绿（集合仍等值）、`
+      + `③ 无载体也读不到 ⇒ 这一枚独立点名，是这一格最后的牙（W1-H2 本卡 M2）`);
+  }
+  const line = `源码级 ② 双语注三枚在册（${RUBY_FAMILY.join('／')}）：ALLOW ${allowSet.size} 枚里${ok ? '逐枚都在' : `缺 ${missing.join('、')}`}`;
+  if (ok) console.log('✓ ' + line);
+  else console.error('✗ ' + line);
+  return ok ? 1 : 0;
+}
+
+const sourceOk = [cellSource1(), cellSource2()].filter(Boolean).length;
+if (problems.length){
+  console.error(`\n✗ feed-check 源码级判据红了 ${problems.length} 条（在跑 dist 那五格之前）：`);
+  for (const p of problems) console.error('  · ' + p);
+  process.exit(1);
+}
+notes.push(`源码级：${sourceOk}/2 条判据在跑（无 dist 也跑；摘 ALLOW 里的 ruby/rt/rp 或 TAGS 里的同名一枚都红）`);
 
 /* ---------- 读盘（缺产物就点名，不许静默跳过——§16 那条 dist/dist 同族的坑） ---------- */
 if (!existsSync(DIST)) die('没有 dist/ —— 这一格读的是构建产物，必须在 npm run build 之后跑（npm run gate 里就在 build 之后）');
@@ -124,18 +224,8 @@ const stripTags = s => String(s).replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]
 const norm = s => s.replace(/[\s（）]/g, '');
 const textOf = s => norm(htmlUn(stripTags(s)));
 const stripComments = s => String(s).replace(/<!--[\s\S]*?-->/g, ' ');
-const TAGS = ['p', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'footer', 'em', 'strong',
-              'pre', 'code', 'a', 'img', 'figure', 'figcaption', 'hr',
-              'sup', 'section', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-              /* 双语注那一族（四轮 §2-1）：这三枚必须进直方图，否则 ③ 那一格对"feed 把 ruby 拆了壳"是**瞎的**——
-                 拆壳只丢外壳、字全留，去壳文字因此两侧仍相等，唯一读得出这件事的就是枚数。
-                 登记值（`v11c2/ruby` 复算）：`src/lib/feed.js` 的 ALLOW **28 枚** ⇄ 这一串 **28 枚**，两处等值 → 见 ③ 那格打印
-                 （上一版把这笔写成 25——那是加这一族之前的枚数，"两处等值"成立而数字是旧的，没人量过）。
-                 ⚠️ 这一格的行程**吃载体**：三篇跟踪样例今天全 `draft: true` ⇒ 出厂态 dist 里 0 枚 ruby ⇒ 同一枚变异
-                 （把 `rt` 从 ALLOW 摘掉）在没载体时 rc=0、有载体时 rc=1（红话「③ …rt：页面 10 枚 ⇄ feed 0 枚」），两读数都实测过。
-                 `tools/check-markdown.mjs` 那一族 83 行读不到这里——它只 import `markdown.js`，所以"未登记＝拆壳"这一课
-                 今天的牙只住在本工具，而本工具的对象是 `dist/`。 */
-              'ruby', 'rt', 'rp'];
+/* TAGS 已上移到本文件顶部「源码级两本账」那一段（W1-H2），历史注（四轮 §2-1 的 28 枚登记值 ＋ 出厂态
+   rc=0/有载体 rc=1 那两枚实测读数）也一起搬；下面 `histOf`／`histDiff` 与上面 cellSource1 吃的是同一串。 */
 const histOf = frag => TAGS.map(t => [t, (frag.match(new RegExp(`<${t}(?=[\\s/>])`, 'g')) || []).length]);
 const histDiff = (a, b) => {
   const x = Object.fromEntries(a), y = Object.fromEntries(b);
