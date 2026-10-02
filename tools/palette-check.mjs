@@ -1061,8 +1061,8 @@ let fogCeilDrift = 0, fogFloorPrinted = 0;
       : `登记的三枚端点 ${FOG_LEVELS.join(' / ')} 里有 ${FOG_LEVELS.filter(l => l > fogJointCeiling).length} 枚在天花板 α ≤ ${fogJointCeiling.toFixed(3)} 之上（现算 binding ${ceilNamed}）⇒ 三档端点在天花板之上，这一族既保住地板又能读出三档的端点不存在`;
     const atBound = fogBnd.max === FOG_CEILING_REGISTERED;
     const slackTxt = atBound
-      ? '今天最浓那枚端点**恰好就是**这枚上界 ⇒ 绿；再往上拧一格就撞它'
-      : `今天最浓那枚端点还在上界之下（离上界还差 ${(FOG_CEILING_REGISTERED - fogBnd.max).toFixed(3)}）⇒ 绿；这一格只管"不许越过"，朝窄怎么调都不拦`;
+      ? '本格读到的最大那枚端点（盘上 ⇄ FOG_LEVELS 两头取大）**恰好就是**这枚上界 ⇒ 绿；再往上拧一格就撞它'
+      : `本格读到的最大那枚端点还在上界之下（离上界还差 ${(FOG_CEILING_REGISTERED - fogBnd.max).toFixed(3)}）⇒ 绿；这一格只管"不许越过"，朝窄怎么调都不拦`;
     console.log(`  ✓ 牙⑤ 单调上界：--fog 最大端点 ${fogBnd.max}（盘上最大 ${fogBoardBnd.max === null ? '一枚都没读到' : fogBoardBnd.max}／本格 FOG_LEVELS 最大 ${fogRegBnd.max === null ? '一枚都没读到' : fogRegBnd.max}）未越过登记上界 ${FOG_CEILING_REGISTERED}` +
       `（独立字面量、不从 FOG_LEVELS 里 Math.max 推）——${slackTxt}。` +
       `自证 fixture ${fogBndFixOk}/${fogBndFix.length} 枚各在其位。⚠️ 这枚牙绿**不等于**那一族能落：${aboveTxt}；那些读数在上面牙① 那一族里照印、只印不判。`);
