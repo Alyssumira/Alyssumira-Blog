@@ -192,7 +192,7 @@ const REGISTRY = [
   ['essay.css', '', '.post-body blockquote', 'margin', '40px', 'C', '引用块作为一整块的上下留白'],
   ['essay.css', '', '.post-body blockquote p', 'margin-bottom', '14px', 'B', '引用内部段距：比正文紧一档，仍按行盒走'],
   ['essay.css', '', '.post-body blockquote footer', 'margin-top', '14px', 'B', '署名行与引用最后一行之间，与上一枚同一档呼吸'],
-  ['essay.css', '', '.post-body hr', 'margin', '56px', 'C', '三个点那条分隔线的上下'],
+  ['essay.css', '', '.post-body hr', 'margin', '56px', 'C', '换气记号那枚点的上下（三轮 §2.2：那三枚点退役成一枚苔点）'],
   ['essay.css', '', '.footnotes', 'margin-top', '72px', 'C', '正文与脚注块之间（比 h2 的 64 再高一档：这是一次转场不是一章）'],
   ['essay.css', '', '.footnotes', 'padding-top', '28px', 'X', '封口线与脚注块之间：沿用段距那一档 28，但它不在 8 的格子上'],
   ['essay.css', '', '.footnotes .fn-title', 'margin', '18px', 'X', '"注"那一行与脚注列表之间'],

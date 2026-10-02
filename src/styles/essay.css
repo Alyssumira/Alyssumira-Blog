@@ -383,11 +383,13 @@ html[data-focus="1"] .wrap::before{ display:none; }
 }
 
 /* 分隔线用三个点，不用横线：横线已经被 h2 的短线和 .post-nav 占去了语义 */
+/* ⚠️ 三轮 §2.2 那枚"换气记号"落进这一格时的复判（2026-10-03 `v8a/marks`）：**上面那行签字理由仍然成立，
+   分隔位今天还是不画横线**。三母题里落下来的那一笔（中央那枚苔点）连同它的尺寸档、四本账与两笔撤的裁决，
+   全在 `base.css` 那一格「换气记号」与 `docs/设计规范.md` §13b「§2.2 全站唯一一枚换气记号」里（规则只住一处，
+   这一格留宿主的几何）。记号本体从这里搬走之后，`letter-spacing:.5em` 随那三枚点一起退役——一枚点再吃字距，
+   中心就偏右半个字距，"居中"会变成假的。 */
 .post-body hr{
   border:0; background:none; height:auto; margin:56px auto; text-align:center; overflow:visible;
-}
-.post-body hr::before{
-  content:"· · ·"; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:13px; letter-spacing:.5em; color:var(--ink-3);
 }
 
 /* 脚注：正文里一个上标号，文末一条 ↩，:target 让跳过去的落点亮起来（零 JS） */
