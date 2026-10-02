@@ -552,7 +552,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
    栏外那条边注从横排改竖排，读起来像页边的一条竖注。声明两枚：读向那一枚 `writing-mode:vertical-rl`，与收尾这一卡补进来的
    `max-height:200px`（它收的是竖排之后那一维的行长；为什么要它，见下面几何账 `height:auto` 那一格）——
    ⚠️ 零枚新槽位：margin／padding／gap／width／height 一枚不写，新落的那枚 `max-height` 也不在 `gap-check` 的槽位属性集
-   （`VPROPS`／`HPROPS` 只收 margin／padding／gap 那几个）⇒ 间距三本账一枚不涨（垂直 144／横向 85 不动，
+   （`VPROPS`／`HPROPS` 只收 margin／padding／gap 那几个）⇒ 间距三本账一枚不涨（垂直 144／横向 86 不动，
    包括在册那三枚 `2px`／`20px`／`-232px` 与 `.sn-mark` 那枚 `8px`，字面值逐枚照旧）。
    ⚠️ 零新动画（`writing-mode` 是静态属性）、零新色、零新元素（`markdown.js` 那只壳造出来的还是同一份 `<span class="sidenote">`）。
 
