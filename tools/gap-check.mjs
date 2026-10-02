@@ -904,7 +904,7 @@ for (const c of copies) copyByLedger[c.ledger]++;
 console.log('\n=== 注释抄本（第四格，本卡 `v11h1/numtooth` 新立：src/styles/*.css 的注释里那些「垂直 N 枚／横向 N 枚／圆角 N 枚」的句子 ⇄ 本工具实算）===');
 console.log(`  ${cbad ? '✗' : '✓'} 扫了 ${new Set(copies.map(c => c.file)).size} 份样式表共 ${copies.length} 处抄本陈述` +
   `（垂直 ${copyByLedger.垂直} ／横向 ${copyByLedger.横向} ／圆角 ${copyByLedger.圆角}，登记值 ${COPY_STATEMENTS} 处），` +
-  `逐处等于实值：垂直 ${disk.length} 枚（${tierRead(tierCount)}）／横向 ${hdisk.length} 枚（${tierRead(hTierCount)}）／圆角 ${rdisk.length} 枚 ${rKinds} 种`);
+  `${cbad ? '其中有过期处 —— 本工具实算的是' : '逐处等于实值：'}垂直 ${disk.length} 枚（${tierRead(tierCount)}）／横向 ${hdisk.length} 枚（${tierRead(hTierCount)}）／圆角 ${rdisk.length} 枚 ${rKinds} 种`);
 console.log('    抄本落点：' + (copies.map(c => `${c.file}:${c.line}`).join(' ') || '（零处）'));
 bad += cbad;
 if (args.includes('--list')){
