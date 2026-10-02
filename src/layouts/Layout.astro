@@ -107,6 +107,14 @@ if (fonts.some(f => !f.self)) throw new Error(`fonts 清单里这些族没有 se
      真切成夜林时由下面那段内联脚本改它（首帧之前），点开关时 site.js 再改一次 -->
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/favicon-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+{/* apple-touch-icon（三轮 §4.2，2026-10-02）：180×180 一枚、亮底、**不预圆角**——iOS 与主流启动器自己掩膜，
+    预圆角在圆形掩膜下反而露出方角。母题与降级谱签在 §13b：一枚苔点 ＋ 点外一圈不完整弧，零新色
+    （底走 `--bg-base` #EBEDE8、点走 `--moss-ink` #384D3B、弧走 `--moss` #7C9A80）。
+    ⚠️ 只一枚、不配夜林版：`media=` 对 apple-touch-icon 不是可靠契约，写两版就是假语境
+    （与上面 theme-color 那一格"写两版反而在骗无脚本的访客"同一条判法）。
+    ⚠️ 这段注释走 JSX 花括号写法而不是 HTML 注释：花括号那种不进产物 ⇒ 字体子集没有新码点要读
+    （模板里的汉字会原样落进 `dist/`，这条教训写在 §16 那格"撤掉模板里那两行汉字注释"） */}
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
 <meta name="theme-color" content="#EBEDE8">
 <meta property="og:type" content={type}>
 <meta property="og:site_name" content={SITE_NAME}>
