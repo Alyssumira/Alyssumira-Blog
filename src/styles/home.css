@@ -131,9 +131,17 @@ html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
   /* 上：空气透视（照片上 1/3 一层极淡 --mist，远处吞进雾里，减色）
      下：光柱——角度 65deg 是从两张照片量出来的（见 §5：亮脊/主轴两法、亮暗两张一致到 ~2–4°），
      钉死不动，只有强度随 data-phase 变（下面那八条 opacity）。 */
+  /* W2-A（2026-10-03，外部提案 Routes 3 god rays，作者已授权）：把这一条 65deg 斜光从一道扩成三束。
+     主束＝--bg-top 16–22% 那一段最宽的整幅亮面（有平台＝最亮）；透明缝落在 32%；次束＝42% 那一枚单点
+     （只在一个角度到顶，比主束窄一档）；再一道缝落在 52%；第三束＝56% 最细的单点。束与束之间靠
+     transparent 谷隔开，明暗主次由色标的宽窄排出来，不往那条 calc 里添第三个因子。角度仍 65deg、
+     180deg 的 --mist 空气透视层照旧、只吃 --bg-top 与 transparent（零枚新色）；那条 opacity、
+     两枚 @property 与 12 枚签字底一个没动，也没有新开第三条 ::after 规则。 */
   background:
     linear-gradient(180deg, var(--mist) 0%, transparent 40%),
-    linear-gradient(65deg, transparent 0%, var(--bg-top) 32%, transparent 62%);
+    linear-gradient(65deg,
+      transparent 0%, var(--bg-top) 16%, var(--bg-top) 22%, transparent 32%,
+      var(--bg-top) 42%, transparent 52%, var(--bg-top) 56%, transparent 62%);
 }
 /* 暗色极性反过来：--bg-top 是近黑，正着画会把整片压黑（连束光一起吞）——所以画成"两侧压暗、
    中间留亮脊"，让照片里本来就有的那道亮靠周围变暗而读出来（压暗周围）。 */
