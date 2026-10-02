@@ -901,10 +901,13 @@ if (!copies.length){ console.log(`  ✗ src/styles/ 里一处「陈述账本总�
 else if (copies.length !== COPY_STATEMENTS){ console.log(`  ✗ 扫到 ${copies.length} 处抄本陈述、本文件登记的处数是 ${COPY_STATEMENTS} 处 —— 处数是一枚独立字面量（三处同源之一）：新增抄本要显式改那个数，少了就是有人把某处换成了这一格吃不到的写法`); cbad++; }
 const copyByLedger = { 垂直: 0, 横向: 0, 圆角: 0 };
 for (const c of copies) copyByLedger[c.ledger]++;
+/* 汇总句的三种说话：零处＝失去靶（不许写成"逐处等于实值"那种恒绿样子），有过期处＝点名它，全对＝现在时的"逐处等于实值" */
+const copyVerdict = !copies.length ? '判据失去靶（零处抄本，红的是上面那一格空转）—— 本工具实算的是'
+  : cbad ? '其中有过期处 —— 本工具实算的是' : '逐处等于实值：';
 console.log('\n=== 注释抄本（第四格，本卡 `v11h1/numtooth` 新立：src/styles/*.css 的注释里那些「垂直 N 枚／横向 N 枚／圆角 N 枚」的句子 ⇄ 本工具实算）===');
 console.log(`  ${cbad ? '✗' : '✓'} 扫了 ${new Set(copies.map(c => c.file)).size} 份样式表共 ${copies.length} 处抄本陈述` +
   `（垂直 ${copyByLedger.垂直} ／横向 ${copyByLedger.横向} ／圆角 ${copyByLedger.圆角}，登记值 ${COPY_STATEMENTS} 处），` +
-  `${cbad ? '其中有过期处 —— 本工具实算的是' : '逐处等于实值：'}垂直 ${disk.length} 枚（${tierRead(tierCount)}）／横向 ${hdisk.length} 枚（${tierRead(hTierCount)}）／圆角 ${rdisk.length} 枚 ${rKinds} 种`);
+  `${copyVerdict}垂直 ${disk.length} 枚（${tierRead(tierCount)}）／横向 ${hdisk.length} 枚（${tierRead(hTierCount)}）／圆角 ${rdisk.length} 枚 ${rKinds} 种`);
 console.log('    抄本落点：' + (copies.map(c => `${c.file}:${c.line}`).join(' ') || '（零处）'));
 bad += cbad;
 if (args.includes('--list')){
