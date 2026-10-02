@@ -463,6 +463,41 @@ html[data-focus="1"] .wrap::before{ display:none; }
 .post-body h2:hover .headref,.post-body h3:hover .headref,.post-body .headref:focus-visible{ opacity:1; }
 @media (hover:none){ .post-body .headref{ opacity:1; } }   /* 触屏没有 hover，锚就常显（同一档写法：mistwood.css:600） */
 
+/* 站内锚点的落距（2026-10-02 修的一处既存缺陷；账在 §15 详情页那一族与 §19 降级那一族）：
+   点目录里那一行、或点章名末尾这枚 `#`，浏览器把宿主自己的顶缘放到视口 y=0，而 `.nav` 是 `position:fixed`
+   挂在屏顶的胶囊 ⇒ 章名整个落在壳底下。**修前实测**（减弱偏好档、载体＝`.gitignore:25` 挡住的一篇临时稿，
+   读数取完已删）：桌面 1440×900 壳底缘 **68px**、章名 rect.top 0.14／−0.11／0.08 ⇒ 被盖住 67.86／68.11／67.92px；
+   窄屏 390×844（目录整块 `display:none`，`.headref` 是唯一入口）壳底缘 **66px**、rect.top 0.31／0.44／−0.38
+   ⇒ 被盖住 65.69／65.56／66.38px。
+   ⚠️ 机制选 **scroll-margin-top**（逐元素，与上面 `.footnotes li` 那枚在册 88px 同族），**不**选滚动容器上的
+   `scroll-padding-top`：容器实测是 `documentElement`（`scrollingElement=HTML`；`scrollTo(+320)` 之后
+   `html.scrollTop` 动而 `body.scrollTop` 恒 0；`body{overflow-x:hidden}` 只把横向那一份交给视口，
+   没有任何 `@media` 换过容器），那一案确实一处覆盖全部锚，代价是它与 `.footnotes li` 的 88px 是**相加**的
+   ——脚注会落到 88＋X，同一件语义长出一把新尺压在一枚旧尺上，而那枚 88px 有自己的历史，不许为了数好看去动它。
+   ⇒ **口径：站内"落到固定壳之下"这一件事全站只有一把尺＝88px**，而它钉的是壳底缘**之下**的那段空：
+   壳底缘 68（桌面）／66（≤720 那档胶囊 padding 收 1px，`mistwood.css:585`，gap-check 在册那两枚），
+   88−68＝**20**、88−66＝**22** ⇒ 章名顶缘停在壳下缘之下 20～22px，两枚差都在 §4 的 8 的格子上（C 档那族）。
+   ⚠️ 覆盖面不吃猜测，吃 `tools/runtime-check.mjs` 1d 与全站具名片段那两格对账枚举出来的宿主：
+   ① `.post-body` 里带 id 的 h2／h3（章与节——目录那批与 `.headref` 那批**同一枚靶**）、② 脚注 `li`（:407 已带这枚 88px）、
+   ③ `sup.fnref`（文末 ↩ 的靶）、④ `header#post-head`（文末 top 那枚链接的靶）。这一条接住 ①③，② 已在；
+   ④ 落在文档 y=0，浏览器再往上滚不动 ⇒ 落距对它是一个都不改变读数的数，不点名（写了也不响）。
+   ⚠️ 零新垂直槽位：`scroll-margin-top` 不在 `gap-check` 的 VPROPS 名单里（那份名单按字面全等认
+   `margin`／`margin-top`／`margin-bottom`／`padding*`／`gap`／`row-gap`），改前改后各跑一次，它打印的
+   143 枚与 essay.css 那 43 枚一个字没动——与 `.footnotes li` 那枚是同一个既有事实，不是这一轮的侥幸。
+   ⚠️ 选择器**三枚全展开**、不写成 `:is(h2,h3)`：`runtime-check` 1h 那格数规则枚数时按逗号拆前言（它自己
+   点名"括号里再套括号不认"），`:is(h2,h3)` 会被拆成 `.post-body :is(h2` 与 `h3)[id]` 两枚**假选择器**——
+   枚数多两枚、读数还是脏的。这一条在 1h 那格里因此是 **+3 枚**（逗号分写各算一枚，那是那把尺的口径）：
+   有载体在窗时实测 621→624；站上零可见稿时那一格不印这个数（它自己就在那六枚"没有载体"的红里）。
+   ⚠️ 降级谱不添第二处：这一枚是静态偏移、不是滚动行为。`prefers-reduced-motion` 那一档管的是
+   `scroll-behavior`（`base.css:600` 已把它钉成 `auto`）与胶囊的**静止态**（`mistwood.css:1083`
+   `.nav{opacity:1;transform:translate(-50%,0)}`——就是 `nav-in` 那枚 `to` 的终态），两枚都在册，这里不新增第二处。
+   ⚠️ 读数只在减弱档取（口径同 §17「回归怎么验」第 1 条）：全动效档在 `--dump-dom` 里连一次平滑滚动都走不完——
+   实测那一档 `scroll-behavior=smooth`、`--virtual-time-budget` 从 9000 加到 40000，点完锚 `scrollY` 仍是 **0**
+   （落点读数 1024.42／1135.45／970.61＝压根没动），而壳停在动画**起手帧** top=8、底缘 60。那不是读者会看到的落点，
+   是量具的假象，不许拿它当数。壳的 68／66 因此是"入场结束后静止那一下"的量法，与减弱档钉的终态同一个位置。
+   纸上由 `base.css` 打印段那串撤场清单接住（壳、目录与 `.headref` 在纸上都不出现，落距因此无物可对）。 */
+.post-body h2[id],.post-body h3[id],.post-body sup[id]{ scroll-margin-top:88px; }
+
 /* 正文图片：不裁框，按原比例走满栏宽；雾散开 + 褪色由共享底座负责（§8.4 / §10.5） */
 /* ⚠️ 选择器多带一枚 `article`（权重 (0,1,2) 压过 `mistwood.css:409` 那条 (0,1,1)）——**这不是顺手加权重，
    是还 §8.4 末那格登记的那笔债**：共享底座给"内容位照片"写的是 `position:absolute; inset:0; object-fit:cover`
