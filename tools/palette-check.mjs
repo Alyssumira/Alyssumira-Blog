@@ -1,6 +1,11 @@
 /* 色板反解：把 §2.4 从"每个颜色逐个实测再回填"变成"按 OKLCH 的 L 反解门槛"
    用法  node tools/palette-check.mjs              （查现有令牌达不达标，CI/发布前跑）
          node tools/palette-check.mjs --need 7     （新色该把 L 放在哪：反解 + 打印候选 hex）
+         node tools/palette-check.mjs --selftest   （④「雾当明暗」那一格逐枚吃自己的反例：朝宽必须红、
+                                                    朝窄不许误红；照 phase-check --selftest 同一条口径，
+                                                    它故意让判据吃坏数据，所以不接进 npm run check 的默认链。
+                                                    日常链里那几枚反例照样每跑都吃，只是不逐枚印）
+         PALETTE_FOG_ROWS=1 node tools/palette-check.mjs   （把 ④ 那张 (主题×档×目标色×前景×α) 全表逐枚印出来）
    换算按 Björn Ottosson 的 OKLab 推导；对比度是 WCAG 2.1 相对亮度比。
 
    ⚠️ 第四轮扩了两件事，因为规范开始引入"随时间变的材质"（§2.3 换季、§6 月相）：
@@ -226,6 +231,7 @@ const TIERS = [7, 4.5, 3];
 const PHASES = ['dawn', 'day', 'dusk', 'night'], MOONS = ['*', 'full'];
 
 const args = process.argv.slice(2);
+const SELFTEST = args.includes('--selftest');   /* ④ 那一格的反例清单（照 phase-check 同一条口径：另一次调用，不接进默认链） */
 const { per, light, dark, lightFn, darkFn } = readSheets();
 /* 防空转闸（放在所有表之前，免得"没扫到东西"长得像"扫过且全绿"）：
    ① 基准板读不到底 —— 后面每一格都是 NaN；
@@ -609,7 +615,11 @@ const vs = variants(per);
 console.log('\n=== 条件块（data-phase / data-moon）过闸 ===');
 if (!vs.length) console.log('  （没有条件块，跳过）');
 let bad2 = 0, litChecked = 0, groundChecked = 0;
-function stateLine(label, eff, effFn, coverNote){
+/* ④ 那一格（雾当明暗）不许另起一条合成路径：②③ 这两格算出来的每一档，在它合成完的那一刻
+   就把**它自己用的那两个数**交出来存着，④ 吃的就是这两个数（不是再拿 --lit/--ground 复算一遍）。
+   theme 单独传进来（label 里那串前缀给人看，给机器当键太脆）。 */
+const FOG_STATES = [];
+function stateLine(label, eff, effFn, coverNote, theme){
   const bgB = eff['--bg-base'], bgT = eff['--bg-top'];
   let line = `  ${label}：底 ${bgB} 顶 ${bgT}${coverNote ? `（覆盖 ${coverNote}）` : ''}`;
   let ok = true;
@@ -656,6 +666,7 @@ function stateLine(label, eff, effFn, coverNote){
   const two = worstOn(gB, gT);
   if (!two.wok){ bad2++; line += `  两层 α${lit.a}+${ground.a.toFixed(3).replace(/0+$/, '')} → ✗ 铺满全页时有档位跌破地板，最紧一档 ${two.wk}`; }
   else line += `  两层 α${lit.a}+${ground.a.toFixed(3).replace(/0+$/, '')} → 底${gB} 顶${gT}，最紧一档 ${two.wk}✓`;
+  FOG_STATES.push({ label, theme, eff, bgB: gB, bgT: gT });
   console.log(line + (ok && one.wok && two.wok ? '  ⇒ 全过' : ''));
 }
 for (const [tName, tBase, tFn] of [['light', light, lightFn], ['dark', dark, darkFn]]){
@@ -665,7 +676,7 @@ for (const [tName, tBase, tFn] of [['light', light, lightFn], ['dark', dark, dar
      这一句不是给工具开后门：`--lit` 这类在暗色块里重声明过的键由 spread 顺序自然盖掉基准值。 */
   const fnBase = { ...lightFn, ...tFn };
   /* 基准档 = :root / [data-theme=dark] 自己：亮色的 day、两主题的无月之夜 */
-  stateLine(`${tName} day（基准）`, { ...tBase }, { ...fnBase }, null);
+  stateLine(`${tName} day（基准）`, { ...tBase }, { ...fnBase }, null, tName);
   for (const phase of PHASES) for (const moon of MOONS){
     /* 没点名 data-theme 的块按"亮色专用"处理——§2.3 明写暗色不随时段变色，
        所以一条裸 [data-phase] 规则套到夜林头上同样算分叉 */
@@ -675,7 +686,7 @@ for (const [tName, tBase, tFn] of [['light', light, lightFn], ['dark', dark, dar
     for (const v of usable) for (const [k, val] of Object.entries(v.toks)){ if (eff[k] !== val) from.push(`${k}←${v.file}`); eff[k] = val; }
     for (const v of usable) for (const [k, val] of Object.entries(v.fn)){ if (effFn[k] !== val) from.push(`${k}←${v.file}`); effFn[k] = val; }
     if (!from.length) continue;                       // 这个组合一个令牌都不覆盖，不必报
-    stateLine(`${tName} ${phase}${moon === 'full' ? '+满月' : ''}`, eff, effFn, from.join('、'));
+    stateLine(`${tName} ${phase}${moon === 'full' ? '+满月' : ''}`, eff, effFn, from.join('、'), tName);
   }
 }
 console.log(`  方向光复算 ${litChecked} 档（0 档＝这盏灯没进过闸）`);
@@ -683,5 +694,248 @@ console.log(`  两层光（方向光 + 正文脚下地面光）复算 ${groundCh
   `${groundChecked < litChecked ? `少于方向光的 ${litChecked} 档＝有档位被第二层漏掉了` : '与方向光同档数＝两盏灯跑的是同一批档'}）`);
 if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相、方向光与两层光的合成都没有把任何一档推下它的地板');
 
-if (bad || bad2 || drift || ldDrift || useDrift || strawDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）`); process.exit(1); }
+/* ---------- ④ 雾当明暗：`--fog` 从"氛围乘数"扩成"页面明暗旋钮"**之前**的那把尺 ---------- */
+/* 为什么先造尺再谈旋钮（Routes 5 那条 fog-as-darkness 的前置；本卡零枚 src 改动）：
+   ① 判据级教训在盘上是现成的：**凡跑一遍某把尺子式的验收，必须先证明那把尺子读得到被测对象，否则它是假验收**
+      （§12／§16 那族，同一天还记着"rgba 漂移检查静默空转、退出码 0、长得像全绿"）。而 `--fog` 今天乘在
+      `opacity:` 上（`home.css:251` 的 `calc(.75 * var(--fog))`、`mistwood.css:322/349/385/397/407/421/434/444/458`
+      那族 `calc(var(--band-a) * var(--fog))`、`essay.css:111` 的 `opacity:var(--fog)`），**opacity 与合成后的
+      像素本工具原理上读不到**——它认的是源文件里的色值字面量。⇒ 那枚旋钮今天真落＝没有验收。
+      这一格把那一族**静态算得出的那一半**（α 覆盖层压在有效底上的对比度）搬上机器，用数字回答
+      "能不能落、落在哪一档"，而不是用意见。
+   ② §12 那句"三档端点当初是为了 opacity 到 1 就夹住选的"从今天起有**定量版**：α 夹到 1 之后
+      "浓 1.35"与"中 1"合成出**同一页纸**（逐通道 Δ0/255，下面那一行是算出来的、不是我声明的），
+      而那页纸就是目标色本身 ⇒ 压在它上面的同名前景只剩 1.00:1。
+   判的这件事：一枚覆盖层以 α = `--fog` 的三档端点（`.4 / 1 / 1.35`）压在 ②③ 那两格**已经算出来的**
+   十四档有效底/有效顶（基准 × 时段条件块 × 方向光 × 两层光，`FOG_STATES` 直接吃它们的合成结果，
+   ⚠️ 不许另起一条合成路径），前景是那四枚在册令牌（`FLOOR` 那四枚登记值）——对比度还剩多少。
+   ⚠️ 目标色点名与理由（只许**已登记的基准令牌**、零新 hex、零新 rgba、`REGISTERED = 46` 一枚没动）：
+     · 亮档 `--ink` `#232B25`：这一档里在册的**最深**一枚，"明暗旋钮拧到底"就是这个终点；它同时是四枚
+       在册前景之一，所以 α=1 那一档会当场把前景按成 1.00:1 ⇒ 夹住这件事**可判**而不是可声明。
+     · 亮档第二枚 `--moss-solid` `#2E4331`：提案原话给的另一个候选（"面那一族"），比 `--ink` 浅 .081 个
+       OKLCH L ⇒ 严格更轻的一档。两枚都判是要看**天花板差多少**，不是听一句"差不多"。
+     · 暗档 `--ink` `#E3E8E0`：夜档四枚在册前景**全是纸**，能吃掉它们的方向只有"把底提亮到纸上"。
+     · 暗档第二枚 `--bg-base`：压回该档自己那枚最深的底（§2.2「暗色不是反色，是重新打光」在旋钮上的对账）。
+     目标色取**当档有效值**（`--bg-base` 在 `dark dusk` 是 `#0F0F06` 而不是基准那枚），与 ②③ 同一口径。
+   ⚠️ 四条牙，缺一条这格就会长成"跑了但什么都管不到"：
+     牙① 破地板：任一 (主题 × 档 × 目标色 × 前景 × α) 组合跌破 `FLOOR` 里那一枚登记值 ⇒ 红并点名差多少。
+     牙② 失去靶也红：扫到 0 组读数 / 十四档没进来 / 盘上一枚 `var(--fog)` 都没有 / 某一档的在册前景读不到
+          ⇒ 红（`v11h1/numtooth` 那一族口径；`litChecked` 那行"复算 N 档，N=0 就是这盏灯根本没进过闸"是它的母本）。
+     牙③ 三枚端点 ⇄ 本格登记值**同源**：盘上 `--fog:` 字面量清单 ⇄ `FOG_LEVELS` ⇄ 规范那句计数。
+          登记值是**独立字面量、不从盘上数出来**（照 `REGISTERED` / `EXC_REGISTERED` /
+          `STRAW_CONSUMERS_REGISTERED` / `LD_REGISTERED` 那四枚的口径），谁改端点没改这里（或反过来）当场红。
+     牙④ 反例常驻：`FOG_FIXTURES` 那几枚内置反例每次跑都吃一遍（照 ①d 牙③ 的形状，红进 `fogDrift`），
+          `node tools/palette-check.mjs --selftest` 再单独印一张逐枚的表（照 `phase-check --selftest` 的形状：
+          朝宽没力气 ⇒ 红、朝窄误红 ⇒ 红、一枚都没跑 ⇒ 红）。⚠️ `--selftest` **故意**让判据吃坏数据，
+          所以它不接进 `npm run check` 的默认链（`package.json` 一枚字没改；日常链里跑的是常驻那几枚 fixture）。 */
+const FOG_LEVELS = [.4, 1, 1.35];            /* 本格的登记值：`mistwood.css:18/270/271` 那三枚字面量 */
+const FOG_TARGETS = { light: ['--ink', '--moss-solid'], dark: ['--ink', '--bg-base'] };
+const FOG_STATES_REGISTERED = 14;            /* ②③ 现印的那十四档；本格吃的档数必须与它相等 */
+const FOG_FIXTURES_REGISTERED = 8;
+const FOG_READABLE_255 = 7;                  /* §17 那把像素尺登记过的"读得出"＝同档两帧差 ≥7/255（Δ3 读不出） */
+const FOG_DECL_RE = /--fog\s*:\s*(\d*\.?\d+)/g;
+const fogIsHex = v => typeof v === 'string' && HEX6.test(v);
+/* 盘上 `--fog` 那三枚端点：抹注释再读（注释里那些"--fog 是乘数"之类的句子不是声明，
+   数进去会把同源判据变成"永远对不上"）；`--read-fog` 那种同族名不吃（它不含 `--fog` 这个前缀串）。 */
+function fogLevelsFromBoard(){
+  const out = [];
+  for (const f of ALL_SHEETS.filter(x => existsSync(x))){
+    const src = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
+    for (const m of src.matchAll(FOG_DECL_RE)){
+      const prev = m.index > 0 ? src[m.index - 1] : '';
+      if (/[A-Za-z0-9-]/.test(prev)) continue;
+      out.push({ file: f.split(/[\\/]/).pop(), line: src.slice(0, m.index).split('\n').length, v: Number(m[1]) });
+    }
+  }
+  return out;
+}
+/* 端点清单 ⇄ 登记值：两个方向都不许静默（少一枚／多一枚／改了数）*/
+function fogLevelDrift(found, registered){
+  const out = [];
+  const f = found.map(x => x.v).sort((a, b) => a - b), r = [...registered].sort((a, b) => a - b);
+  if (f.length !== r.length){
+    out.push(`盘上读到 ${f.length} 枚 --fog 端点（${found.map(x => `${x.file}:${x.line} ${x.v}`).join(' / ') || '一枚都没有'}）、` +
+      `本格登记值 ${r.length} 枚（${r.join(' / ')}）—— 两处不同源：改端点的人没改这里（或反过来），这格将来是那枚旋钮的验收`);
+    return out;
+  }
+  for (let i = 0; i < r.length; i++) if (f[i] !== r[i]){
+    out.push(`盘上第 ${i + 1} 枚端点是 ${f[i]}、本格登记的是 ${r[i]} —— 两处不同源（改端点没改这里＝这格评的是不存在的三档）`);
+    break;
+  }
+  return out;
+}
+/* 逐 α 扫一遍：给定一档（有效底/顶 + 当档令牌）与一枚目标色，返回"到这儿为止四枚地板全守住"的最大 α。
+   ⚠️ 不假设单调：前景可能比目标色更浅，α 拧到底时比值会先降后升，所以取**第一个跌破那一格**之前的界。 */
+function fogSweep(states, targets, levels, floorMap = FLOOR){
+  const rows = [], breaches = [], bad = [], idle = [];
+  const bound = new Map();
+  for (const st of states){
+    const fgs = [];
+    for (const [k, floor] of Object.entries(floorMap)){
+      if (fogIsHex(st.eff[k])) fgs.push([k, floor]);
+      else bad.push(`${st.label}：在册前景 ${k} 这一档读不到（${st.eff[k] === undefined ? '板子上没有这枚' : `读回来是 ${st.eff[k]}，不是 #rrggbb`}）—— 四枚地板少一枚就是失去靶，不许静默少扫`);
+    }
+    for (const tk of (targets[st.theme] || [])){
+      const th = st.eff[tk];
+      if (!fogIsHex(th)){
+        bad.push(`${st.label}：目标色 ${tk} 这一档读不到（${th === undefined ? '盘上没有这枚令牌，或它不在 BASE_SET 里' : `读回来是 ${th}，不是 #rrggbb`}）` +
+          ` —— 本格只判**已登记的基准令牌**，不许新 hex、不许新 rgba、不许"读不到就当这档不用算"`);
+        continue;
+      }
+      const [tr, tg, tb] = hexToRgb(th), tgt = [tr, tg, tb];
+      const paintAt = a => ({ r: tr, g: tg, b: tb, a });
+      const holds = a => {
+        const bH = overHex(st.bgB, paintAt(a)), tH = overHex(st.bgT, paintAt(a));
+        return fgs.every(([k, floor]) => Math.min(ratio(st.eff[k], bH), ratio(st.eff[k], tH)) >= floor);
+      };
+      let ceiling = 1, grid = 200;
+      for (let i = 1; i <= grid; i++) if (!holds(i / grid)){ ceiling = (i - 1) / grid; break; }
+      if (ceiling < 1){                                   /* 界在 0.03 这个量级上，1/200 的格子会把它读成 20% 的误差：夹逼再修一次 */
+        let lo = ceiling, hi = ceiling + 1 / grid;
+        for (let i = 0; i < 14; i++){ const mid = (lo + hi) / 2; if (holds(mid)) lo = mid; else hi = mid; }
+        ceiling = Math.floor(lo * 1000) / 1000;
+      }
+      const travel = Math.max(...hexToRgb(st.bgB).map((v, i) => Math.abs(v - tgt[i])), ...hexToRgb(st.bgT).map((v, i) => Math.abs(v - tgt[i])));
+      const key = `${st.theme} ${tk}`;
+      const cur = bound.get(key);
+      if (!cur || ceiling < cur.ceiling) bound.set(key, { ceiling, travel, state: st.label, bgB: st.bgB, bgT: st.bgT, hex: th });
+      for (const lv of levels){
+        const a = Math.min(lv, 1);                      /* opacity 上限：1.35 夹到 1 */
+        const bH = overHex(st.bgB, paintAt(a)), tH = overHex(st.bgT, paintAt(a));
+        for (const [k, floor] of fgs){
+          const w = Math.min(ratio(st.eff[k], bH), ratio(st.eff[k], tH));
+          const row = { theme: st.theme, state: st.label, target: tk, level: lv, alpha: a, clamped: a !== lv,
+            fg: k, floor, base: bH, top: tH, w: +w.toFixed(2), pass: w >= floor, gap: +(w - floor).toFixed(2) };
+          rows.push(row); if (!row.pass) breaches.push(row);
+        }
+      }
+    }
+  }
+  if (!states.length) idle.push(`十四档一档都没进来（吃到的档数 ${states.length}）—— 本格复算的是空气`);
+  if (!rows.length) idle.push(`扫到 0 组读数（档 ${states.length} × 目标 ${Object.values(targets).flat().length} × 前景 ${Object.keys(floorMap).length} × α ${levels.length}）` +
+    `——失去靶也红（「方向光复算 N 档，0 档＝这盏灯根本没进过闸」那一行是母本），不许顶着一句"没有破地板"过关`);
+  return { rows, breaches, bad, idle, bound, combos: rows.length };
+}
+const fogRed = s => s.breaches.length > 0 || s.bad.length > 0 || s.idle.length > 0;
+/* 内置反例的**合成页**（不是盘上那十四档，读数不进盘、只当量具的行程）：两档各一枚，
+   色值抄的是 base.css 在册那几枚，底是 ②③ 两层光合成后那两枚。 */
+const FOG_FX = [
+  { theme: 'light', label: 'fixture·亮档合成页', eff: { '--ink': '#232B25', '--moss-ink': '#384D3B', '--ink-2': '#5A675E', '--ink-visited': '#131B15', '--moss-solid': '#2E4331', '--bg-base': '#EBEDE8' }, bgB: '#EFECE1', bgT: '#F1E5CF' },
+  { theme: 'dark', label: 'fixture·夜档合成页', eff: { '--ink': '#E3E8E0', '--moss-ink': '#A9C4A0', '--ink-2': '#87927F', '--ink-visited': '#CED3CB', '--bg-base': '#0B100A', '--bg-top': '#12170F' }, bgB: '#171D16', bgT: '#1D231B' },
+];
+const FOG_FIXTURES = [
+  { id: 'F1 朝宽·把 α 抬到破地板（亮档 .4/1/1.35 压 --ink）', side: 'contra',
+    run: () => { const s = fogSweep([FOG_FX[0]], { light: ['--ink'] }, FOG_LEVELS); return { hit: fogRed(s), note: `破地板 ${s.breaches.length} 组／读数 ${s.combos} 组` }; } },
+  { id: 'F2 朝窄·同一形状只把 α 收到 .01（合法边界不许误红）', side: 'narrow',
+    run: () => { const s = fogSweep([FOG_FX[0]], { light: ['--ink'] }, [.01]); const b = s.bound.get('light --ink'); return { hit: fogRed(s), note: `读数 ${s.combos} 组、天花板 ${b ? b.ceiling.toFixed(3) : '读不到'}` }; } },
+  { id: 'F3 朝宽·目标色换成未登记的一枚（必须点名，不许退成"不用算"）', side: 'contra',
+    run: () => { const s = fogSweep([FOG_FX[0]], { light: ['--bogus-fog-paint'] }, [.4]); return { hit: fogRed(s), note: `bad ${s.bad.length} 条、idle ${s.idle.length} 条` }; } },
+  { id: 'F4 朝窄·点名的四枚目标色全在册（两档 × 两族都不许误红）', side: 'narrow',
+    run: () => { const s = fogSweep(FOG_FX, { light: ['--ink', '--moss-solid'], dark: ['--ink', '--bg-base'] }, [.01]); return { hit: fogRed(s), note: `读数 ${s.combos} 组（2 页 × 2 目标 × 4 前景 × 1 α）` }; } },
+  { id: 'F5 朝宽·抽掉 `--fog` 那一档（盘上少一枚端点）', side: 'contra',
+    run: () => { const d = fogLevelDrift([{ file: 'mistwood.css', line: 18, v: .4 }, { file: 'mistwood.css', line: 271, v: 1 }], FOG_LEVELS); return { hit: d.length > 0, note: d[0] || '没报红' }; } },
+  { id: 'F6 朝窄·三枚端点同集不同写序（不许误红）', side: 'narrow',
+    run: () => { const d = fogLevelDrift([{ v: 1.35 }, { v: .4 }, { v: 1 }], FOG_LEVELS); return { hit: d.length > 0, note: d[0] || '判为同源' }; } },
+  { id: 'F7 朝宽·十四档被抽干（0 组读数也红＝失去靶）', side: 'contra',
+    run: () => { const s = fogSweep([], FOG_TARGETS, FOG_LEVELS); return { hit: fogRed(s), note: `idle ${s.idle.length} 条、读数 ${s.combos} 组` }; } },
+  { id: 'F8 朝宽·某一档的在册前景读不到（抽掉 --ink-2 那枚）', side: 'contra',
+    run: () => { const thin = { ...FOG_FX[0], eff: { ...FOG_FX[0].eff } }; delete thin.eff['--ink-2']; const s = fogSweep([thin], { light: ['--ink'] }, [.4]); return { hit: fogRed(s), note: `bad ${s.bad.length} 条、读数 ${s.combos} 组（少一枚靶，比 F2 的 4 组少）` }; } },
+];
+let fogDrift = 0, fogFixFailed = 0, fogFixRan = 0;
+{
+  const fogFound = fogLevelsFromBoard();
+  const fog = fogSweep(FOG_STATES, FOG_TARGETS, FOG_LEVELS);
+  const fogBody = ALL_SHEETS.filter(f => existsSync(f)).map(f => ({ file: f.split(/[\\/]/).pop(), src: readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')) }));
+  const fogByFile = fogBody.map(b => {
+    let n = 0, i = 0; const key = 'var(--fog';
+    while ((i = b.src.indexOf(key, i)) >= 0){ const c = b.src[i + key.length]; if (c === ')' || c === ',') n++; i += key.length; }
+    return { file: b.file, n };
+  }).filter(x => x.n);
+  const fogTotal = fogByFile.reduce((s, x) => s + x.n, 0);
+  console.log('\n=== ④ 雾当明暗（`--fog` 三档端点当覆盖层 α，压在 ②③ 那十四档有效底/顶上复算四枚在册地板）===');
+  console.log('  目标色（点名，全是已登记基准令牌、零新色）：亮档 --ink（压暗，这档在册最深）＋ --moss-solid（提案给的"面"那一族）／' +
+    '暗档 --ink（提亮，夜档四枚前景全是纸）＋ --bg-base（压回该档自己最深的底）');
+  for (const m of fog.idle){ fogDrift++; console.log(`  ✗ ${m}`); }
+  for (const m of fog.bad){ fogDrift++; console.log(`  ✗ ${m}`); }
+  for (const m of fogLevelDrift(fogFound, FOG_LEVELS)){ fogDrift++; console.log(`  ✗ ${m}`); }
+  if (!fogTotal){ fogDrift++; console.log('  ✗ 盘上一处 var(--fog) 都没有 —— 这枚乘数根本没在场，本格评的是不存在的旋钮'); }
+  if (FOG_STATES.length !== litChecked || litChecked !== groundChecked){
+    fogDrift++;
+    console.log(`  ✗ 本格吃到 ${FOG_STATES.length} 档，②③ 现印的是方向光 ${litChecked} 档／两层光 ${groundChecked} 档 —— 合成路径与本格不同源了（不许少拿一档去算雾）`);
+  }
+  if (FOG_STATES.length !== FOG_STATES_REGISTERED){
+    fogDrift++;
+    console.log(`  ✗ 本格吃到 ${FOG_STATES.length} 档、登记值 ${FOG_STATES_REGISTERED} 档 —— 时段/月相条件块动过而这里没跟着登记（三处同源在这一格的形态）`);
+  }
+  /* 牙④：反例常驻，任何一次跑都吃一遍；红在"反例没力气"或"朝窄误红"那两件事上，不红在盘上 */
+  const fogFixRows = [];
+  for (const fx of FOG_FIXTURES){
+    let r = null, err = null;
+    try { r = fx.run(); } catch (e){ err = e; }
+    const ran = !!r && typeof r.hit === 'boolean';
+    const wantRed = fx.side === 'contra';
+    const good = ran && r.hit === wantRed;
+    if (good) fogFixRan++; else fogFixFailed++;
+    fogFixRows.push(`    ${good ? '✓' : '✗'} ${fx.id}（朝${wantRed ? '宽：必须红' : '窄：不许误红'}）→ ${err ? '抛了 ' + err.message : (ran ? (r.hit ? '红' : '不红') : '没跑出读数') + '｜' + (r && r.note ? r.note : '')}`);
+  }
+  if (fogFixFailed) { fogDrift += fogFixFailed; console.log(fogFixRows.filter(x => x.startsWith('    ✗')).join('\n')); }
+  if (fogFixRan + fogFixFailed !== FOG_FIXTURES_REGISTERED || fogFixRan !== FOG_FIXTURES_REGISTERED){
+    fogDrift++;
+    console.log(`  ✗ 反例跑了 ${fogFixRan} 枚、清单登记 ${FOG_FIXTURES_REGISTERED} 枚（另有 ${fogFixFailed} 枚没在期望的位置红）—— id 齐不代表牙齐，删掉一枚反例这里就看得见`);
+  }
+  /* 牙①：逐 (主题 × 目标色 × 登记端点) 报最紧那一格；完整读数在 PALETTE_FOG_ROWS=1 时逐枚印 */
+  const worst = new Map();
+  for (const r of fog.rows){
+    const key = `${r.theme} ${r.target} 端点${r.level}`;
+    const cur = worst.get(key);
+    if (!cur || r.w - r.floor < cur.w - cur.floor) worst.set(key, r);
+  }
+  for (const [, r] of worst){
+    if (!r.pass) fogDrift++;
+    console.log(`  ${r.pass ? '✓' : '✗'} ${r.theme} 目标 ${r.target} α=${r.alpha}${r.clamped ? `（登记端点 ${r.level} 被 opacity 上限夹到 1）` : ''}：底 ${r.base} 顶 ${r.top} → 最紧 ${r.fg} ${r.w.toFixed(2)}:1（地板 ${r.floor}）${r.pass ? '✓' : `✗ 差 ${(r.floor - r.w).toFixed(2)}`}｜档 ${r.state}`);
+  }
+  console.log(`  逐档逐个 (主题 × 档 × 目标色 × 前景 × α) 全表：扫 ${fog.combos} 组读数、破地板 ${fog.breaches.length} 组${fog.breaches.length ? '：' : ''}`);
+  if (process.env.PALETTE_FOG_ROWS) console.log(fog.rows.map(r => `    ${r.pass ? 'ok' : 'BAD'} ${r.theme}｜${r.state}｜目标 ${r.target}｜α ${r.alpha}｜${r.fg} ${r.w.toFixed(2)} vs 地板 ${r.floor}｜底 ${r.base} 顶 ${r.top}`).join('\n'));
+  for (const b of fog.breaches.slice(0, 12)) console.log(`    ✗ ${b.theme} ${b.state} 目标 ${b.target} α=${b.alpha} ${b.fg} ${b.w.toFixed(2)} < ${b.floor}（差 ${(b.floor - b.w).toFixed(2)}）`);
+  if (fog.breaches.length > 12) console.log(`    …破地板共 ${fog.breaches.length} 组，全表用 PALETTE_FOG_ROWS=1 node tools/palette-check.mjs 逐枚印`);
+  /* 夹住这件事（§12 那句"三档端点当初是为了 opacity 到 1 就夹住选的"的定量版）*/
+  const clampPairs = [];
+  for (const r of fog.rows.filter(x => x.level === 1)){
+    const twin = fog.rows.find(x => x.theme === r.theme && x.state === r.state && x.target === r.target && x.fg === r.fg && x.level === 1.35);
+    if (twin && twin.base === r.base && twin.top === r.top && twin.w === r.w) clampPairs.push(r);
+  }
+  const deepSame = fog.rows.filter(r => r.alpha === 1 && r.fg === r.target);
+  console.log(`  夹住这件事：α=1.35 与 α=1 的合成结果 ${clampPairs.length} 对逐字符同页（底与顶都变成目标色本身，` +
+    `${deepSame.length ? `同名前景那 ${deepSame.length} 格读回 ${Math.min(...deepSame.map(r => r.w)).toFixed(2)}:1——字与底同色` : '这一轮没有同名前景格'}）` +
+    `——"浓"档这一端不是"更浓"，是**整面涂成目标色**`);
+  /* 天花板 + "读得出三档"的那条式子：a3 ≤ 天花板 且 相邻两档的通道位移 ≥ ${FOG_READABLE_255}/255 */
+  const joint = [];
+  for (const [key, b] of fog.bound){
+    const step = b.travel ? FOG_READABLE_255 / b.travel : Infinity;
+    const need = 2 * step;
+    if (key === 'light --ink' || key === 'dark --ink') joint.push({ key, ceiling: b.ceiling, step });
+    console.log(`  天花板 ${key.padEnd(20)} α ≤ ${b.ceiling.toFixed(3)}（binding 档 ${b.state}，底 ${b.bgB} 顶 ${b.bgT}、目标 ${b.hex}）` +
+      `｜拧到上界整页只位移 ${(b.ceiling * b.travel).toFixed(1)}/255（§17 那把像素尺：Δ3 读不出、Δ7 读得出）` +
+      `｜读出相邻两档差别需 Δα ≥ ${step.toFixed(3)}（最大通道行程 ${b.travel}/255）` +
+      `⇒ 三档（含"不涂"那一端）要 ${need.toFixed(3)} 宽：${b.ceiling >= need ? '存在，但只剩这条缝' : '不存在'}`);
+  }
+  if (joint.length === 2){
+    const ceiling = Math.min(...joint.map(j => j.ceiling)), step = Math.max(...joint.map(j => j.step));
+    console.log(`  合用一枚旋钮（--fog 不分主题）⇒ 天花板取交集 α ≤ ${ceiling.toFixed(3)}、` +
+      `步进取并集 Δα ≥ ${(2 * step).toFixed(3)}（两档 × 点名目标里最紧的那条）｜登记的三枚端点 .4 / 1 / 1.35 分别是这个上界的 ` +
+      `${(.4 / ceiling).toFixed(1)}× / ${(1 / ceiling).toFixed(1)}× / ${(1.35 / ceiling).toFixed(1)}×，` +
+      `而第 2、3 枚被夹住之后是同一个 α ⇒ ${ceiling >= 2 * step ? '数学上还剩一条缝（整条行程只有 ' + ceiling.toFixed(3) + '，且必须重选端点）' : '端点不存在'}`);
+  }
+  console.log(`  盘上端点 ${fogFound.map(x => `${x.file}:${x.line} ${x.v}`).join(' / ')} ⇄ 本格登记值 ${FOG_LEVELS.join(' / ')}（同源）；` +
+    `var(--fog) 消费者 ${fogTotal} 枚（${fogByFile.map(x => `${x.file} ${x.n}`).join(' / ')}）—— 它今天乘在 opacity 上，这就是"已经是响度那一族"的现形`);
+  console.log(`  ${fogDrift ? '✗' : '✓'} ④ 这一关：${fogFixRan}/${FOG_FIXTURES_REGISTERED} 枚反例各红在该红的位置、${fog.combos} 组读数、破地板 ${fog.breaches.length} 组、端点同源 ${fogLevelDrift(fogFound, FOG_LEVELS).length ? '✗ 断了' : '✓'}`);
+  if (SELFTEST){
+    console.log('\n=== ④ 反例清单（--selftest：朝宽必须红、朝窄不许误红；它故意吃坏数据，所以不接进 npm run check 的默认链）===');
+    console.log(fogFixRows.join('\n'));
+    console.log(`  ${fogFixFailed ? `✗ ${fogFixFailed} 枚反例没在期望的位置红` : `✓ ${fogFixRan} 枚反例全部落在期望的一侧（登记值 ${FOG_FIXTURES_REGISTERED} 枚）`}`);
+    process.exit(fogFixFailed ? 1 : 0);
+  }
+}
+
+if (bad || bad2 || drift || ldDrift || useDrift || strawDrift || fogDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）、${fogDrift} 处「雾当明暗」没过（覆盖层 α 把某枚在册地板压破 / 三枚 --fog 端点与本格登记值不同源 / 反例没红在该红的位置 / 扫到 0 组失去靶）`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');
