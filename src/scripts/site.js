@@ -378,6 +378,10 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
         const arcFrac = done / total;
         if (arcFrac !== arcLast){
           arcLast = arcFrac;
+          /* 两枚都从几何本身要（`getTotalLength()`），与 `paintDayRing()` 逐字同一写法：浏览器对 `<circle>`
+             的周长是近似值（本机 375 档实测 81.16，而 2πr 的构建期值是 81.68），只写 offset 的话起手那几帧
+             会先露出 0.6% 的一小截。dasharray 跟着 len 一起写，可见弧长就正好等于 len × 比值。 */
+          readRing.style.strokeDasharray = arcLen.toFixed(2);
           readRing.style.strokeDashoffset = (arcLen * (1 - arcFrac)).toFixed(2);
         }
       }
