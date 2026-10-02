@@ -659,7 +659,7 @@ a.row:visited{ color:var(--ink-visited); }
 /* 写作年轮横条（三轮 §1.1 横条版；母题指认＝§13b 母题②苔点，降级谱与打印在 §13b／§19.1，窄屏那一档在 §11）。
    一片尺架里的第二把尺：过去一年每天一格、按月轻轻分段，写过稿的日子按当天字数上深浅。
    ⚠️ 零枚新垂直槽位：段与段之间那 3px 走 `column-gap`（gap-check 现在三本账：垂直那 144 枚只看
-      `margin`／`padding`／`gap`／`row-gap` 那一族，`column-gap` 与左右两半归横向那本（84 枚，这一枚在册记 X 档）、
+      `margin`／`padding`／`gap`／`row-gap` 那一族，`column-gap` 与左右两半归横向那本（85 枚，这一枚在册记 X 档）、
       圆角是第三本（32 枚 12 种），同 §4 那格"8vw 在第二值位"的口径），格与格之间不留缝（365 枚缝比格还宽）。
    ⚠️ 画幅 12px ＝ 这一页小字那一档（`.row-side`／`.d-lab` 都是 10–12px 族），不是新起的数；
       每格宽度由 `flex` 分（模板按那个月几天给 grow），这里不写死一枚格宽、也不写 365。
@@ -991,7 +991,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
       它所在那一格 `div` 从 `body`（`:100` 那枚 17px）继承来的字号，**不是 `dd` 自己的 14px**——点落在
       那一行字之外，实测峰值一枚 17.00px、最短那篇一枚 6.92px（画幅仍是"宿主字号的一档到三分之一档"，
       与列表页那根条同一条口径，只是两处宿主字号不同：那儿 12px、这儿 17px）。这里几枚声明落在 gap-check 三本账
-      （垂直 144 枚／横向 84 枚／圆角 32 枚 12 种）上的只有一枚：`display`／`flex-wrap`／`align-items`／`flex`／`fill`
+      （垂直 144 枚／横向 85 枚／圆角 32 枚 12 种）上的只有一枚：`display`／`flex-wrap`／`align-items`／`flex`／`fill`
       三本账都不数，只有 `column-gap:3px` 归横向那本、在册记 X 档（与 `.yring` 那枚同值，两条各认各的宿主）；
       `margin`／`padding`／`row-gap` 一个字不写 ⇒ 那 144 枚垂直槽位与 32 枚／12 种圆角一枚不为它动。
    ⚠️ 不吃 `--fog`、零 `animation`、零滚动驱动；打印整块撤（`base.css` 那段撤场清单里那一行添一枚名字）。 */
@@ -1024,7 +1024,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    gap-check 那根 12 种／30 枚的圆角梯子一枚不为它动）、**零新模糊 / 零新时长档**（一处动处处静，§1.2）。
    ⚠️ **零新垂直间距槽位**：这里只写 column-gap 与 border，margin / padding / row-gap 一个字不写——
    行与行之间那 1px 由 .life-cell 的下边框打出来，它是画的笔画而不是留白。gap-check 现在三本账（垂直 144 枚／
-   横向 84 枚／圆角 32 枚 12 种）：VPROPS 不认 border ⇒ 垂直那本不为这块翻页；`column-gap:2px` 由横向那本收，在册记 X 档。 */
+   横向 85 枚／圆角 32 枚 12 种）：VPROPS 不认 border ⇒ 垂直那本不为这块翻页；`column-gap:2px` 由横向那本收，在册记 X 档。 */
 .life-grid{ border-top:1px solid var(--line); }
 .life-year{ display:grid; grid-template-columns:repeat(52,minmax(0,1fr)); column-gap:2px; }
 .life-cell{ aspect-ratio:1/1; background:color-mix(in srgb,var(--moss) 42%,transparent); border-bottom:1px solid var(--bg-base); }
