@@ -1069,11 +1069,14 @@ let fogCeilDrift = 0, fogFloorPrinted = 0;
   }
   console.log(`  盘上端点 ${fogFound.map(x => `${x.file}:${x.line} ${x.v}`).join(' / ')} ⇄ 本格登记值 ${FOG_LEVELS.join(' / ')}（${fogLevelDrift(fogFound, FOG_LEVELS).length ? '✗ 不同源' : '同源'}）；` +
     `var(--fog) 消费者 ${fogTotal} 枚（${fogByFile.map(x => `${x.file} ${x.n}`).join(' / ')}）—— 它今天乘在 opacity 上，这就是"已经是响度那一族"的现形`);
+  const fogCeilVerdict = fogCeilDrift === 0
+    ? `✓ 最大端点 ${fogBnd.max} ≤ 登记上界 ${FOG_CEILING_REGISTERED}`
+    : `✗ ${fogCeilDrift} 处〔本体 ${fogBnd.empty ? '一枚端点都读不到' : (fogBnd.over.length ? `最大端点 ${fogBnd.max} > 上界 ${FOG_CEILING_REGISTERED}` : `没越（最大 ${fogBnd.max} ≤ ${FOG_CEILING_REGISTERED}）`)}／自证歪 ${fogBndFix.length - fogBndFixOk} 枚〕`;
   console.log(`  ${fogDrift + fogCeilDrift ? '✗' : '✓'} ④ 这一关（两族计数分开：${fogDrift} 处进门禁的牙②③④／${fogCeilDrift} 处进门禁的牙⑤ 单调上界；牙① 那族破地板读数只印不判）：` +
     `${fogFixRan}/${FOG_FIXTURES_REGISTERED} 枚反例各红在该红的位置、${fog.combos} 组读数、` +
     `破地板 ${fog.breaches.length} 组（牙① 只印不判，逐档那一格里 ${fogFloorPrinted} 格是破的）、` +
     `端点同源 ${fogLevelDrift(fogFound, FOG_LEVELS).length ? '✗ 断了' : '✓'}、` +
-    `上界牙 ${fogCeilDrift ? `✗ ${fogCeilDrift} 处（最大端点 ${fogBnd.empty ? '读不到' : fogBnd.max} vs 登记上界 ${FOG_CEILING_REGISTERED}）` : `✓ 最大端点 ${fogBnd.max} ≤ 登记上界 ${FOG_CEILING_REGISTERED}`}、` +
+    `上界牙 ${fogCeilVerdict}、` +
     `失去靶 ${fog.idle.length + fog.bad.length ? `✗ ${fog.idle.length + fog.bad.length} 条` : `✓ ${FOG_STATES.length} 档 × ${Object.keys(FLOOR).length} 枚在册前景全读得到`}、` +
     `牙⑤ 自证 ${fogBndFixOk}/${fogBndFix.length} 枚在其位`);
   if (SELFTEST){
