@@ -291,6 +291,17 @@ const crumb = crumbTrail(HERE);
        ⚠️ 节点本身是**构建期**烘进 HTML 的（`card/anchors`）：只有 `left` 那个百分比是几何量、非运行时
        量不出来（`site.js` 的 measureMarks），位置与点亮两件事仍然归脚本，但"这一排有没有东西"不再看 JS。 -->
   <div id="progress-marks" aria-hidden="true" set:html={marksHtml}></div>
+  {/* 阅读弧（三轮 §5.1，规格与四条口径都签在 essay.css 那一格＋§15 那一行）：窄屏右上角一枚直径 28px 的
+      不完整圆弧，随滚动走完这一篇——进度条的森林版。这里只交代两件事：
+      ① **起手态是构建期烘的**：`stroke-dasharray` 与 `stroke-dashoffset` 同值＝周长（2πr，r=13 ⇒ 81.68），
+         可见弧长＝周长−偏移＝0 ⇒ 无脚本的访客看到的不是"一圈画完"，是一个像素都不画——与上面那条 `#progress`
+         的 `transform:scaleX(0)` 同一条路（§18 那句"有字没功能／有功能没字"两头都不占）。脚本每帧只改
+         `stroke-dashoffset`（`site.js` 的 `updateProgress()`），周长从几何本身要（`getTotalLength()`，先例
+         `#day-ring`），所以 81.68 这一串只是起手态、不是第二处真值。
+      ② **零字、零读数**：SVG 里没有一个字符，`aria-hidden="true"` ⇒ 读屏不碰它；`rotate(-90 …)` 把起点钉在
+         12 点方向、顺时针走一圈（§6 苔时弧那格签的同一条画法）。模板注释走花括号这一种——它一个字节都不落进
+         产物，而 HTML 注释会原样发出去并牵动字体子集（§16 记过这一族，本卡零枚新汉字）。 */}
+  <svg id="read-arc" class="readring" viewBox="0 0 28 28" aria-hidden="true"><circle id="read-ring" cx="14" cy="14" r="13" transform="rotate(-90 14 14)" stroke-dasharray="81.68" stroke-dashoffset="81.68"/></svg>
   <!-- 目录：构建期就是一条条真链接（`card/anchors`，§15 那一格）。运行期只剩"高亮正在读的那一章"
        这一件真·运行时职责（§1 的口径：无 JS 时目录仍然在、仍然能跳）。
        ⚠️ `href` 用的那枚 id 与正文那排 id 是同一批字符串（同一次 renderArticle 的产物），

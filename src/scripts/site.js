@@ -344,6 +344,20 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
      所以刻度位置直接拿进度线用的那个 done/total 来换算，不另起一套测量 */
   const marks = document.getElementById('progress-marks');
   let markEls = [], markAt = [], lastTotal = -1, lastMark = -2;
+  /* 阅读弧（三轮 §5.1，规格与四条口径签在 essay.css 那一格＋§15 那一行）：右上角那枚 28px 的弧只画"这一篇
+     走了多少"，不取代刻度带的"在读哪一章"，#progress／#progress-marks 的在册取值一个字节没动。
+     ⚠️ 只窄屏那一档的判据与 CSS **同一枚数字**：下面 `narrowArc` 写的 1240 必须与 `essay.css` 那条
+        `@media (max-width:1240px)`（以及 `#toc` 整块消失那一条）同值。两处各写一个数，就会长出"弧在屏幕上
+        却不再更新"／"更新了却看不见"那一族两边都像绿的病（§17"两把尺子必须是同一把"）。本卡不发明第三个断点。
+     ⚠️ 零新监听：写它的仍是下面那趟已在册的 rAF 滚动帧（`updateProgress()`），本卡一个 addEventListener 都没添。
+     ⚠️ 减弱偏好那一档"整枚不渲染"的承重点在 CSS（essay.css 末尾那条 `html #read-arc{ display:none }`），
+        这里 `reduceMotion` 只是连写都不写。无 JS 时弧的起手态是构建期烘的 `stroke-dashoffset`＝周长 ⇒ 画 0 像素。
+     周长从几何本身要（`getTotalLength()`，先例 `#day-ring` 同一条口径），CSS 与这里都不再抄一遍 81.68。 */
+  const readArc = document.getElementById('read-arc');
+  const readRing = document.getElementById('read-ring');
+  const narrowArc = matchMedia('(max-width: 1240px)');
+  const arcLen = readRing && readRing.getTotalLength ? readRing.getTotalLength() : 0;
+  let arcLast = -1;
 
   function updateProgress(){
     if (!postBody) return;
@@ -351,8 +365,24 @@ import { searchDoc, queryTerms, markRanges, INDEX_VERSION } from '../lib/search.
     const total = Math.max(r.height - innerHeight, 1);
     const done = Math.min(Math.max(-r.top, 0), total);
     if (progress) progress.style.transform = `scaleX(${done / total})`;
+    /* 一屏就读完的稿子没有"走过的一段"，刻度会全挤在右端 */
+    const short = r.height <= innerHeight + 120;
+    /* 阅读弧（三轮 §5.1）：与上面那道 scaleX 同一趟帧、同一个 done/total，零新尺、零新监听。
+       不画的那三档各有一条在册理由：`short`＝一屏读完（刻度带整排撤那一族）、`!narrowArc.matches`＝宽屏那档
+       归目录、`reduceMotion`＝整枚不渲染（CSS 已经把它 display:none 了，这里只是不去写）。
+       比值没变就不落属性（同下面 `lastMark` 那一族"每帧只判一次"）。 */
+    if (readArc && readRing && arcLen){
+      const arcOff = short || !narrowArc.matches || reduceMotion;
+      readArc.classList.toggle('off', arcOff);
+      if (!arcOff){
+        const arcFrac = done / total;
+        if (arcFrac !== arcLast){
+          arcLast = arcFrac;
+          readRing.style.strokeDashoffset = (arcLen * (1 - arcFrac)).toFixed(2);
+        }
+      }
+    }
     if (markEls.length){
-      const short = r.height <= innerHeight + 120;   /* 一屏就读完的稿子没有"走过的一段"，刻度会全挤在右端 */
       marks.classList.toggle('off', short);
       if (!short){
         /* ⚠️ 刻度用**正文总高**这把尺子，不是进度线那把（`总高 − 视口`）。不是省事，是后者算不出来：

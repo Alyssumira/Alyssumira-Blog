@@ -185,6 +185,53 @@ html[data-focus="1"] .wrap::before{ display:none; }
   }
 }
 
+/* ============ 阅读弧（三轮 §5.1，2026-10-02 `v9a/arc`）：窄屏右上角那枚走完一圈的弧 ============ */
+/* 母题指认（§13b 第一道闸）：年轮弧族（圆的）。同族先例 `.dayring`（`mistwood.css:141`，15×15）与关于页
+   `.yearring`（`mistwood.css:964`，24×24）——`fill:none`／`stroke:var(--moss)`／`stroke-width:1`／`opacity:.42`
+   四样与 `.dayring` 逐字同值；零新色相、零枚新 hex、零枚新 rgba（§12 那条第五色照旧禁着）。
+   ⚠️ **只给形状、不给读数**：SVG 里没有一个字符，不写百分比也不写"读了多少"——`about.astro` 年度弧那一格那句
+   "不写第 N 天也不写百分比"就是同族口径；`aria-hidden="true"` ⇒ 读屏不碰它（§18：不给自己留第二句可打脸的话）。
+   ⚠️ **只窄屏，而且两档同一枚数字**：这一档的边界就是上面那条 `@media (max-width:1240px){ #toc{ display:none } }`
+   ——提案说的"桌面有目录高亮承担同一职责"，在盘上的可操作定义就是 ≥1240px。`site.js` 里那枚
+   `matchMedia('(max-width: 1240px)')` 写的是同一枚 1240：两处数字哪天分叉，长出来的就是"弧看得见却不再更新"
+   或"更新了却看不见"，两边各自都像绿的（§17 那句"两把尺子必须是同一把"）。本卡不发明第三个断点。
+   ⚠️ **它不取代谁**：弧只画"这一篇走了多少"。顶上那 2px 线（`#progress`）与刻度带（`#progress-marks`，窄屏那行
+   章名）的在册取值一个字节没动——那两件由 `tools/runtime-check.mjs` 的「目录⇄刻度」那一格钉着。同屏两枚滚动
+   读数这一档是签过字的：线贴在页边、跟视口全宽，不用找；弧是角上一枚形状，瞥得到才读（三轮 §5.1 要的就是这枚）。
+   ⚠️ **几何是量出来的，不是推的**：`.nav` 是 `position:fixed; top:16px` 那枚胶囊（`mistwood.css:114-115`，
+   `home.css` 里有一份逐字符同值的重写，§17 那笔旧账照旧），窄屏它摊到接近全幅——2026-10-02 同源 iframe 实测：
+   **375 档胶囊 [31.26, 343.74] × [8, 58]、320 档 [11.76, 308.24] × [8, 58]**（两档同高 50、同下缘 58）。
+   ⇒ `top:66px`＝胶囊下缘 58 再留 8（弧占 [66, 94]，与胶囊竖直分开 8px，横向那一段重叠因此不算交叠）；
+   `right:8vw`＝内容区左缘那枚在册常数（§11 ①钉过：内容区左缘常数是 8vw，不是 `.nav` 那枚 32），不新开一档留白；
+   `z-index:9` 排在 `.nav`（10）之下——万一版面哪天挪动，让可点的那枚压住装饰的那枚。逐位读数登记在 §15 那一格。
+   ⚠️ **零新常驻循环、零新监听**：驱动它的是 `site.js` 里 `updateProgress()` 那趟**已在册**的 rAF 滚动帧（与
+   `--read-fog`、`progress` 那道 `scaleX` 同一帧），比值没变就不落属性（同下面 `lastMark` 那一族"每帧只判一次"）。
+   零 `animation`、零 `transition`、零 `@keyframes`。
+   ⚠️ **减弱偏好＝整枚不渲染**，不是把时长改短：滚动驱动不吃 `animation:none`——§1 那行末句点名过这一族病
+   （"凡是随输入更新的样式都要单独问一句它在减弱偏好下退成什么"）。撤的**承重点在 CSS 这一层**：本文件末尾那条
+   `@media (prefers-reduced-motion:reduce)` 里新添的 `html #read-arc{ display:none }` 撤掉整枚盒子，权重 (1,0,1)
+   压过窄屏那档的 (1,0,0)，不靠打包顺序（§19 那一节同一条口径）；`site.js` 里同一枚 `reduceMotion` 判据只是
+   连写都不写，它不是"不渲染"的那根承重柱。
+   ⚠️ **无 JS 访客看到什么**：起手态那两枚 dash 是构建期烘进 HTML 的（`stroke-dasharray` ⇄ `stroke-dashoffset`
+   同值＝周长 ⇒ 可见弧长 0），屏幕上不画一个像素——与 `#progress` 那条 `transform:scaleX(0)` 同一条路。
+   §18 那句"有字没功能与有功能没字都不许出现"在这儿读作：没有字，也没有一枚等着脚本点亮的面。
+   ⚠️ **一屏读完的稿子整枚撤**（`.off`）：与 `#progress-marks.off` 同一枚 `short` 判据、同一条理由——那时
+   "总高−视口"≈0，比值在几个像素里从 0 翻到 1，画的是一枚没有中间态的开关，宁可不画。
+   ⚠️ **三本零账**：`top`／`right` 是偏移不是间距槽位、`width`／`height` 不在拆值名单里 ⇒ `gap-check` 那 143 枚
+   （A14／B10／C52／X67）一枚不多；圆由 SVG `<circle>` 画、这里不写 `border-radius` ⇒ 圆角梯子那 31 枚／12 种
+   一字不动（先例：§13b 站点档案那格"圆走 `<circle>` 而不走 `border-radius`"）；这一族零枚新色板**声明** ⇒
+   `palette-check` 那 82 个 (选择器,令牌) 键与 46 枚 REGISTERED 对得上（改前改后各跑一次，读数登记在 §15 那一格）。
+   ⚠️ **打印整枚撤**：不给它新写一条 `@media print`，而是把 `html #read-arc` 添进 `base.css` 那条既有名单
+   （与 `html #progress, html #progress-marks, html #toc` 同一行，§19.1 那一行同批改名）——§17 那句
+   "给名单添一枚选择器，不新写一条声明"。纸上没有滚动，这枚留在纸上就是一枚永远停在 0 的形状。 */
+.readring{ display:none; fill:none; stroke:var(--moss); stroke-width:1; opacity:.42; pointer-events:none; }
+@media (max-width:1240px){
+  /* 宽屏那一档不画（目录在岗，"在读哪儿"一屏只许说一遍）；只有这一档显形。
+     起手态那两枚 dash 归 `<circle>` 上构建期烘进去的字面量，这里不写第二份 ⇒ 周长只有一处真值。 */
+  #read-arc{ display:block; position:fixed; top:66px; right:8vw; width:28px; height:28px; z-index:9; }
+}
+#read-arc.off{ display:none; }   /* 与 #progress-marks.off 同一族：权重 (1,1,0) 压过窄屏那档，不靠写在后面 */
+
 /* ============ 正文脚下的地面光（§15 详情页那一格；"为什么不撤"那一问的答在 §8.7 旁边那格）============ */
 /* 一层极淡的径向光，落在 `.post-body` 自己那块地面上：钉在正文的左上角，半径沿用 §2.3 那盏灯的 `--lit-r`。
    不是"另一盏灯"，还是那盏灯，只是这次落在正文脚下（锚点为什么不连 `--lit-at` 一起搬，见下面那行注释）。
@@ -617,6 +664,12 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 @media (prefers-reduced-motion:reduce){
   #toc{ opacity:1; }
   .post-body{ -webkit-mask-image:none; mask-image:none; }
+  /* 阅读弧（三轮 §5.1）这一档**整枚不渲染**：它是滚动驱动的（`stroke-dashoffset` 每帧随输入改），而上面
+     那条 `animation:none` 管不到它（§1 那行末句点名的正是这一族病）⇒ 撤的是盒子本身。
+     带 `html` 前缀是权重 (1,0,1)，压过窄屏那档的 `#read-arc`(1,0,0)，与打包顺序解耦（§19 那一节同一条口径）。
+     `site.js` 里同一枚 `reduceMotion` 判据只是不再去写那枚已经不画的比例；无 JS 那档另有兜底：
+     `<circle>` 的起手 `stroke-dashoffset`＝周长 ⇒ 画 0 像素。 */
+  html #read-arc{ display:none; }
 }
 
 /* 系统要求"减少透明度"：灯箱那层遮罩与那块面都退回实面。
