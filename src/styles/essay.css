@@ -382,8 +382,8 @@ html[data-focus="1"] .wrap::before{ display:none; }
   margin-top:14px; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em; color:var(--ink-2);
 }
 
-/* 分隔线用三个点，不用横线：横线已经被 h2 的短线和 .post-nav 占去了语义 */
-/* ⚠️ 三轮 §2.2 那枚"换气记号"落进这一格时的复判（2026-10-03 `v8a/marks`）：**上面那行签字理由仍然成立，
+/* 分隔线用点，不用横线：横线已经被 h2 的短线和 .post-nav 占去了语义 */
+/* ⚠️ 三轮 §2.2 那枚"换气记号"落进这一格时的复判（2026-10-02 `v8a/marks`）：**上面那行签字理由仍然成立，
    分隔位今天还是不画横线**。三母题里落下来的那一笔（中央那枚苔点）连同它的尺寸档、四本账与两笔撤的裁决，
    全在 `base.css` 那一格「换气记号」与 `docs/设计规范.md` §13b「§2.2 全站唯一一枚换气记号」里（规则只住一处，
    这一格留宿主的几何）。记号本体从这里搬走之后，`letter-spacing:.5em` 随那三枚点一起退役——一枚点再吃字距，
@@ -456,7 +456,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
   margin-top:14px; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace;
   font-size:12px; letter-spacing:.12em; color:var(--ink-3);
 }
-/* 底片齿孔（三轮 §3.3，`v8a/marks` 2026-10-03）：图注文字前竖排两枚 2px 苔点——"承认这是一帧照片"。
+/* 底片齿孔（三轮 §3.3，`v8a/marks` 2026-10-02）：图注文字前竖排两枚 2px 苔点——"承认这是一帧照片"。
    ⚠️ 母题指认：§13b「三族」那张表里**母题②"苔点"（点的）**，与换气记号同一批在册（见 §13b「§3.3 底片齿孔」）。
    ⚠️ **不进灯箱那一档**——`.lightbox-cap` 照旧只有那行字，"同一套话"从今天起指**字**那一半，裁决与三条理由在
    那一格，别把这一处不同形读成第三处漂移。
@@ -513,7 +513,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 .lightbox img{ max-width:100%; max-height:66vh; height:auto; object-fit:contain; border-radius:8px; }
 /* 图注：与正文 `.post-body figcaption` 同一套话（12px 等宽 + .12em + `--ink-3` 装饰档），
    没有图注时这一枚 `<p>` 由脚本带着 `hidden`（§12"不许预留一个只会显示空缺的位置"）。
-   ⚠️ 上面那句"同一套话"从 2026-10-03 `v8a/marks` 起指**字**那一半（12px 等宽／.12em／`--ink-3`）——正文那一档
+   ⚠️ 上面那句"同一套话"从 2026-10-02 `v8a/marks` 起指**字**那一半（12px 等宽／.12em／`--ink-3`）——正文那一档
    多了两枚底片齿孔（三轮 §3.3），灯箱这一档**判不进**：图占满面板、注紧贴其下，没有归属歧义可消，而浮层不是
    一份版面。三条理由与反向代价登记在 `docs/设计规范.md` §13b「§3.3 底片齿孔」那一格——别把这一处不同形读成
    第三处漂移。 */
