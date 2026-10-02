@@ -578,8 +578,10 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
    `border:1px`），为两枚点开一档描边就是把 §9 那格的发丝线口径掀了。
    ⚠️ `translateY(-2px)` 是几何派生不是挑的数：盒子 2px、影子里那枚再往下 4px ⇒ 配对总高 6px，而
    `vertical-align:middle` 对准的是盒子自己的中心（1px 处）⇒ 要中心落在配对中心就得抬 (6−2)/2＝2px。
-   ⚠️ `margin-right:6px` 是**横向**槽位：`tools/gap-check.mjs` 的拆值口径明写"`margin-left`／`padding-left`／
-   `column-gap` 一概不看"，横向不在它那 143 枚垂直账上；6px 取的是 `.year-mark{margin-bottom:6px}` 在册那一档的
+   ⚠️ `margin-right:6px` 是**横向**槽位：`tools/gap-check.mjs` 现在三本账——垂直 144 枚（A14／B10／C52／X68）／
+   横向 84 枚（A6／B0／C24／X53／H1）／圆角 32 枚 12 种，`margin-left`／`padding-left`／`margin-right`／`column-gap`
+   那一族由横向那本账逐枚认领（这一枚就在册：`.post-body figcaption::before` 的 `margin-right:6px` 记 X 档），
+   而垂直那 144 枚里始终没有它——两本各数各的那一半；6px 取的是 `.year-mark{margin-bottom:6px}` 在册那一档的
    光学量级，不新开一档留白。宿主 `figcaption` 那三行（14px／12px／.12em／`--ink-3`）一个字不动。
    ⚠️ 打印：整枚 `display:none`（`base.css` 的 §19 那一节新加那一行）——它是纯图形、零信息，"这是一帧照片"在纸上
    由那张图自己承担，而两枚点靠 `background`＋`box-shadow` 画、纸上不用 `print-color-adjust:exact`（§19.4），

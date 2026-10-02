@@ -655,17 +655,24 @@ const missed = unscannedCss();
 if (missed.length){ console.log(`✗ src/styles/ 里有没进 FILES 的样式表：${missed.join(', ')} —— 三把尺子都会漏检它（加文件要上名单）`); process.exit(1); }
 
 /* ---------- 对账 ---------- */
-let bad = 0;
+/* ⚠️ 三本账各记各的旗标：`vbad` ＝**垂直这一族**的失败条数（下面那行汇总的旗标读它），`hbad`／`rbad` ＝横向与
+   圆角各自的；`bad` ＝三族之和，**只**用来定退出码：任何一族红 ⇒ `bad` 非零 ⇒ rc 1，`npm run check` 照旧拦得住。
+   为什么旗标不读 `bad`：横向那一族红的时候，垂直那行明明写着「144 枚／认领 144 枚／无人认领 0 枚／注册表过期 0 条」
+   却被打成 ✗，拿这段日志 triage 的人会去查错的那一本账（在册纪律：红了先怀疑尺子——一把会冤枉另一本账的尺子比没有尺
+   更糟，所以每一族的汇总行只为自己那一族的 unclaimed／phantom／逐档不符说话）。
+   自证格子：三族全闭合时本工具打印的每一行必须与交付版**逐字相同**——旗标读哪个变量是形状问题，措辞不是；
+   改这一处只许动旗标读的那个变量名，三行汇总与逐档／逐份／按值那些句子一字不许顺手改。 */
+let vbad = 0, bad = 0;
 const regMap = new Map(), diskMap = new Map();
-for (const r of REGISTRY){ const k = rkey(r); if (regMap.has(k)){ console.log(`  ✗ 注册表里 ${k} 写了两遍 —— 认领关系不再是一一对应`); bad++; } regMap.set(k, r); }
-for (const d of disk){ const k = key(d); if (diskMap.has(k)){ console.log(`  ✗ 盘上 ${d.file} ${d.sel} ${d.prop} 的 ${d.tok} 扫出两枚同键槽位（:${d.line} 与 :${diskMap.get(k).line}）—— 键不够用，得把上下文加进去`); bad++; } diskMap.set(k, d); }
+for (const r of REGISTRY){ const k = rkey(r); if (regMap.has(k)){ console.log(`  ✗ 注册表里 ${k} 写了两遍 —— 认领关系不再是一一对应`); vbad++; } regMap.set(k, r); }
+for (const d of disk){ const k = key(d); if (diskMap.has(k)){ console.log(`  ✗ 盘上 ${d.file} ${d.sel} ${d.prop} 的 ${d.tok} 扫出两枚同键槽位（:${d.line} 与 :${diskMap.get(k).line}）—— 键不够用，得把上下文加进去`); vbad++; } diskMap.set(k, d); }
 
 const unclaimed = [...diskMap.keys()].filter(k => !regMap.has(k));
 const phantom = [...regMap.keys()].filter(k => !diskMap.has(k));
-for (const k of unclaimed){ const d = diskMap.get(k); console.log(`  ✗ 盘上没人认领：${d.file}:${d.line}  ${d.ctx ? d.ctx + ' › ' : ''}${d.sel}  ${d.prop}: …${d.tok}… —— 新增间距要交代它属于哪一档（A 视口比例 / B 行距派生 / C 纯块间距·已上格 / X 在册偏差）`); bad++; }
-for (const k of phantom){ const r = regMap.get(k); console.log(`  ✗ 注册表里有一条盘上找不到：${r[0]}  ${r[1] ? r[1] + ' › ' : ''}${r[2]}  ${r[3]}: ${r[4]}（登记为 ${r[5]}）—— 值被改了或那一枚没了，注册表在过期`); bad++; }
+for (const k of unclaimed){ const d = diskMap.get(k); console.log(`  ✗ 盘上没人认领：${d.file}:${d.line}  ${d.ctx ? d.ctx + ' › ' : ''}${d.sel}  ${d.prop}: …${d.tok}… —— 新增间距要交代它属于哪一档（A 视口比例 / B 行距派生 / C 纯块间距·已上格 / X 在册偏差）`); vbad++; }
+for (const k of phantom){ const r = regMap.get(k); console.log(`  ✗ 注册表里有一条盘上找不到：${r[0]}  ${r[1] ? r[1] + ' › ' : ''}${r[2]}  ${r[3]}: ${r[4]}（登记为 ${r[5]}）—— 值被改了或那一枚没了，注册表在过期`); vbad++; }
 /* needle 的另一半（放在对账之后，免得它顶掉真正的原因）：盘上扫不到这一枚，要么扫描器坏了、要么那一行没了 */
-if (!disk.some(d => key(d) === NEEDLE_KEY)){ console.log(`  ✗ 盘上扫不到 needle 那一条（${NEEDLE[0]} ${NEEDLE[2]} ${NEEDLE[3]}:${NEEDLE[4]}）—— 扫描器坏了、那一行没了，或者它被人挪下了格子`); bad++; }
+if (!disk.some(d => key(d) === NEEDLE_KEY)){ console.log(`  ✗ 盘上扫不到 needle 那一条（${NEEDLE[0]} ${NEEDLE[2]} ${NEEDLE[3]}:${NEEDLE[4]}）—— 扫描器坏了、那一行没了，或者它被人挪下了格子`); vbad++; }
 
 /* 判据②：C 档在册值必须是 8 的倍数；X 档必须不是（是就说明它该转 C，两边都得由人签字） */
 const tierCount = { A: 0, B: 0, C: 0, X: 0 };
@@ -673,19 +680,20 @@ for (const r of REGISTRY){
   tierCount[r[5]] = (tierCount[r[5]] || 0) + 1;
   const n = NUM(r[4]);
   if (r[5] === 'C'){
-    if (n === null){ console.log(`  ✗ C 档在册值不是固定 px：${r[0]} ${r[2]} ${r[3]} ${r[4]} —— C 只收固定 px`); bad++; }
-    else if (n % 8 !== 0){ console.log(`  ✗ C 档在册值不在 8 的格子上：${r[0]} ${r[1] ? r[1] + ' › ' : ''}${r[2]}  ${r[3]}: ${r[4]} —— 要么它本就是 X（§4 说了不全站过一遍），要么这枚数被人挪 off 了格子`); bad++; }
+    if (n === null){ console.log(`  ✗ C 档在册值不是固定 px：${r[0]} ${r[2]} ${r[3]} ${r[4]} —— C 只收固定 px`); vbad++; }
+    else if (n % 8 !== 0){ console.log(`  ✗ C 档在册值不在 8 的格子上：${r[0]} ${r[1] ? r[1] + ' › ' : ''}${r[2]}  ${r[3]}: ${r[4]} —— 要么它本就是 X（§4 说了不全站过一遍），要么这枚数被人挪 off 了格子`); vbad++; }
   }
   if (r[5] === 'X'){
-    if (n === null){ console.log(`  ✗ X 档在册值不是固定 px：${r[0]} ${r[2]} ${r[3]} ${r[4]} —— X 只收"纯块间距里的固定 px 且未上格"`); bad++; }
-    else if (n % 8 === 0){ console.log(`  ✗ X 档里这一枚已经在格子上了：${r[0]} ${r[2]} ${r[3]}: ${r[4]} —— 该转 C 并同步两枚登记值`); bad++; }
+    if (n === null){ console.log(`  ✗ X 档在册值不是固定 px：${r[0]} ${r[2]} ${r[3]} ${r[4]} —— X 只收"纯块间距里的固定 px 且未上格"`); vbad++; }
+    else if (n % 8 === 0){ console.log(`  ✗ X 档里这一枚已经在格子上了：${r[0]} ${r[2]} ${r[3]}: ${r[4]} —— 该转 C 并同步两枚登记值`); vbad++; }
   }
-  if (r[5] === 'A' && !(hasVp(r[4]) || isVar(r[4]))){ console.log(`  ✗ A 档在册值不是视口比例：${r[0]} ${r[2]} ${r[3]}: ${r[4]}`); bad++; }
-  if (r[5] === 'B' && n === null){ console.log(`  ✗ B 档在册值不是固定 px：${r[0]} ${r[2]} ${r[3]}: ${r[4]} —— 行距派生讲的是 px 跟行盒走，em 那类本来就跟着字号、不在认领范围`); bad++; }
+  if (r[5] === 'A' && !(hasVp(r[4]) || isVar(r[4]))){ console.log(`  ✗ A 档在册值不是视口比例：${r[0]} ${r[2]} ${r[3]}: ${r[4]}`); vbad++; }
+  if (r[5] === 'B' && n === null){ console.log(`  ✗ B 档在册值不是固定 px：${r[0]} ${r[2]} ${r[3]}: ${r[4]} —— 行距派生讲的是 px 跟行盒走，em 那类本来就跟着字号、不在认领范围`); vbad++; }
 }
 for (const t of Object.keys(REGISTERED)){
-  if (tierCount[t] !== REGISTERED[t]){ console.log(`  ✗ ${TIERS[t]} 档在册 ${tierCount[t] ?? 0} 枚、规范登记值 ${REGISTERED[t]} 枚 —— §4/§16 那个数与这份判据对不上了（三处同源）`); bad++; }
+  if (tierCount[t] !== REGISTERED[t]){ console.log(`  ✗ ${TIERS[t]} 档在册 ${tierCount[t] ?? 0} 枚、规范登记值 ${REGISTERED[t]} 枚 —— §4/§16 那个数与这份判据对不上了（三处同源）`); vbad++; }
 }
+bad += vbad;   /* 全局退出码仍旧收三族之和：本族旗标分家，rc 语义不分家 */
 
 /* ---------- 第三族对账：横向间距槽位（判据⑤两侧认领 ＋ ⑥逐档枚数 ＋ ⑦状态档不混 ＋ ⑧逻辑写法）---------- */
 /* ⚠️ 与垂直那一本同构，但它是**独立的一本账**：键、注册表、档位计数都不与垂直那 144 枚共享任何一条记录，
@@ -778,7 +786,8 @@ bad += rbad;
 /* ---------- 打印：全绿也要看得见量到了哪些数 ---------- */
 console.log('\n=== 垂直间距三档（§4：视口比例 / 行距派生 / 纯块间距）===');
 const pxN = disk.filter(d => d.kind === 'px').length;
-console.log(`  ${bad ? '✗' : '✓'} 扫了 ${new Set(disk.map(d => d.file)).size} 份样式表共 ${disk.length} 枚垂直间距槽位` +
+/* 旗标读 vbad（本族那本账），不读 bad（三族之和）：横向或圆角红的时候这一行仍是 ✓，见上面「对账」那一格的注释 */
+console.log(`  ${vbad ? '✗' : '✓'} 扫了 ${new Set(disk.map(d => d.file)).size} 份样式表共 ${disk.length} 枚垂直间距槽位` +
   `（固定 px ${pxN} / 视口比例 ${disk.length - pxN}），认领 ${disk.length - unclaimed.length} 枚、无人认领 ${unclaimed.length} 枚、注册表过期 ${phantom.length} 条`);
 for (const t of ['A', 'B', 'C', 'X']) console.log(`    ${TIERS[t].padEnd(12)} 在册 ${String(tierCount[t] ?? 0).padStart(3)} 枚（登记值 ${REGISTERED[t]}）`);
 const byFile = {};
@@ -793,6 +802,7 @@ console.log('    在册偏差（X）按值（枚数降序、同数按 |+px| 降�
    再加逐档（A／B／C／X／H）与逐份。口径与垂直那一句逐字同构，只是"槽位"取的是每一条声明的左右那一半。 */
 console.log('\n=== 横向间距槽（本卡 `v11b/hgap` 新立：margin/padding 的左右两半 ＋ column-gap ＋ gap 的列距）===');
 const hpxN = hdisk.filter(d => d.kind === 'px').length;
+/* 旗标读 hbad（本族那本账）：垂直或圆角红的时候这一行仍是 ✓ —— 与上面垂直那一行同一条规矩 */
 console.log(`  ${hbad ? '✗' : '✓'} 扫了 ${new Set(hdisk.map(d => d.file)).size} 份样式表共 ${hdisk.length} 枚横向间距槽位` +
   `（固定 px ${hpxN} / 视口比例 ${hdisk.length - hpxN}），认领 ${hdisk.length - hunclaimed.length} 枚、无人认领 ${hunclaimed.length} 枚、注册表过期 ${hphantom.length} 条`);
 for (const t of ['A', 'B', 'C', 'X', 'H']) console.log(`    ${HTIERS[t].padEnd(14)} 在册 ${String(hTierCount[t] ?? 0).padStart(3)} 枚（登记值 ${H_REGISTERED[t]}）`);
@@ -809,6 +819,7 @@ console.log('    按来源：' + Object.entries(hsrc).map(([k, n]) => `${k} ${n}
 
 /* 圆角那一族的全绿也要看得见数：命中枚数／种数／逐档（盘上/登记）／逐份 */
 console.log('\n=== 圆角梯子（§4 那根 11 档 ＋ 一枚抹平的 0，两把尺两张表）===');
+/* 旗标读 rbad（本族那本账）：两本间距账红的时候这一行仍是 ✓ —— 三行汇总三族各自说话 */
 console.log(`  ${rbad ? '✗' : '✓'} 扫了 ${new Set(rdisk.map(d => d.file)).size} 份样式表共 ${rdisk.length} 枚 ${RPROP} 字面` +
   `（${rKinds} 种写法），认领 ${rdisk.length - runclaimed.length} 枚、无人认领 ${runclaimed.length} 枚、注册表过期 ${rphantom.length} 条`);
 console.log('    逐档（§4 顺序，从小到大；盘上扫到/梯子登记）：' + RADIUS_LADDER.map(l => `${l[0]} ${rDiskN[l[0]] ?? 0}/${l[1]}`).join('  '));
