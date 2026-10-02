@@ -691,7 +691,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
   html .reveal{ opacity:1; transform:none; transition:none; transition-delay:0s; animation:none; }
 
   /* ---- §19.1 撤场清单：氛围层与控件 ---- */
-  /* 颗粒 / 玻璃导航 / 进度线与章节刻度 / 右侧目录 / 首页那两张照片底与纱罩与雾带与灯与萤火 /
+  /* 颗粒 / 玻璃导航 / 进度线与章节刻度 / 右侧目录 / 标题里那枚锚记号 / 首页那两张照片底与纱罩与雾带与灯与萤火 /
      方向光与那层气 / 盖章按钮 / 上下篇。每一行的理由在 §19.1 那张表里，这里不重抄。
      ⚠️ 本轮添一行：`html .site-foot`（二轮 §6.1 那块深苔地面）。撤的是**整块**，不是只撤那层颜色——
      两条理由任一条都够：① 纸上不留一层面（§19.1 开头那句，本卡给它新添的那一行就住在那张表里），
@@ -701,7 +701,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
      纸上那句出处仍然只有 `html footer.print-foot` 那一行管（下面那格），`--paper-ink` 那一族一个字不搬它。 */
   html .grain,
   html header.nav, html .settings, html .display,
-  html #progress, html #progress-marks, html #toc,
+  html #progress, html #progress-marks, html #toc, html .headref,
   html .scene, html .bg-gradient, html .bg-photo, html .scrim, html .mist-band,
   html .lantern-rim, html .lantern-glow, html .firefly,
   html .post-tail, html .post-nav,

@@ -262,7 +262,18 @@ function headBlock(level, raw){
   const id = headId(raw, headsOut.length);
   const inner = inlineMd(raw);
   headsOut.push({ level, id, text: inner.replace(/<[^>]+>/g, '') });
-  return `<h${level} id="${id}">${inner}</h${level}>`;
+  /* 一轮 §C1 那枚**结构性锚**（规范 §15·「标题的锚点记号（一轮 §C1）」那一格预先签的形状，判成"纯链接版"）：
+     · 只在这里发，不在模板里对渲染结果再跑一遍正则插锚——那一格把那条方案判否了，理由是它让"标题成形"
+       从一处变成两处真值；
+     · `href` 吃的就是上面那一枚既有 `id`（片段与 id 同源 ⇒ §12 死锚点禁令的正面，不是第二次取值）；
+     · 字面只有 `#` 一个字符（§9·「井号 `#` 这枚记号在站内的归属」：这一枚**用字不用图形**，不许长成线、不许长成点）；
+     · 类名 `headref` 与 `fnref`／`backref` 同族（那一族都住在正文里、都由这里发），三处同源＝这一行 /
+       `essay.css` 那三条规则 / 规范那一格；`tools/check-markdown.mjs` 的 `auditHeadAnchors()` 钉的是**结构**
+       （至多一枚锚／href 逐字等于 `#`+本级 id／字面单字符），**没有**把类名钉进尺子，所以名字归本格管；
+     · 锚**不进** `heads[].text`（上面那行先去壳再交回）：目录那一行与窄屏刻度的 `data-label` 吃的就是那份字，
+       带上它同一件事会在页面上出现两枚 `#`，而目录那枚本来就在说"跳这一节"。
+     零脚本：点下去的行为是浏览器自己的（写地址栏、入历史、滚过去），与文末 `top · 回到这一篇的开头` 同一族。 */
+  return `<h${level} id="${id}">${inner}<a class="headref" href="#${id}">#</a></h${level}>`;
 }
 
 function renderMd(md0){            /* 块级：段落 / H2 / H3 / 列表 / 引用 / 分隔线 / 代码围栏 / 表格 / 图片行（整段是图、图包在链接里也算） */

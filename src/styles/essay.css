@@ -436,6 +436,33 @@ html[data-focus="1"] .wrap::before{ display:none; }
 }
 .post-body a:hover{ text-decoration-color:currentColor; text-decoration-thickness:2px; }
 
+/* 标题那一行的结构性锚（一轮 §C1；规范 §15·「标题的锚点记号（一轮 §C1）」那一格预先签的形状，判成"纯链接版"）。
+   节点由 `markdown.js` 的 `headBlock()` 发（"一枚标题只在这里成形一次"），这里只给它三条规则；
+   类名 `headref` 三处同源＝`headBlock()` 那一行／下面这三条规则／规范那一格（尺子钉的是结构，没钉名字）。
+   ⚠️ 三条各管一件事，逐条都是那一格里预先签好的，不许在这一格重新发明：
+   ① **静止态占着位、只是不显形**（`opacity:0`）。显隐不许走 `display`／`visibility`：那两样都把锚从 Tab
+      顺序里摘掉，正面撞 §12·「把 404 的地址藏起来让人找」那句"能点开的东西必须也能 Tab 到"，而第二扇门
+      （`:focus-visible`）原理上就打不开。`opacity` 不撤可聚焦性、也不引起重排——占位这一手是 §8.3 目录行
+      那一格的口径（"摘要那两行的位置平时就占着，所以显形不引起任何重排"）。
+   ② **两扇门**：悬停在标题那一行（`h2:hover`／`h3:hover`）∪ 键盘（`.headref:focus-visible`），
+      抄 §8.3 目录行那一格签过的 `.row:hover ∪ .row:focus-visible`（`mistwood.css:598`）——键盘与鼠标走
+      同一扇门，不许"只有悬停才看得见"。触屏那一档走 `mistwood.css:600` 同一条路、同一档写法。
+   ③ **字号跟宿主那一行走**：`.6em` 是在册倍数（先例本文件 `.post-body sup.fnref{ font-size:.6em }`），
+      不新起一档；`font-family` 不写——它跟着标题那一行那张脸（这一枚**用字**，§9 那一格三条约束里
+      "不许长成线、不许长成点"的正面就是"用字不用图形"，图形母题三族一枚都不碰）。
+   ⚠️ **零 transition**：这里不写第二份 `transition:`。上面 `.post-body a`（:433）那条已经带
+      text-decoration 两枚属性的 0.3s，而 `transition` 不叠加、只覆盖——重写它就会把已签的那套正文链接
+      语言改掉，本卡不许动它。于是 `opacity` 是离散翻面 ⇒ `prefers-reduced-motion` 天然免疫
+      （零 `animation`、零 `transition`、零滚动驱动自定义属性，与 §13b 降级谱那一行同一口径）；
+      `prefers-reduced-transparency` 也不点名它（它不在"面／玻璃／雾"那一族里，撤的从来是层，不是一枚字）。
+   ⚠️ 墨色／下划线／悬停那两枚变化一枚都不重写：它就是一个 `.post-body a`，全套吃 §8.3 那套正文链接语言。
+   ⚠️ 零新垂直槽位：这三条里没有一枚 margin／padding／gap（`gap-check` 那把尺不看 `opacity`、不看 `em`），
+      纸上撤场不进这一份表——它由 `base.css` 打印段那**一串**撤场清单添一枚名字接住（与 `#toc` 同一件事：
+      纸上点不动），不新开一行规则。 */
+.post-body .headref{ opacity:0; font-size:.6em; }
+.post-body h2:hover .headref,.post-body h3:hover .headref,.post-body .headref:focus-visible{ opacity:1; }
+@media (hover:none){ .post-body .headref{ opacity:1; } }   /* 触屏没有 hover，锚就常显（同一档写法：mistwood.css:600） */
+
 /* 正文图片：不裁框，按原比例走满栏宽；雾散开 + 褪色由共享底座负责（§8.4 / §10.5） */
 /* ⚠️ 选择器多带一枚 `article`（权重 (0,1,2) 压过 `mistwood.css:409` 那条 (0,1,1)）——**这不是顺手加权重，
    是还 §8.4 末那格登记的那笔债**：共享底座给"内容位照片"写的是 `position:absolute; inset:0; object-fit:cover`
