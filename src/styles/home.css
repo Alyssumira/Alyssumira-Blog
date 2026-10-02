@@ -104,8 +104,29 @@ html[data-theme="dark"] .bg-photo .photo-dark{ opacity:1; }
    暗色那盏是"压暗周围"（近黑压在暗底上把浅色字周围的底再压暗一档）——§2.2/§5 铁律 3 的极性，
    不是往夜林里塞一束白毛边。
    ⚠️ 零新模糊（§1.4 三种模糊一个没多）：`linear-gradient` 是渐变不是 `blur()`。 */
+/* ============ 光柱的两枚数字：底（签字表）× 呼吸（随鼠标） ============
+   二轮 §7.1 落盘（2026-10-03 `v10d/shaft`）。为什么是**两枚相乘**而不是"往 opacity 上再加一层"：
+   ① **night 两档必须仍是 0**。那两档今天根本不画光（§5.1 那句"夜里消失"）。呼吸若是**加法**（±0.04 绝对值）
+     会凭空造出一束夜里不存在的光；若是**乘法**则 0×1.04＝0 —— 算式取乘法：
+     night 那一档底是 0，乘什么都是 0，"呼吸落在夜里"这件事的正确答案是"不发生"，不是"给它开一条例外"。
+   ② 乘法的偏移是**相对**的：±4% 乘在当档的底上（dawn/亮 .50 → ±.020；day/亮 .18 → ±.0072；
+     dawn/暗 .30 → ±.012；day/暗 .12 → ±.0048；强档最高的 dawn/亮 .95 → ±.038，离 opacity 上限 1 还差 .012）。
+     加法读起来是"每档都动 4 个百分点"，那会让 day 档的相对摆动变成 ±22%，八格就不再是一张表而是八种性格。
+   ③ **静止态必须等于签字表**。`--shaft-breath` 的 `initial-value:1` 就是"没有呼吸"那一档：
+     减弱动态偏好、无 JS、触屏那三档里 `hero.js` 要么整个 return、要么根本不跑环 ⇒ 一个字节都没写过
+     ⇒ 乘出来就是 §5.1 那 12 枚字面量。这一条与 `--hole` 的 `initial-value:1`（"雾合上"＝没有洞）
+     是同一个手法：**降级态由初值承担，不另写规则**（所以 `:495` 那一档的名单不需要添这一族；实测读数在规范 §11）。
+   ⚠️ 两枚都不许乘 `--fog`：那枚旋钮只乘在"气"那一族（`.mist-band`、子页气带）的 opacity 上，
+     光柱本来就不吃它（下面 `.mist-band` 那一格登记的正是这条边界），这一格也不给它开第二条路——
+     所以 `opacity:calc()` 里除了这两枚乘数不许出现第三个因子。谓词在 `tools/phase-check.mjs` 的 ⑨ 那一格。 */
+@property --shaft-base{ syntax:'<number>'; inherits:true; initial-value:0; }
+@property --shaft-breath{ syntax:'<number>'; inherits:true; initial-value:1; }
 .bg-photo::after{
-  content:""; position:absolute; inset:0; display:block; opacity:0;
+  content:""; position:absolute; inset:0; display:block;
+  /* 强度＝当档签字的那枚底 × 呼吸那一枚乘数。起手（`--shaft-base` 初值 0）与减弱档（`--shaft-breath`
+     初值 1、底＝签字值）都从这一条算出来，没有第二处真值。⚠️ 这一句里除了这两枚乘数不许出现第三个因子
+     ——特别是 `--fog`（上面那格的理由；谓词住在 `phase-check` ⑨）。 */
+  opacity:calc(var(--shaft-base,0) * var(--shaft-breath,1));
   transition:opacity .8s cubic-bezier(.22,1,.36,1),background .8s cubic-bezier(.22,1,.36,1);
   /* 上：空气透视（照片上 1/3 一层极淡 --mist，远处吞进雾里，减色）
      下：光柱——角度 65deg 是从两张照片量出来的（见 §5：亮脊/主轴两法、亮暗两张一致到 ~2–4°），
@@ -121,21 +142,24 @@ html[data-theme="dark"] .bg-photo::after{
     linear-gradient(180deg, var(--mist) 0%, transparent 40%),
     linear-gradient(65deg, var(--bg-top) 0%, transparent 32%, transparent 72%, var(--bg-top) 100%);
 }
-/* 八格：2 主题 × 4 phase，只有强度（opacity）在动，角度/色相都不动。
+/* 八格：2 主题 × 4 phase，只有强度在动，角度/色相都不动。
    清晨最亮 → 正午收起 → 傍晚偏暖（暖度由 --bg-top 的时段值自己带）→ 夜里消失。
    夜林整体比亮色收一档（无月之夜没有太阳），且 night 两主题一起归零。
    ⚠️ 这八格是 §5.1 那张签过字的表，二轮 §2.1 重开了它——重开的**只有强度读数**：下面那四格是在
    同一枚 `.bg-photo::after` 上再加两档"强姿态"，八格自己的八个数一个没改，提案那句"其余时段保持现状"
    就是照这句签的。角度（65deg）、渐变 stops、色相、`--mist` 的空气透视那一层，全都没动；
-   §1.4 那三种模糊的半径一个字节没碰（这一格本来就不是 blur()，上面 :106 那句"零新模糊"照旧成立）。 */
-html[data-phase="dawn"][data-theme="light"]  .bg-photo::after{ opacity:.50; }
-html[data-phase="day"][data-theme="light"]   .bg-photo::after{ opacity:.18; }
-html[data-phase="dusk"][data-theme="light"]  .bg-photo::after{ opacity:.38; }
-html[data-phase="night"][data-theme="light"] .bg-photo::after{ opacity:0; }
-html[data-phase="dawn"][data-theme="dark"]   .bg-photo::after{ opacity:.30; }
-html[data-phase="day"][data-theme="dark"]    .bg-photo::after{ opacity:.12; }
-html[data-phase="dusk"][data-theme="dark"]   .bg-photo::after{ opacity:.20; }
-html[data-phase="night"][data-theme="dark"]  .bg-photo::after{ opacity:0; }
+   §1.4 那三种模糊的半径一个字节没碰（这一格本来就不是 blur()，上面 :106 那句"零新模糊"照旧成立）。
+   ⚠️ 二轮 §7.1 落盘时改的是**声明的属性名**（`opacity:` → `--shaft-base:`），**八枚数一个没动、
+   选择器一个没动、权重一格没挪**：值现在经上面那条 `opacity:calc()` 生效。
+   night 那两枚 0 现在同时是"不画"与"呼吸在这两档不产生任何读数"（0 乘任何数还是 0）。 */
+html[data-phase="dawn"][data-theme="light"]  .bg-photo::after{ --shaft-base:.50; }
+html[data-phase="day"][data-theme="light"]   .bg-photo::after{ --shaft-base:.18; }
+html[data-phase="dusk"][data-theme="light"]  .bg-photo::after{ --shaft-base:.38; }
+html[data-phase="night"][data-theme="light"] .bg-photo::after{ --shaft-base:0; }
+html[data-phase="dawn"][data-theme="dark"]   .bg-photo::after{ --shaft-base:.30; }
+html[data-phase="day"][data-theme="dark"]    .bg-photo::after{ --shaft-base:.12; }
+html[data-phase="dusk"][data-theme="dark"]   .bg-photo::after{ --shaft-base:.20; }
+html[data-phase="night"][data-theme="dark"]  .bg-photo::after{ --shaft-base:0; }
 
 /* 晨昏各一小时：看得见的斜（二轮 §2.1，规范 §5.1）。写者只有 `site.js` 的 tick：
    `data-shaft` 是同一根时钟上的**子区间**，`data-phase` 那四档一枚没加（判据在 `src/lib/phase.js`
@@ -148,11 +172,15 @@ html[data-phase="night"][data-theme="dark"]  .bg-photo::after{ opacity:0; }
    亮色 .95 那格离 opacity 的上限 1 只剩 .05——留的就是这一格。
    选择器权重：这一档是 (0,4,2)（html ＋ 三枚属性 ＋ .bg-photo ＋ ::after），上面那八格是 (0,3,2)
    （少一枚属性）⇒ 高一级，盖得住它们；night 两格没有对应的强档块（窗口本来就要求 dawn/dusk 在场，
-   而 night 那一格两主题都是 0，抬不动也不该抬——§5.1："夜里消失"）。 */
-html[data-shaft="rise"][data-phase="dawn"][data-theme="light"] .bg-photo::after{ opacity:.95; }
-html[data-shaft="set"][data-phase="dusk"][data-theme="light"]  .bg-photo::after{ opacity:.76; }
-html[data-shaft="rise"][data-phase="dawn"][data-theme="dark"]  .bg-photo::after{ opacity:.54; }
-html[data-shaft="set"][data-phase="dusk"][data-theme="dark"]   .bg-photo::after{ opacity:.36; }
+   而 night 那一格两主题都是 0，抬不动也不该抬——§5.1："夜里消失"）。
+   ⚠️ 二轮 §7.1 之后权重争的是 `--shaft-base`（那枚底），不再直接争 `opacity`：`opacity` 全站只有
+   上面 :107 那一处声明，谁赢了底谁就进那条 calc。这既是好事（呼吸不可能被某一档绕过去），
+   也是需要一把尺的地方——**任何人再往 pseudo 上直接写 `opacity:`，就是第 13 枚字面量**，
+   红在 `phase-check` ⑨。倍数照提案那一条带取值，逐格写在下面，**不是随手抬的**： */
+html[data-shaft="rise"][data-phase="dawn"][data-theme="light"] .bg-photo::after{ --shaft-base:.95; }
+html[data-shaft="set"][data-phase="dusk"][data-theme="light"]  .bg-photo::after{ --shaft-base:.76; }
+html[data-shaft="rise"][data-phase="dawn"][data-theme="dark"]  .bg-photo::after{ --shaft-base:.54; }
+html[data-shaft="set"][data-phase="dusk"][data-theme="dark"]   .bg-photo::after{ --shaft-base:.36; }
 
 /* 纱罩：统一色调 + 保证文字可读 + 底部溶入正文底色 */
 /* 灯的"开合度"要能插值，所以注册成数字属性：mask 里的颜色stops本身不可过渡，
