@@ -713,6 +713,14 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
      撤法＝整层 `display:none`，不重画、不改色（与 §19.1 那句"纸上不留一层面"同一口径）。
      ⚠️ 它不在上面那串裸 `.page-head::after` 里（宿主是 `.post-title`），故单独点名一行。 */
   html .post-title::before{ display:none; }
+  /* 图注前那两枚底片齿孔（三轮 §3.3，`v8a/marks` 2026-10-03 新增）：纯图形、零信息——"这是一帧照片"在纸上
+     由那张图自己承担（`figure.shot` 照旧上纸，见下面那行既有的 `break-inside:avoid`，本卡不重复声明），
+     注里那行字也照旧上纸（§19.2）。而两枚点是 `background`＋`box-shadow` 画的，纸上不用
+     `print-color-adjust:exact`（§19.4 那句"让 `exact` 没东西可管"）⇒ 留着它就是一枚印不出来的空位。
+     撤法与上面那行题花同一口径：整枚 `display:none`、不重画、不改色、零枚新折叠声明。
+     ⚠️ 带 `html ` 前缀（这一节所有选择器同一个权重口径，压过页面层、不靠打包顺序）。 */
+  html .post-body figcaption::before{ display:none; }
+
 
   /* 主行动那一枚（二轮 §4.1 立项时是深苔实心面，2026-10-02 规范 §2.6 退成玻璃胶囊）在纸上也整体撤掉：
      它落在首页 `.hero` 之内，而 `.hero` 那一屏在纸上只剩 `--photo-look` 撤掉之后的字——一枚印在纸上的

@@ -456,6 +456,30 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
   margin-top:14px; font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace;
   font-size:12px; letter-spacing:.12em; color:var(--ink-3);
 }
+/* 底片齿孔（三轮 §3.3，`v8a/marks` 2026-10-03）：图注文字前竖排两枚 2px 苔点——"承认这是一帧照片"。
+   ⚠️ 母题指认：§13b「三族」那张表里**母题②"苔点"（点的）**，与换气记号同一批在册（见 §13b「§3.3 底片齿孔」）。
+   ⚠️ **不进灯箱那一档**——`.lightbox-cap` 照旧只有那行字，"同一套话"从今天起指**字**那一半，裁决与三条理由在
+   那一格，别把这一处不同形读成第三处漂移。
+   ⚠️ **为什么不是 §9 在册那两枚 5px 点**：那两枚（时钟点／当前页点）是 5px 圆盒、住在固定的导航胶囊里、单枚、
+   贴在可点项的文字左缘——"我在哪儿"的判据正是"哪一项是高亮的那一项"。这一枚是 2px、**竖排成对**、住在正文图注
+   前面，旁边没有任何可点对象 ⇒ 它不会被读成第三枚"我在哪儿"（逐条对账在那一格；§6 签字那一对一枚不增不减）。
+   ⚠️ 两枚点是"同一枚 2px 盒子 + 一枚 4px 的 `box-shadow` 复本"，**零枚新 `border-radius` 字面**（§4 那根圆角梯子
+   现值 31 枚/12 种写法一枚不动；为它新开一枚 `50%` 就红）。2px 这一档上"圆"与"方"差的是四个角各一像素，读不出
+   差别，而齿孔本来就是穿孔、不是"生命"那一族的圆点。也不走 2px 描边：站内 `border` 只有 1px 那一档（现读全是
+   `border:1px`），为两枚点开一档描边就是把 §9 那格的发丝线口径掀了。
+   ⚠️ `translateY(-2px)` 是几何派生不是挑的数：盒子 2px、影子里那枚再往下 4px ⇒ 配对总高 6px，而
+   `vertical-align:middle` 对准的是盒子自己的中心（1px 处）⇒ 要中心落在配对中心就得抬 (6−2)/2＝2px。
+   ⚠️ `margin-right:6px` 是**横向**槽位：`tools/gap-check.mjs` 的拆值口径明写"`margin-left`／`padding-left`／
+   `column-gap` 一概不看"，横向不在它那 143 枚垂直账上；6px 取的是 `.year-mark{margin-bottom:6px}` 在册那一档的
+   光学量级，不新开一档留白。宿主 `figcaption` 那三行（14px／12px／.12em／`--ink-3`）一个字不动。
+   ⚠️ 打印：整枚 `display:none`（`base.css` 的 §19 那一节新加那一行）——它是纯图形、零信息，"这是一帧照片"在纸上
+   由那张图自己承担，而两枚点靠 `background`＋`box-shadow` 画、纸上不用 `print-color-adjust:exact`（§19.4），
+   留着就是一枚印不出来的空位。撤法与题花同一口径：整块撤、不重画、不改色；图注那行字照旧上纸。 */
+.post-body figcaption::before{
+  content:""; display:inline-block; width:2px; height:2px; margin-right:6px;
+  vertical-align:middle; transform:translateY(-2px); background:var(--moss); box-shadow:0 4px 0 var(--moss);
+}
+
 /* 图版可点（灯箱）：`cursor:pointer` 是一枚提示，不是一枚权限——没有它这一张图也一样能被 Tab 到、
    被 Enter 按下（`site.js` 给图版补的是 tabindex/role/键盘，触屏点的是这一整块）。
    ⚠️ 零 hover 属性变化：§8.3 的预算给的是"每个可点元素 1 个主反馈"，而这里的"反馈"是**打开大图**这件事
@@ -488,7 +512,11 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 .lightbox::backdrop{ background:var(--halo); }
 .lightbox img{ max-width:100%; max-height:66vh; height:auto; object-fit:contain; border-radius:8px; }
 /* 图注：与正文 `.post-body figcaption` 同一套话（12px 等宽 + .12em + `--ink-3` 装饰档），
-   没有图注时这一枚 `<p>` 由脚本带着 `hidden`（§12"不许预留一个只会显示空缺的位置"）。 */
+   没有图注时这一枚 `<p>` 由脚本带着 `hidden`（§12"不许预留一个只会显示空缺的位置"）。
+   ⚠️ 上面那句"同一套话"从 2026-10-03 `v8a/marks` 起指**字**那一半（12px 等宽／.12em／`--ink-3`）——正文那一档
+   多了两枚底片齿孔（三轮 §3.3），灯箱这一档**判不进**：图占满面板、注紧贴其下，没有归属歧义可消，而浮层不是
+   一份版面。三条理由与反向代价登记在 `docs/设计规范.md` §13b「§3.3 底片齿孔」那一格——别把这一处不同形读成
+   第三处漂移。 */
 .lightbox-cap{
   font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:12px; letter-spacing:.12em;
   color:var(--ink-3); text-align:center;
