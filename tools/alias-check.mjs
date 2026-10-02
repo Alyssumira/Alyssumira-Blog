@@ -224,7 +224,14 @@ function cell0(){
   ok(addrOfRel('/2026/old/index.html') === '/2026/old/' && addrOfRel('/404.html') === '/404/', `addrOfRel 反解不对（${addrOfRel('/2026/old/index.html')} / ${addrOfRel('/404.html')}）⇒ 名单与盘永远比不到一起`);
   /* —— 盘上的正向对象：尺子至少吃到了东西 —— */
   ok(all.length > 0, `posts/ 里读出 ${all.length} 篇稿件 ⇒ 名单根本没吃到东西（目录空着，还是读法坏了？）`);
-  ok(visible.length > 0, `可见稿件读出 ${visible.length} 篇`);
+  /* 零篇可见稿是**模板出厂态**（这份仓库只交模板、三篇样例全带 `draft`），不是坏读法——旧版那句"可见稿件读出 0 篇就红"
+     把两种情形按在一起了，而它下面第 ①②③④ 格早就各自用夹具兜住了零枚那一档（`notes` 里那句"零枚时这一格凭什么绿"就是这件事）。
+     换成一枚两向都有牙的对账：本工具按 front matter 现算的"该有详情页的稿件数"（**只滤草稿**——不列入照样有页，
+     `src/pages/essays/[slug].astro` 的 `getStaticPaths` 那两行分工）⇄ `dist/` 里真读到的 `essays/<id>/index.html` 枚数。
+     零篇 ⇒ 两边都是 0，绿；读法瞎了一半或这棵 `dist/` 与盘上不是同一次构建 ⇒ 当场红。 */
+  const detailInDist = arts.filter(a => /^\/?essays\/[^/]+\/index\.html$/.test(a.rel)).length;
+  const shouldBePages = all.filter(p => !isDraft(p)).length;
+  ok(detailInDist === shouldBePages, `名单与产物对不上：front matter 里该有详情页的稿件 ${shouldBePages} 篇（${all.length} 篇里滤掉 ${all.length - shouldBePages} 枚草稿）⇄ dist 里读到 ${detailInDist} 枚 essays/<id>/index.html ⇒ 要么这把尺的读法瞎了一半，要么这棵 dist 与盘上不是同一次构建`);
   ok(arts.length > 0 && machineTxt.size > 0, `窗口里 ${arts.length} 份文本产物、机器侧 ${machineTxt.size} 份 ⇒ ④ 的两把尺子没有对象`);
   notes.push(`⓪ 自证 ${n} 条：front matter 读法 7 枚 fixture（该收到 flow 2／block 2、空项 1，不该收到 没填／[]／空值）· 归一化正例 3 ＋反例 10 · `
     + `产物形状尺子 7 条 · 地址⇄文件名 2 条 · 窗口 ${arts.length} 份文本产物／${visible.length} 篇可见稿件。`
