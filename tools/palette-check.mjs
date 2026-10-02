@@ -6,7 +6,9 @@
                                                     它故意让判据吃坏数据，所以不接进 npm run check 的默认链。
                                                     日常链里那几枚反例照样每跑都吃，只是不逐枚印；
                                                     2026-10-03 起它还逐枚印牙⑤「单调上界」那四枚自证 fixture，
-                                                    与那 8 枚常驻反例分账——两族的计数不合并）
+                                                    与那 8 枚常驻反例分账——两族的计数不合并；
+                                                    同一天 `w2q/hexcolor` 起它再逐枚印 ①e「规则体里的裸十六进制」
+                                                    （洞一）那九枚反例——三族各自计数、各自登记枚数，谁都不并成一句）
          PALETTE_FOG_ROWS=1 node tools/palette-check.mjs   （把 ④ 那张 (主题×档×目标色×前景×α) 全表逐枚印出来）
    换算按 Björn Ottosson 的 OKLab 推导；对比度是 WCAG 2.1 相对亮度比。
 
@@ -45,7 +47,13 @@
        这枚牙判的是"越过上界"这件事**本身**，与那族破地板读数**分开红、分开打印、两族话不合并**。
      ⚠️ 这一格**没有**降级成零牙的 report-only 绿灯：同源牙（牙③）、反例牙（牙④，8 枚常驻 fixture）、
        失去靶牙（牙②）继续计入退出码，与换落点之前等价；也没有加任何"零载体就跳过"的条件跳过
-       （§16 明令"读不到被测对象的尺子从来不算绿"，牙⑤ 自己那一枚端点都读不到时也判红、不判跳过）。 */
+       （§16 明令"读不到被测对象的尺子从来不算绿"，牙⑤ 自己那一枚端点都读不到时也判红、不判跳过）。
+   ⚠️ 2026-10-03（`w2q/hexcolor`，本卡）补的是**洞一**：`palette-check` 读得到令牌、读不到**规则体里的裸十六进制**——
+     能读色的那三条正则（`HEX` / `FN` / `CMIX`）全部要求 `--x:` 打头，所以把 `essay.css` 的 `.post-body em`
+     写成 `color:#b3215a` 时这一关 rc=0、一声不响（卡面实测）。新格 ①e 的判据、九枚在册色属性、两条实现约束
+     （必须在块体内数／属性名不许当行首锚）、以及"文件集裁成五份、与 `ALL_SHEETS` 故意不同源"那一句的理由
+     都写在 ①e 那一格里。**洞二**（`base.css` 之外的未登记**令牌**声明，如 `home.css:22 --firefly` 改值永不红）
+     本卡**没碰**：它要先裁一枚"分层令牌白名单"从哪儿读，那是另一张卡。 */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -157,12 +165,15 @@ const mkBoard = () => ({ toks: {}, fn: {} });
 const MIRROR_CTX = s => /^@supportsnot\(color:light-dark\(/i.test(String(s).replace(/\s+/g, ''));
 /* 扫描期间累计的三样东西：拆出来的成对声明、拆不动/落点不对的、每份表里 `light-dark(` 出现了几枚 */
 const ldPairs = [], ldBad = [], ldRaw = new Map();
-/* 按大括号深度切，带 @media / @supports 的上下文——归并之后同一个选择器文本可以合法地出现在
-   两份表里（各自声明自己那一层的令牌），所以键必须是"上下文 + 选择器 + 令牌名"，
-   只看选择器文本会把 `@media (max-width:720px)` 里那条当成顶层那条的副本。 */
-function allBlocks(src, file = '?'){
+/* 块体切分（①e 与 allBlocks **共用**的那一半，2026-10-03 `w2q/hexcolor` 从 allBlocks 里原样搬出来）：
+   按大括号深度切，带 @media / @supports 的上下文；at-rule 的**条件位**（`@supports not (color: …){` 那串前缀）
+   与 @keyframes 的帧在切分这一刻就被 `continue` 剔掉，所以"规则体"这个概念在仓里只有一份定义。
+   ⚠️ 它是**纯函数**：不往 `ldPairs` / `ldBad` / `ldRaw` 那三本账里写任何东西——账留在 allBlocks 那一半。
+   为什么非要拆开：①e 要复扫 `notes.css`（不在 ALL_SHEETS 里）还要吃九枚内置 fixture，若让它们走 allBlocks，
+   `light-dark(` 会被重复记账、`LD_REGISTERED = 6` 那一族既有账当场被顶歪（实测过这条路走不得）。 */
+function splitBlocks(src){
   const clean = src.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
-  const out = []; const stack = []; let start = 0;
+  const raw = []; const stack = []; let start = 0;
   const lineOf = p => clean.slice(0, p).split('\n').length;
   /* 这一份表里 `light-dark(` 一共出现几枚（注释已抹掉），与"被拆掉的成对声明＋镜像那行的条件"
      对账；对不上就是有枚这一关没读到——读不到不许当没有（② 那格的实测就是这一条的来历）。 */
@@ -170,51 +181,63 @@ function allBlocks(src, file = '?'){
   for (const m of clean.matchAll(LD_EVERYWHERE)) ldSeen++;
   for (let i = 0; i < clean.length; i++){
     const c = clean[i];
-    if (c === '{'){ stack.push({ pre: clean.slice(start, i).trim().replace(/\s+/g, ' '), start }); start = i + 1; }
+    if (c === '{'){ stack.push({ pre: clean.slice(start, i).trim().replace(/\s+/g, ' '), start, brace: i }); start = i + 1; }
     else if (c === '}'){
       const body = clean.slice(start, i), top = stack.pop(); start = i + 1;
       if (!top || /^@/.test(top.pre)) continue;         /* at-rule 本体（@media/@keyframes）不是声明块 */
       if (/^(from|to|[0-9.]+%)$/.test(top.pre)) continue; /* @keyframes 里的帧：不含令牌，跳过 */
-      const ctx = stack.map(s => s.pre).join(' / ');
-      const attrs = {};
-      for (const a of top.pre.matchAll(/\[data-([a-z-]+)="([a-z0-9-]+)"\]/g)) attrs[a[1]] = a[2];
-      /* ---- 先拆 light-dark()，再让三条正则去读拆出来的两档 ---- */
-      const line = lineOf(top.start);
-      const ldSkip = new Set(), board = mkBoard();
-      let ldDark = null;
-      if (LD_ANY.test(body)){
-        for (const decl of body.split(';')){
-          const dm = /^\s*(--[a-z0-9-]+)\s*:\s*(.*\S)\s*$/.exec(decl);
-          if (!dm || !LD_HEAD.test(dm[2])) continue;
-          ldSkip.add(dm[1]);
-          const at = { file, sel: top.pre, ctx, line, name: dm[1], raw: dm[2].replace(/\s+/g, '') };
-          const args = splitLightDark(dm[2]);
-          if (!args){ ldBad.push({ ...at, why: '切不出正好两个顶层参数' }); continue; }
-          if (!args.every(LD_OK_SHAPE)){
-            ldBad.push({ ...at, why: `参数不是一枚这一关读得到的色字面量（只许 #rrggbb 或 rgb()/rgba()；box-shadow / filter / gradient 这类**复合值不许塞进 light-dark()**，它只吃 <color>）` });
-            continue;
-          }
-          /* 落点：只许顶层 `:root`。写在暗表里、写在 @media / @supports 里、写在时段块里，
-             这一关就无法说清 B 那一支该归哪一档——宁可红，不许猜一档。 */
-          if (ctx !== '' || top.pre !== ':root'){ ldBad.push({ ...at, why: '落点不是顶层 :root（这一关只认"顶层 :root 里的一处两档"）' }); continue; }
-          routeColor(board, dm[1], args[0]);
-          ldPairs.push({ file, name: dm[1], line, a: args[0].replace(/\s+/g, ''), b: args[1].replace(/\s+/g, '') });
-          ldDark = ldDark || mkBoard();
-          routeColor(ldDark, dm[1], args[1]);
-        }
-      }
-      const { toks, fn } = board;
-      for (const t of body.matchAll(HEX)) if (!ldSkip.has(t[1])) toks[t[1]] = t[2].toUpperCase();
-      for (const t of body.matchAll(FN)) if (!ldSkip.has(t[1])) fn[t[1]] = t[2].replace(/\s+/g, '');
-      /* 派生色（color-mix）也算"色板令牌"：同一个键在第二份表里再声明一次就是第二处真值，
-         上面那条"一处真值"判据必须看得见它，所以它走进同一张 `fn` 表。 */
-      for (const t of body.matchAll(CMIX)) if (!ldSkip.has(t[1])) fn[t[1]] = t[2].replace(/\s+/g, '');
-      out.push({ ctx, sel: top.pre, attrs, toks, fn, line });
-      /* 暗档那一支回到它与 `html[data-theme="dark"]` 同形的键上：表里的形状与两档表写出来的
-         一模一样，所以 §2.4 的读数、完备性那 42 枚、方向光的复算全都照旧吃得动它。 */
-      if (ldDark) out.push({ ctx, sel: 'html[data-theme="dark"]', attrs: { theme: 'dark' }, toks: ldDark.toks, fn: ldDark.fn, line, fromLd: true });
+      /* 两份行号各有其主，别混：`line` 是**块体前奏的起始行**（＝上一条的 `}` 之后那一处），两条规则之间
+         夹着一大块注释时它会停在注释之前——①／①b 那族话（"哪一处令牌"）沿用的就是这一枚，本卡一个字没改；
+         `braceLine` 是那枚 `{` 自己那一行 ⇒ ①e 点名"声明在哪一行"吃这一枚（实测：`essay.css` 的
+         `.post-body em` 在 372 行，前奏起始行读到 338 行，拿 `line` 点行号就是冤枉）。 */
+      raw.push({ sel: top.pre, ctx: stack.map(s => s.pre).join(' / '), body, line: lineOf(top.start), braceLine: lineOf(top.brace) });
     }
     else if (c === ';' && !stack.length) start = i + 1;
+  }
+  return { raw, ldSeen };
+}
+/* 归并之后同一个选择器文本可以合法地出现在两份表里（各自声明自己那一层的令牌），所以键必须是
+   "上下文 + 选择器 + 令牌名"，只看选择器文本会把 `@media (max-width:720px)` 里那条当成顶层那条的副本。 */
+function allBlocks(src, file = '?'){
+  const { raw, ldSeen } = splitBlocks(src);
+  const out = [];
+  for (const { sel, ctx, body, line } of raw){
+    const attrs = {};
+    for (const a of sel.matchAll(/\[data-([a-z-]+)="([a-z0-9-]+)"\]/g)) attrs[a[1]] = a[2];
+    /* ---- 先拆 light-dark()，再让三条正则去读拆出来的两档 ---- */
+    const ldSkip = new Set(), board = mkBoard();
+    let ldDark = null;
+    if (LD_ANY.test(body)){
+      for (const decl of body.split(';')){
+        const dm = /^\s*(--[a-z0-9-]+)\s*:\s*(.*\S)\s*$/.exec(decl);
+        if (!dm || !LD_HEAD.test(dm[2])) continue;
+        ldSkip.add(dm[1]);
+        const at = { file, sel, ctx, line, name: dm[1], raw: dm[2].replace(/\s+/g, '') };
+        const args = splitLightDark(dm[2]);
+        if (!args){ ldBad.push({ ...at, why: '切不出正好两个顶层参数' }); continue; }
+        if (!args.every(LD_OK_SHAPE)){
+          ldBad.push({ ...at, why: `参数不是一枚这一关读得到的色字面量（只许 #rrggbb 或 rgb()/rgba()；box-shadow / filter / gradient 这类**复合值不许塞进 light-dark()**，它只吃 <color>）` });
+          continue;
+        }
+        /* 落点：只许顶层 `:root`。写在暗表里、写在 @media / @supports 里、写在时段块里，
+           这一关就无法说清 B 那一支该归哪一档——宁可红，不许猜一档。 */
+        if (ctx !== '' || sel !== ':root'){ ldBad.push({ ...at, why: '落点不是顶层 :root（这一关只认"顶层 :root 里的一处两档"）' }); continue; }
+        routeColor(board, dm[1], args[0]);
+        ldPairs.push({ file, name: dm[1], line, a: args[0].replace(/\s+/g, ''), b: args[1].replace(/\s+/g, '') });
+        ldDark = ldDark || mkBoard();
+        routeColor(ldDark, dm[1], args[1]);
+      }
+    }
+    const { toks, fn } = board;
+    for (const t of body.matchAll(HEX)) if (!ldSkip.has(t[1])) toks[t[1]] = t[2].toUpperCase();
+    for (const t of body.matchAll(FN)) if (!ldSkip.has(t[1])) fn[t[1]] = t[2].replace(/\s+/g, '');
+    /* 派生色（color-mix）也算"色板令牌"：同一个键在第二份表里再声明一次就是第二处真值，
+       上面那条"一处真值"判据必须看得见它，所以它走进同一张 `fn` 表。 */
+    for (const t of body.matchAll(CMIX)) if (!ldSkip.has(t[1])) fn[t[1]] = t[2].replace(/\s+/g, '');
+    out.push({ ctx, sel, attrs, toks, fn, line });
+    /* 暗档那一支回到它与 `html[data-theme="dark"]` 同形的键上：表里的形状与两档表写出来的
+       一模一样，所以 §2.4 的读数、完备性那 42 枚、方向光的复算全都照旧吃得动它。 */
+    if (ldDark) out.push({ ctx, sel: 'html[data-theme="dark"]', attrs: { theme: 'dark' }, toks: ldDark.toks, fn: ldDark.fn, line, fromLd: true });
   }
   ldRaw.set(file, (ldRaw.get(file) || 0) + ldSeen);
   return out;
@@ -594,6 +617,215 @@ let ldDrift = 0;
   console.log(`  ${ldDrift ? '✗ 这一关没过' : '✓'} 拆回两档 ${ldPairs.length} 对（A 进 :root、B 进 html[data-theme="dark"]）、` +
     `退路镜像在册 ${mirror.size} 枚、盘上 light-dark() 共 ${rawTotal} 枚 / 这一关读到 ${accounted} 枚、` +
     `needle ${needle ? '在位' : '✗ 不在位'}（登记值 ${LD_REGISTERED} 对＝§17 那句计数）`);
+}
+
+/* ---------- ①e 规则体里的裸十六进制（洞一，2026-10-03 `w2q/hexcolor` 新增，进退出码）----------
+   洞一是什么：能读色的那三条正则（`HEX` / `FN` / `CMIX`，现 :107／:114／:119，卡面记的是旧 :99／:106／:111；
+   唯一调用点现 :232-236，旧 :207-211）**全部要求 `--x:` 打头**，作用在抹注释后的块体上
+   ⇒ 规则体里的裸十六进制这一关今天一个字都读不到。
+   实测（卡面给的原始形状）：把 `essay.css` 的 `.post-body em` 改成 `color:#b3215a` ⇒
+   `node tools/palette-check.mjs` rc=0、一声不响。① 那一关管的是"令牌只许一处真值"，
+   令牌之外的裸色值是另一族缺口，这一格把它拦上。
+   判据：在 **base.css 之外**的样式表里，**规则体内**（＝抹注释后的块体，沿用现 :175 那行抹注释写法——
+   卡面记的是旧 :164——与 allBlocks 的块体切分；现在两族共用同一枚 `splitBlocks`，仓里只有一份"规则体"的定义）
+   任何**色属性**的冒号右侧出现十六进制字面量（**三位与六位都算**，`#fff`／`#b3215a`）⇒ 红，
+   红话逐处点名 `文件∶行号 ⇄ 选择器 ⇄ 属性 ⇄ 那枚值`。色属性九枚逐枚写死在册（`HEXCOLOR_PROPS`）。
+   ⚠️ 两条实现约束（卡面实测过的反例，钉死在这一格里）：
+   ① **必须在块体内数**，不许"对抹注释后的整份文本跑一条正则"。歪版本实测代价：`home.css:30` 与
+      `mistwood.css:56` 那两枚 `@supports not (color: light-dark(#fff,#000)){` 会被误伤成 **2 红**——
+      它们的 `color:` 与 `#fff/#000` 在同一段字符串里，但那不是应用声明。at-prelude 在切分那一行（现 :187，
+      卡面记旧 :176）本来就被 `continue` 剔掉，照块体口径走就自动对（本仓那份 naive 副本在 /c/tmp/ 跑得出那 2 红，见回执）。
+      ⚠️ 顺带：`MIRROR_CTX`（现 :165，卡面记旧 :157）靠 `@supports not (color: light-dark(` 那串前缀认退路镜像身份 ⇒
+      本牙不改动、也不收窄那枚前缀匹配，也不把那两行算成红（HC8 那枚反例常驻跑的就是这一维）。
+   ② **属性名不许当行首锚**：`text-emphasis-color` 与 `color`、`border-color` 与 `background-color` 互为
+      后缀，按行首锚会互相漏判或重判。这里的边界是"完整的属性名 ＋ 冒号"：先把块体按 `;`／`{`／`}` 切成
+      一条条声明（`declsOfBody`，段首只允许空白与厂商前缀这类字符，字母粘连进不来），再从段首贪婪吃下
+      整个名字——名字不在九枚在册名单里就不是那一枚属性。于是 `-webkit-mask-image` 不会被读成 `mask-image`、
+      `text-emphasis-color` 不会被读成 `color`（HC2／HC7 两枚反例各钉一头）。
+   文件集这一格当场裁过一次（卡面要求）：**五份**（base / mistwood / home / essay / notes），
+   ⚠️ **与 `ALL_SHEETS`（现 :65，卡面记旧 :57）故意不同源**——为什么不同源：`ALL_SHEETS` 是 ①「一处真值」那一族的扫描集，
+   动它会牵动 `REGISTERED = 46` / `LD_REGISTERED = 6` 那一族既有账（本卡不许碰，卡面明令）；
+   而洞一这族"规则体里的裸 hex"缺口不该因为一份旧清单没收录 `notes.css` 就长期住在一把尺子的盲区里
+   （`notes.css` 今天 0 枚 hex，扫了不改结果——不改结果正是扫它的理由，不是不扫的理由）。
+   ⇒ 本牙自己带一份五枚清单。`base.css` 在册但**不进本牙的扫描**（它的 hex 是令牌取值，归 ①／①b 那族账），
+   这一句钉的是"我们只扫非 base 表"这件事、**不是**"base 表豁免一切"——HC5 那枚形状钉用同一串 CSS、
+   两份文件名把这一条钉住（非 base 那一半必须红，base 那一半不进扫描）。
+   五条牙：① 盘上红一处就红并点名；② 扫到 0 份文件 ⇒ 红（§16"读不到被测对象的尺子从来不算绿"）；
+   ③ 实际扫到的份数与 `HEXCOLOR_SCANNED_REGISTERED` 对不上 ⇒ 红；在册九枚属性名单与登记枚数对不上 ⇒ 红；
+   ④ 扫到了文件却一枚色属性都没读到 ⇒ 红（这一格复用的是盘上 121 处真实落点，见摘要行逐枚那一串）；
+   ⑤ 九枚内置反例每次跑都吃一遍（红进 `hexDrift`），枚数与独立登记值 `HEXCOLOR_FIXTURES_REGISTERED = 9`
+      对不上 ⇒ 红；`--selftest` 再逐枚印一张表（照 ④ 牙④／牙⑤ 与 ①d 牙③ 的形状）。
+   ⚠️ 真实扫描与 fixture 吃的是**同一枚判据**（同一个 `splitBlocks`、同一个 `declsOfBody`、同一个
+      `bareHexColorRows`），而且"跳过 base.css"那句也在 `bareHexColorRows` 里面——不许在调用方另写一份过滤。
+   ⚠️ 洞二（`base.css` 之外的未登记**令牌**声明，如 `home.css:22 --firefly:#A9C4A0` 进了 table 却被现 :395
+      （卡面记旧 :358）那枚反向 orphan 判据放过——它只认 `h.file === 'base.css'`，改值永不红）
+      **本牙不许顺手修**：它要先裁一枚"分层令牌白名单"从哪儿读，那是另一张卡。
+      HC9 那枚反例钉在"令牌位不算红"上，正是为了让那一张卡动手时看得见这一族的边界在哪儿。
+   ⚠️ 已知射程边界（写在这儿，不藏在回执里）：`@keyframes` 里 `from`／`to`／`100%` 那种帧名按 allBlocks 的
+      既有口径整块丢弃 ⇒ 那一族帧里的裸 hex 本牙读不到；而 `0%,30%` 那种带逗号的帧名不在剔除名单里，会被数到。
+      这是"沿用 allBlocks 的块体切分"这条口径的既有形状，本卡不重开它。 */
+const HEXCOLOR_PROPS = ['color', 'background-color', 'border-color', 'fill', 'stroke',
+  'text-emphasis-color', 'caret-color', 'outline-color', 'text-decoration-color'];
+const HEXCOLOR_PROPS_REGISTERED = 9;   /* 三处同源的登记枚数：规范 §4 那句话 / 上面这份名单 / 这一枚字面量 */
+const HEXCOLOR_SHEETS = ['base.css', 'mistwood.css', 'home.css', 'essay.css', 'notes.css'];
+const HEXCOLOR_SCANNED_REGISTERED = 4; /* 在册 5 份 − base.css 1 份；与 HEXCOLOR_SHEETS 不同源是故意的（上面写了为什么） */
+const HEXCOLOR_FIXTURES_REGISTERED = 9; /* 独立字面量，与实跑枚数不同源就红（照 FOG_FIXTURES_REGISTERED 那一枚的口径） */
+const HEX_PROP_SET = new Set(HEXCOLOR_PROPS);
+/* 三位与六位都算：先试六位再试三位，末尾 `\b` 把非法长度挡在外面（`#0000`／`#b3215a0` 两头都撞不上边界）。
+   ⚠️ 这台机器的 ripgrep 在 CRLF 工作树上行尾 `$` 锚会静默零命中，所以这里用的也是 `\b` 不是 `$`。 */
+const HEX_LIT = /#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})\b/g;
+/* 声明段的头：段首允许空白，然后**整个**属性名吃到冒号为止（约束 ② 的边界就在这儿，不在行首锚上）；
+   `--` 打头的那一支是令牌声明（洞二那一族），本牙不吃。 */
+const DECL_HEAD = /^(\s*)([A-Za-z][A-Za-z0-9-]*|--[A-Za-z0-9-]+)(\s*:)/;
+/* 把一个块体切成一条条**本层**声明：`;` 收一条，`{` / `}` 也断开——嵌套那一归它自己的块（`splitBlocks`
+   已经把它单独发出来了），所以父子两层不会把同一条声明数两次。nameOff 是属性名在 body 里的偏移，
+   行号＝块体起始行 ＋ 到那儿的换行数（块体的第一个字符就是那个 `{`，所以这么加是准的）。 */
+function declsOfBody(body){
+  const out = [];
+  let start = 0;
+  for (let i = 0; i <= body.length; i++){
+    const c = i < body.length ? body[i] : ';';          /* 末段当一条收掉 */
+    if (c !== ';' && c !== '{' && c !== '}') continue;
+    const seg = body.slice(start, i);
+    const m = DECL_HEAD.exec(seg);
+    if (m) out.push({ name: m[2].toLowerCase(), custom: m[2].startsWith('--'), value: seg.slice(m[0].length), nameOff: start + m[1].length });
+    start = i + 1;
+  }
+  return out;
+}
+/* 声明自己的那一行＝块体那枚 `{` 的行号 ＋ 属性名之前数到的换行数（行号只有这一种算法，
+   红话、明细、HC1 那枚形状钉吃的是同一枚函数——两处各写一份就会漂移，这仓里罚过好几回）。 */
+const declLine = (b, d) => b.braceLine + b.body.slice(0, d.nameOff).split('\n').length - 1;
+/* 判据本体（**纯函数**，真实扫描与九枚内置反例吃的是同一枚）：输入一串 {file, src}，
+   输出红清单 ＋ 每枚在册色属性在盘上的落点枚数（摘要行与回执③要用"读到几处／其中裸 hex 几枚"两格）。
+   ⚠️ base.css 的剔除发生在本函数里、不在调用方——HC5 那枚形状钉吃的就是这一句。 */
+function bareHexColorRows(files){
+  const rows = [], lands = new Map();
+  let scanned = 0;
+  for (const { file, src } of files){
+    if (file === 'base.css') continue;                  /* 它的 hex 是令牌取值，归 ①／①b 那族账 */
+    scanned++;
+    for (const b of splitBlocks(src).raw) for (const d of declsOfBody(b.body)){
+      if (d.custom || !HEX_PROP_SET.has(d.name)) continue;
+      const cur = lands.get(d.name) || { n: 0, hex: 0 };
+      cur.n++;
+      for (const h of d.value.matchAll(HEX_LIT)){
+        cur.hex++;
+        rows.push({ file, line: declLine(b, d),
+          sel: b.sel, ctx: b.ctx, prop: d.name, hex: h[0], value: d.value.trim().replace(/\s+/g, ' ') });
+      }
+      lands.set(d.name, cur);
+    }
+  }
+  return { rows, lands, scanned, read: files.length };
+}
+/* 九枚常驻反例（照 FOG_FIXTURES 的形状：side 是 contra ⇒ 必须红、narrow ⇒ 不许误红；
+   跑的是 bareHexColorRows 本体，不是另写一份影子判据）。 */
+const HEXCOLOR_FIXTURES = [
+  { id: 'HC1 朝宽·.post-body em 的 color:#b3215a（洞一那一枚原始形状，必须红且点名到行）', side: 'contra',
+    /* ⚠️ 故意写成"前面还有一条规则 ＋ 一块跨行注释"的形状：这样"块体前奏起始行"（1）与
+       "声明自己那一行"（6）不是同一个数，拿错的那一枚点行号当场红（实测错过一次：
+       盘上 `essay.css` 的 `.post-body em` 在 372 行，前奏起始行读到 338 行）。 */
+    run: () => { const src = ['.post-body p{ color:var(--ink); }', '/* 注释第一行', '   注释第二行 */',
+                             '.post-body em{', '  letter-spacing:-.015em;', '  color:#b3215a;', '}'].join('\n');
+      const t = bareHexColorRows([{ file: 'fixture-essay.css', src }]);
+      const r = t.rows[0];
+      return { hit: !!r && t.rows.length === 1 && r.prop === 'color' && r.hex === '#b3215a' && r.sel === '.post-body em' && r.line === 6,
+        note: `红 ${t.rows.length} 处${r ? `｜点名 ${r.file}:${r.line} ⇄ ${r.sel} ⇄ ${r.prop} ⇄ ${r.hex}（声明在 src 的第 6 行）` : '（没点名）'}` }; } },
+  { id: 'HC2 朝宽·text-emphasis-color:#b3215a（后缀那一族不许被读成 color，也不许漏判）', side: 'contra',
+    run: () => { const t = bareHexColorRows([{ file: 'fixture-essay.css', src: '.post-body em{ color:var(--ink); text-emphasis-color:#b3215a; }' }]);
+      const r = t.rows[0];
+      return { hit: !!r && t.rows.length === 1 && r.prop === 'text-emphasis-color' && r.hex === '#b3215a',
+        note: `红 ${t.rows.length} 处｜属性 ${r ? r.prop : '∅'}（同一条里那枚 color:var(--ink) 没被牵连）` }; } },
+  { id: 'HC3 朝宽·fill:#FFF（三位＋大写，算红）', side: 'contra',
+    run: () => { const t = bareHexColorRows([{ file: 'fixture-mistwood.css', src: '.rings .ring-dot{ fill:#FFF; }' }]);
+      const r = t.rows[0];
+      return { hit: !!r && t.rows.length === 1 && r.prop === 'fill' && r.hex === '#FFF',
+        note: `红 ${t.rows.length} 处｜值 ${r ? r.hex : '∅'}（原样保留大写）` }; } },
+  { id: 'HC4 朝宽·stroke:#abc（三位＋小写，算红）', side: 'contra',
+    run: () => { const t = bareHexColorRows([{ file: 'fixture-mistwood.css', src: '.dayring{ stroke:#abc; }' }]);
+      const r = t.rows[0];
+      return { hit: !!r && t.rows.length === 1 && r.prop === 'stroke' && r.hex === '#abc',
+        note: `红 ${t.rows.length} 处｜值 ${r ? r.hex : '∅'}` }; } },
+  { id: 'HC5 朝宽·同一串 CSS × 两份文件名（非 base 必须红、base 不进本牙＝形状钉，钉"只扫非 base 表"而不是"base 豁免一切"）', side: 'contra',
+    run: () => { const css = '.x{ color:#b3215a; }';
+      const t = bareHexColorRows([{ file: 'base.css', src: css }, { file: 'fixture-mistwood.css', src: css }]);
+      return { hit: t.scanned === 1 && t.rows.length === 1 && t.rows[0].file !== 'base.css',
+        note: `读了 ${t.read} 份／扫了 ${t.scanned} 份（交付版的口径＝base.css 在册但不进扫描 ⇒ 期望 1 份）／红 ${t.rows.length} 处（期望：只有非 base 那一半红）` }; } },
+  { id: 'HC6 朝窄·color:var(--ink) 与 fill:none（盘上那 121 处落点的两种合法右值，不许误红）', side: 'narrow',
+    run: () => { const t = bareHexColorRows([{ file: 'fixture-essay.css', src: '.post-body p{ color:var(--ink); }\n.readring{ fill:none; }' }]);
+      const lands = [...t.lands.values()].reduce((s, l) => s + l.n, 0);
+      return { hit: t.rows.length > 0, note: `读到色属性 ${lands} 处（两处都读到了，不是没读到才不红）、裸 hex ${t.rows.length} 处` }; } },
+  { id: 'HC7 朝窄·mask 那一族 #000（-webkit-mask-image／mask-image 都不在九枚在册色属性里，规范 §15 认的不透明端）', side: 'narrow',
+    run: () => { const t = bareHexColorRows([{ file: 'fixture-essay.css',
+      src: '.fog-mask{\n  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.4),#000 60%);\n  mask-image:linear-gradient(180deg,#000,#0000);\n}' }]);
+      const lands = [...t.lands.values()].reduce((s, l) => s + l.n, 0);
+      return { hit: t.rows.length > 0, note: `读到色属性 ${lands} 处（mask 两枚不进九枚名册）、红 ${t.rows.length} 处；#0000 那种非法长度也不吃` }; } },
+  { id: 'HC8 朝窄·@supports not (color: light-dark(#fff,#000)){…}（条件位不是应用声明；也夹住 MIRROR_CTX 那串前缀没被本牙改动）', side: 'narrow',
+    run: () => { const src = '@supports not (color: light-dark(#fff,#000)){\n  :root{ --glass-lit:rgba(250,251,248,.86); --surface:#F7F8F5; }\n}';
+      const t = bareHexColorRows([{ file: 'fixture-mistwood.css', src }]);
+      const blocks = splitBlocks(src).raw.length;
+      return { hit: t.rows.length > 0, note: `切出 ${blocks} 个块体（at-prelude 已剔）、色属性落点 ${[...t.lands.values()].reduce((s, l) => s + l.n, 0)} 枚、红 ${t.rows.length} 处` }; } },
+  { id: 'HC9 朝窄·--firefly:#A9C4A0（令牌位＝洞二那一族，本牙不许顺手修）', side: 'narrow',
+    run: () => { const t = bareHexColorRows([{ file: 'fixture-home.css', src: 'html[data-phase="dusk"] .firefly-field{ --firefly:#A9C4A0; }' }]);
+      return { hit: t.rows.length > 0, note: `红 ${t.rows.length} 处（令牌声明不进色属性名册；洞二归另一张卡）` }; } },
+];
+let hexDrift = 0, hexFixRan = 0, hexFixFailed = 0;
+{
+  console.log('\n=== ①e 规则体里的裸十六进制（洞一：九枚色属性 ⇄ base.css 之外的五份表）===');
+  if (HEXCOLOR_PROPS.length !== HEXCOLOR_PROPS_REGISTERED || HEX_PROP_SET.size !== HEXCOLOR_PROPS.length){
+    hexDrift++;
+    console.log(`  ✗ 在册色属性名单 ${HEXCOLOR_PROPS.length} 枚（去重后 ${HEX_PROP_SET.size} 枚）、登记值 ${HEXCOLOR_PROPS_REGISTERED} 枚 —— 名单与登记值不同源（或名单里写重了名）`);
+  }
+  const hcFiles = HEXCOLOR_SHEETS.map(f => join(ROOT, 'src', 'styles', f));
+  const hcMissing = hcFiles.filter(f => !existsSync(f)).map(f => f.split(/[\\/]/).pop());
+  for (const f of hcMissing){ hexDrift++; console.log(`  ✗ 本牙在册的样式表 ${f} 读不到 —— 这一格正在对不存在的文件判绿，按 §16 判红不判跳过`); }
+  const hc = bareHexColorRows(hcFiles.filter(f => existsSync(f)).map(f => ({ file: f.split(/[\\/]/).pop(), src: readFileSync(f, 'utf8') })));
+  const hcLands = [...hc.lands.values()].reduce((s, l) => s + l.n, 0);
+  /* 牙②／牙③／牙④：三份防空转读数，各自点名，不许合并成一句"这关没过" */
+  if (!hc.scanned){
+    hexDrift++;
+    console.log(`  ✗ 本牙扫到 0 份样式表（在册 ${hcFiles.length} 份）—— 读不到被测对象的尺子从来不算绿（§16），这里判红不判跳过`);
+  } else if (hc.scanned !== HEXCOLOR_SCANNED_REGISTERED){
+    hexDrift++;
+    console.log(`  ✗ 本牙实际扫了 ${hc.scanned} 份表、登记值 ${HEXCOLOR_SCANNED_REGISTERED} 份（在册 ${HEXCOLOR_SHEETS.length} 份 − base.css）—— 文件集被人动过而这里没跟着登记（三处同源在这一格的形态）`);
+  }
+  if (hc.scanned && !hcLands){
+    hexDrift++;
+    console.log(`  ✗ 扫了 ${hc.scanned} 份表却一枚在册色属性都没读到 —— 这一格复扫的是空气（本卡 2026-10-03 复算盘上有 121 处落点；那一串是本轮读数、不是登记值），不许顶着一句"裸 hex 0 处"过关`);
+  }
+  /* 牙①：盘上红处逐枚点名（行号现算，话里四格齐全：文件∶行 ⇄ 选择器 ⇄ 属性 ⇄ 那枚值） */
+  for (const r of hc.rows){
+    hexDrift++;
+    console.log(`  ✗ ${r.file}:${r.line} ⇄ ${r.sel}${r.ctx ? `（${r.ctx}）` : ''} ⇄ ${r.prop} ⇄ ${r.hex} —— 规则体里的裸十六进制（洞一）：那一处冒号右侧读回来是 ${r.value}`);
+    console.log(`      把它改成吃在册令牌（如 ${r.prop}:var(--ink)），或把这枚色值登记进 base.css 的色板再吃 var()（①／①b 那一族账守着"一处真值"）。⚠️ mask 那一族（mask-image／-webkit-mask-image）的 #000 不在此列：它不在九枚在册色属性里，规范 §15 明文认它是渐变的不透明端。`);
+  }
+  /* 牙⑤：九枚反例常驻，任何一次跑都吃一遍；红在"反例没力气"与"朝窄误红"那两件事上，不红在盘上 */
+  const hexFixRows = [];
+  for (const fx of HEXCOLOR_FIXTURES){
+    let r = null, err = null;
+    try { r = fx.run(); } catch (e){ err = e; }
+    const ran = !!r && typeof r.hit === 'boolean';
+    const wantRed = fx.side === 'contra';
+    const good = ran && r.hit === wantRed;
+    if (good) hexFixRan++; else hexFixFailed++;
+    hexFixRows.push(`    ${good ? '✓' : '✗'} ${fx.id}（朝${wantRed ? '宽：必须红' : '窄：不许误红'}）→ ${err ? '抛了 ' + err.message : (ran ? (r.hit ? '红' : '不红') : '没跑出读数') + '｜' + (r && r.note ? r.note : '')}`);
+  }
+  if (hexFixFailed){ hexDrift += hexFixFailed; console.log(hexFixRows.filter(x => x.startsWith('    ✗')).join('\n')); }
+  if (hexFixRan + hexFixFailed !== HEXCOLOR_FIXTURES_REGISTERED || hexFixRan !== HEXCOLOR_FIXTURES_REGISTERED){
+    hexDrift++;
+    console.log(`  ✗ 反例跑了 ${hexFixRan} 枚、清单登记 ${HEXCOLOR_FIXTURES_REGISTERED} 枚（另有 ${hexFixFailed} 枚没在期望的位置红）—— id 齐不代表牙齐，删掉一枚反例这里就看得见`);
+  }
+  console.log(`  ${hexDrift ? '✗ 这一关没过' : '✓'} ①e 规则体里的裸 hex：在册 ${HEXCOLOR_SHEETS.length} 份表（${HEXCOLOR_SHEETS.join(' / ')}）· 实扫 ${hc.scanned} 份（base.css 按卡面不进本牙；与 ALL_SHEETS 故意不同源，理由在这一格的文件集那一段）· 九枚色属性在账（登记值 ${HEXCOLOR_PROPS_REGISTERED}）· 盘上落点 ${hcLands} 处 · 裸 hex 红 ${hc.rows.length} 处 · 内置反例 ${hexFixRan}/${HEXCOLOR_FIXTURES_REGISTERED} 枚各在其位`);
+  console.log('    逐枚（盘上现读落点／其中裸 hex）：' + HEXCOLOR_PROPS.map(p => { const l = hc.lands.get(p); return `${p} ${l ? l.n : 0}/${l ? l.hex : 0}`; }).join(' · '));
+  if (process.env.PALETTE_HEXCOLOR_ROWS) console.log([...hc.lands.keys()].map(p => `    ${p} 落点清单：${(hc.rows.filter(r => r.prop === p).map(r => `${r.file}:${r.line} ${r.hex}`).join(' / ') || '（本轮无裸 hex）')}`).join('\n') +
+    '\n    （落点枚数是现算的：' + HEXCOLOR_PROPS.map(p => `${p} ${hc.lands.get(p) ? hc.lands.get(p).n : 0}`).join(' / ') + '；逐条声明级明细要的话看下面这一行）' +
+    '\n    ' + hcFiles.filter(f => existsSync(f)).flatMap(f => splitBlocks(readFileSync(f, 'utf8')).raw.flatMap(b => declsOfBody(b.body).filter(d => HEX_PROP_SET.has(d.name) && !d.custom).map(d => `${f.split(/[\\/]/).pop()}:${declLine(b, d)} ${b.sel} ${d.name}:${d.value.trim().replace(/\s+/g, ' ')}`))).join('\n    '));
+  if (SELFTEST){
+    console.log('\n=== ①e 反例清单（--selftest：洞一那一族朝宽必须红、朝窄不许误红；它故意吃坏数据，所以不接进 npm run check 的默认链）===');
+    console.log(hexFixRows.join('\n'));
+    console.log(`  ${hexFixFailed ? `✗ ${hexFixFailed} 枚反例没在期望的位置红` : `✓ ${hexFixRan} 枚反例全部落在期望的一侧（登记值 ${HEXCOLOR_FIXTURES_REGISTERED} 枚）`}`);
+  }
 }
 
 /* ---------- ② 时段 / 月相块 + ③ 方向光：随时间变的色板与照度也要过闸 ---------- */
@@ -1087,9 +1319,11 @@ let fogCeilDrift = 0, fogFloorPrinted = 0;
     console.log('\n=== ④ 牙⑤ 单调上界的自证 fixture（登记上界 ' + FOG_CEILING_REGISTERED + '，与上面那 ' + FOG_FIXTURES_REGISTERED + ' 枚常驻反例分账）===');
     for (const f of fogBndFix) console.log(`    ${f.got === f.want ? '✓' : '✗'} ${f.id}（期望 ${f.want ? '判为越过/失去靶' : '判为没越过'}）→ ${f.got ? '判为越过/失去靶' : '判为没越过'}`);
     console.log(`  ${fogCeilDrift ? `✗ ${fogCeilDrift} 处牙⑤ 没过（上界本体或它的自证）` : `✓ 牙⑤ ${fogBndFix.length} 枚自证各在其位，盘上最大端点 ${fogBnd.max} 未越过登记上界 ${FOG_CEILING_REGISTERED}`}`);
-    process.exit(fogFixFailed || fogCeilDrift ? 1 : 0);
+    /* ⚠️ 这一句 exit 在最终那一行之前，所以 ①e（洞一）那九枚反例的红必须在这里也计一次，
+       否则 `--selftest` 会把 ①e 的歪判据藏成 rc=0（2026-10-03 `w2q/hexcolor` 加的这一枚）。 */
+    process.exit(fogFixFailed || fogCeilDrift || hexDrift ? 1 : 0);
   }
 }
 
-if (bad || bad2 || drift || ldDrift || useDrift || strawDrift || fogDrift || fogCeilDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）、${fogDrift} 处「雾当明暗」的牙②③④没过（某一档的在册前景读不到／扫到 0 组失去靶／盘上 --fog 端点与本格登记值不同源／反例没红在该红的位置）、${fogCeilDrift} 处「雾当明暗」的牙⑤ 单调上界没过（--fog 最大端点越过登记上界 ${FOG_CEILING_REGISTERED}＝把雾往"更浓＝更暗"那一侧推，那一族已判不可落；或这枚牙自己的四枚自证 fixture 没了行程）`); process.exit(1); }
+if (bad || bad2 || drift || ldDrift || useDrift || strawDrift || fogDrift || fogCeilDrift || hexDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）、${fogDrift} 处「雾当明暗」的牙②③④没过（某一档的在册前景读不到／扫到 0 组失去靶／盘上 --fog 端点与本格登记值不同源／反例没红在该红的位置）、${fogCeilDrift} 处「雾当明暗」的牙⑤ 单调上界没过（--fog 最大端点越过登记上界 ${FOG_CEILING_REGISTERED}＝把雾往"更浓＝更暗"那一侧推，那一族已判不可落；或这枚牙自己的四枚自证 fixture 没了行程）、${hexDrift} 处「①e 规则体里的裸十六进制」（洞一）没过（非 base 表里九枚色属性写了裸 hex／本牙扫到 0 份表／扫到的份数或读到落点数与登记值不同源／那 ${HEXCOLOR_FIXTURES_REGISTERED} 枚内置反例没落在期望的一侧）`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');
