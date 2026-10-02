@@ -126,7 +126,11 @@ const textOf = s => norm(htmlUn(stripTags(s)));
 const stripComments = s => String(s).replace(/<!--[\s\S]*?-->/g, ' ');
 const TAGS = ['p', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'footer', 'em', 'strong',
               'pre', 'code', 'a', 'img', 'figure', 'figcaption', 'hr',
-              'sup', 'section', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
+              'sup', 'section', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+              /* 双语注那一族（四轮 §2-1）：这三枚必须进直方图，否则 ③ 那一格对"feed 把 ruby 拆了壳"是**瞎的**——
+                 拆壳只丢外壳、字全留，去壳文字因此两侧仍相等，唯一读得出这件事的就是枚数。
+                 登记值：`src/lib/feed.js` 的 ALLOW 25 枚（含这一族三枚＝25 ⇄ 这一串 25 枚，两处等值）→ 见 ③ 那格打印。 */
+              'ruby', 'rt', 'rp'];
 const histOf = frag => TAGS.map(t => [t, (frag.match(new RegExp(`<${t}(?=[\\s/>])`, 'g')) || []).length]);
 const histDiff = (a, b) => {
   const x = Object.fromEntries(a), y = Object.fromEntries(b);

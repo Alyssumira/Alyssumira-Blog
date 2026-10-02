@@ -385,3 +385,86 @@ console.log(htmlT.replace(/></g, '>\n<'));
   console.log('\nmarkdown 6 OK  prefix-into-产物：figure+link+html-rule / middle-不动 / 贪剥被拒 / cover 同源');
 }
 
+/* ---- 第七轮 §2-1：`{底|注}` 双语注（真 `<ruby>`，中文为底、拉丁为注）----
+   封闭清单从 14 枚变 **15 枚**的那一位（文件头那三行是账）。这一族的格子按仓里的老规矩摆：
+   正例必须出得了**真 `<rt>`**（不是"字还在"），五判反例必须按字面留在纸上，而且**不许吞掉整段**——
+   最后那一判是这张卡最容易假绿的一格：一枚贪婪或漏了字符类边界的正则，会让"看着全绿"与"段落塌了"
+   同时成立。每一判都配一条独立断言，朝宽（把边界放松）与朝窄（把合法写法拒了）各扭过一次，读数在回执里。 */
+{
+  const SHELL = (b, g) => `<ruby>${b}<rp>(</rp><rt>${g}</rt><rp>)</rp></ruby>`;
+  /* ① 正例：真壳、真注、真 rp，顺序就是 HTML 为兜底标点签的那一串 */
+  assert.equal(inlineMd('{雾退|lifting}'), SHELL('雾退', 'lifting'), '正例出得了 <ruby>…<rt>lifting</rt>…</ruby>');
+  assert.ok(inlineMd('{雾退|lifting}').includes('<rt>lifting</rt>'), '注落在 <rt> 里，不是行内的一串括号字面');
+  assert.equal(inlineMd('看{雾退|lifting}，听{苔生|growing}。'),
+               '看' + SHELL('雾退', 'lifting') + '，听' + SHELL('苔生', 'growing') + '。', '同一句里两枚注各自成形，互不吃对方');
+  assert.equal(inlineMd('*斜{雾退|lifting}*'), '<em>斜' + SHELL('雾退', 'lifting') + '</em>', 'em 里套注：外层斜体照常，壳里壳外互不干涉');
+  assert.equal(inlineMd('`{c|d}`'), '<code>{c|d}</code>', '反引号那一族走在最前：code 里的注语法按字面（§15 老规矩）');
+  /* 段落级：壳落在 <p> 里，前后文字不塌 */
+  const hr7 = renderMd('清晨的林子{雾退|lifting}像一张没洗干净的玻璃。\n\n第二段没有注。');
+  assert.ok(/^<p>清晨的林子<ruby>雾退<rp>\(<\/rp><rt>lifting<\/rt><rp>\)<\/rp><\/ruby>像一张没洗干净的玻璃。<\/p>/.test(hr7), '段落里壳在位，两侧的字都还在');
+  assert.ok(/<p>第二段没有注。<\/p>/.test(hr7), '后一段不牵动');
+  /* 标题：目录那一份吃的就是这枚渲染结果的去壳 ⇒ 底与注都在，rp 的括号是字 */
+  const ha7 = renderArticle('## 起雾{雾退|lifting}\n');
+  assert.ok(/<h2 id="起雾-雾退-lifting">/.test(ha7.html), '标题里的注：id 走原文规范化（safe 把花括号与竖线换成连字符，标记名一枚不进地址）');
+  assert.deepEqual(ha7.heads.map(h => h.text), ['起雾雾退(lifting)'], '目录那一行的字 = 渲染去壳 = 屏上的读法（底带着括号注）');
+
+  /* ② 判①注为空 ⇒ 只有底、无壳：不许出现半截壳，也不许出现空 <rt> */
+  assert.equal(inlineMd('{雾退|}'), '雾退', '注为空 ⇒ 只有底、无 ruby 壳（blankSlot 那一族口径）');
+  assert.equal(inlineMd('{雾退| }'), '雾退', '注只有空白同上：trim 之后为空就是没有');
+  assert.ok(!/<ruby|<rt|<rp/.test(inlineMd('{雾退|}')), '退到底时三枚壳一枚都不许发（半截壳就是纸上多出来的一团空气）');
+
+  /* ③ 判②底为空 ⇒ 整枚按字面，连花括号一起留在纸上 */
+  assert.equal(inlineMd('{|x}'), '{|x}', '底为空 ⇒ 不匹配、按字面');
+  assert.equal(inlineMd('{ |x }'), '{ |x }', '底只有空白同上');
+
+  /* ④ 判③未闭合 ⇒ 按字面，且**不吞后文**：这是本卡最硬的一格（先例：引用署名那枚 [—-]{1,2}） */
+  assert.equal(inlineMd('{a|b'), '{a|b', '缺右括号 ⇒ 原样交回，一枚字符都不少');
+  assert.equal(inlineMd('这里 {a|b 没闭合，后面照常。'), '这里 {a|b 没闭合，后面照常。', '未闭合不吞后半句');
+  const hu7 = renderMd('第一段 {x|y 没闭合。\n\n第二段 {a|b} 闭合了。\n\n第三段还在。');
+  assert.equal((hu7.match(/<p>/g) || []).length, 3, '一枚未闭合的花括号不许把三段塌成一段');
+  assert.ok(hu7.includes('<p>第一段 {x|y 没闭合。</p>'), '未闭合那一枚按字面留在它自己的段落里');
+  assert.ok(hu7.includes(SHELL('a', 'b')), '后面那一段的合法写法照旧成形（未被前一枚坏记号吃掉）');
+  assert.equal((hu7.match(/<ruby/g) || []).length, 1, '整篇只有一枚壳：未闭合那一枚没长成半截壳');
+
+  /* ⑤ 判④注里带竖线 ⇒ 三段形状不算注音，整枚按字面（不是"取前两段吞掉第三段"） */
+  assert.equal(inlineMd('{a|b|c}'), '{a|b|c}', '两半的字符类都排除竖线 ⇒ 匹配不成立，而不是吞尾');
+  assert.equal(inlineMd('写 {雾退|lift|ing} 在这里'), '写 {雾退|lift|ing} 在这里', '三段形状带上下文也整枚留字面');
+
+  /* ⑥ 判⑤注里带换行 ⇒ 按字面（inlineMd 被单独调用时吃的可能是多行原句：碎碎念、首页那一条） */
+  assert.equal(inlineMd('第一行 {a|b\nc} 第二行'), '第一行 {a|b\nc} 第二行', '字符类排除换行 ⇒ 不与下一行配对');
+  assert.equal(inlineMd('第一行 {a\n|b} 第二行'), '第一行 {a\n|b} 第二行', '底里带换行同上');
+
+  /* ⑦ 嵌套裁决「注不进排印容器」：花括号之内两半都不再走行内构造 */
+  assert.equal(inlineMd('{a**b**|c}'), SHELL('a**b**', 'c'), '底里的 ** 按字面：底是被注音的那几个字，不是容器');
+  assert.equal(inlineMd('{a|**b**}'), SHELL('a', '**b**'), '注里的 ** 按字面：注是注音，不是又一层排印宿主');
+  assert.ok(!/<sup|fn-missing/.test(inlineMd('{a|[^b]}')), '注里的 [^b] 不长成脚注引用（读的是壳里字面，编号那本账也不动）');
+  assert.ok(!/<span class="sidenote/.test(inlineMd('{a|^[b]}')), '注里的 ^[b] 不长成边注');
+  assert.equal(inlineMd('{a|`b`}'), '{a|<code>b</code>}', '反引号那一族仍然优先（它走在摘出占位那一步）：整枚注因此不成立');
+
+  /* ⑧ 手记那一层（`notes.astro`／首页那一条直接调 inlineMd）同样出得了真壳——封闭清单是一枚构造，不是详情页专属 */
+  assert.equal(inlineMd('巡逻到{雾退|lifting}那一行'), '巡逻到' + SHELL('雾退', 'lifting') + '那一行', 'inlineMd 单独调用时也发壳（allowRefs 那一步与它无关）');
+
+  /* ⑧b 表格那一格里的注：竖线的主人是**块级**那条分格规则（它走在行内之前），所以要写 `\|`。
+          这不是这一族新造的坑——同一格里的裸竖线今天已经归表格管（第三列被丢掉那一条钉在第四轮）。 */
+  assert.ok(renderMd('| a | b |\n| --- | --- |\n| 雾 | {雾退\\|lifting} |').includes(SHELL('雾退', 'lifting')), '格子里写 \\| ⇒ 注照样出壳（splitRow 先把转义还原成一根竖线）');
+  const ht7 = renderMd('| a | b |\n| --- | --- |\n| 雾 | {雾退|lifting} |');
+  assert.ok(!/<ruby/.test(ht7), '裸竖线那一枚注不成立：块级分格走在行内之前');
+  assert.ok(ht7.includes('<td>{雾退</td>'), '不成立时字留在自己那一格里，没有整块消失');
+
+  /* ⑨ 残余那一格（markdown.js 的注释里点名登记过）：注语法写进链接地址时壳会落进 href 的值。
+        它逃不出属性——三枚壳零属性、字面里没有引号，而 esc() 走在最前。这一格钉的就是"逃不出"这一句。 */
+  const hl7 = renderMd('[文字](/a{x|y}) 与 [另一](https://example.com/{p|q})');
+  assert.equal((hl7.match(/<a /g) || []).length, 2, '两枚链接还是两枚 <a>：注语法不新造元素，坏形状也只落在地址的值里');
+  assert.equal((hl7.match(/"/g) || []).length % 2, 0, '带注语法的链接产物引号成对 ⇒ 没有东西逃出属性值');
+  /* 逃出属性才是事故，长成一枚元素才是更大的事故：把每个带引号的属性值挖空之后，剩下的必须是干净散文 */
+  assert.ok(!/<ruby|<rt|<rp/.test(hl7.replace(/"[^"]*"/g, '""')), '把属性值挖空之后产物里没有一壳 ⇒ 壳只活在 href 的字面值里（登记在册的残余，与 code 占位符同一条路）');
+  assert.ok(!/ onerror| onload| onmouse/.test(hl7), '注语法落在地址里也不制造事件名：那一串壳只是值里的字，不是第二枚属性');
+
+  /* ⑩ 全局不变式：既有六轮那些 fixture 里一枚花括号都没有 ⇒ 新构造对旧形状必须是**零牵动**——
+        钉"没长出新东西"，而不是钉"我数了一遍还是那个数"（后者由上面第一轮那一格自己管着）。 */
+  assert.equal((auditHeadAnchors(html, '第七轮·第一轮').match(/<a /g) || []).length, 5, '第一轮的 <a> 计数一枚没动（含标题锚那两枚的摘除口径）');
+  assert.ok(!/<ruby|<rt|<rp/.test(html + h2 + h3 + htmlF + htmlT), '既有五串 fixture 的产物里没有一壳：新正则不吃旧写法');
+  assert.equal((auditHeadAnchors(ha7.html, '第七轮·标题里那枚壳').match(/<a /g) || []).length, 0, '标题里的注没顺手多长出一枚 <a>（结构锚仍只有那一枚）');
+  console.log('\nmarkdown 7 OK  ruby-positive + blank-gloss-no-shell + empty-base-literal + unclosed-no-swallow + pipe-in-gloss + newline-in-gloss + no-inline-inside-ruby + code-priority + table-cell-escaped-pipe + href-escape-contained');
+}
+
