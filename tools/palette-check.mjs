@@ -17,7 +17,11 @@
       在两份表里都出现**且取值不同**才红"——归并做完的那一刻两份表的交集掉到 0，它会照样打印
       `✓ … 0 个 … 取值一致` 并 exit 0，正是上面那句点名的形状。所以先加防空转闸，再把判据换成
       归并之后该说的话：**色板令牌只许有一处真值（base.css），同名键出现在第二份表里就红**，
-      外加一条"§2 那批基础令牌必须确实在 base.css 里"的完备性——两个方向都不许它空转。 */
+      外加一条"§2 那批基础令牌必须确实在 base.css 里"的完备性——两个方向都不许它空转。
+   ⚠️ 2026-10-02（二轮 §7.2 落款那一卡）加第五件：**①d 枯草金配额**——`--straw` 的"每屏 ≤2 / 唯一当主角的
+      时段是傍晚"这两句从前是**纯人工账**（一轮 A2 年标记号算过一次、本卡又算一次，两份账都没上盘）。
+      这一关把可静态核的那一半搬上机器：在册消费者**枚数**与登记值对账（多一枚红、少到 0 也红），
+      并且每一枚都必须带「data-phase="dusk"」＋「data-theme="light"」双闸。口径与三枚 fixture 在 ①d 那一格。 */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -408,6 +412,82 @@ let useDrift = 0;
   if (process.env.PALETTE_CONSUMER_ROWS) console.log(rows.join('\n'));
 }
 
+/* ---------- ①d 枯草金那笔配额：从"每次落形人工算一遍"改成盘上有牙（二轮 §7.2 的判词落尺） ----------
+   为什么会多这一关：§2:96「枯草金，每屏至多 2 次；唯一当主角的时段是傍晚」与 §12:2182「❌ 每屏超过 2 处枯草金
+   （傍晚时段除外）」这两句，到今天为止**没有任何一把尺读得到**——①c 那一关数的是"这枚令牌有没有消费者"，
+   不是"一屏几枚"。于是配额一直是人工账：一轮 A2（年标记号）与人手算过一遍（规范 §13b 那一格：3 > 2 ⇒ 判不进），
+   本卡（二轮 §7.2 落款）又要算一遍（详情页 1 枚 ⇒ 枚数那一维过，倒在"傍晚"那一维上）。
+   两笔账算的是同一枚令牌、用的却是两份没上盘的心算 ⇒ 这一格把**可静态核的那一半**搬上机器：
+     牙① 枚数对账——四份样式表里 `var(--straw)` 的消费者枚数必须等于 `STRAW_CONSUMERS_REGISTERED`（现值 1）。
+          多一枚＝红（"又添一处枯草金"当天就要重新算每屏枚数，这一格把它拦成一次显式的改登记值），
+          少到 0＝也红（配额尺子读不到对象就是空转；那枚令牌该按 ①c 的"零载体不许长期在场"撤掉，不是留着一句空判据）。
+     牙② 闸门对账——**每一处**消费者的选择器必须同时带 `data-phase="dusk"` 与 `data-theme="light"`。
+          这一条把 §2:96 那半句"唯一当主角的时段是傍晚"变成可执行形状：§2.3:235 写的落地方式是
+          「Hero 斜体词换成 --straw，本屏 2 处配额里只用 1 处」，而盘上唯一在册的那处消费者正是这么gate的；
+          任何"全天常亮"的枯草金都是在把傍晚之外的屏也变成它当主角，本卡判 §7.2 落款就是判在这一维上。
+     牙③ 防空转（两侧格子常驻，不必改 src 就能验量具）：三枚内置 fixture——带双闸的那条必须数出 1 枚且判合格、
+          不带闸的那条必须判不合格、只有傍晚一道闸的那条也必须判不合格；再加一条 `var(--moss)` 的负控制必须数出 0 枚
+          （防"选择器扫到了但声明没数"那一族假绿）。
+   ⚠️ 这一格管不到"同一枚元素上写两次 `var(--straw)`"算几处的语义，也管不到运行时由 JS 改色的那一种（站内今天没有）；
+      它管的是**静态在册消费者的枚数与它们的闸门**——这是"每屏 ≤2"在源码这一侧唯一读得到的形状。 */
+const STRAW_CONSUMERS_REGISTERED = 1;
+let strawDrift = 0;
+{
+  const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
+  /* 逐字符扫：{ 之前那串压进栈当"当前选择器"，; 或 } 收一条声明——声明里出现 var(--straw 就归给当前选择器 */
+  function strawDecls(css){
+    const out = [];
+    const stack = [];
+    let buf = '';
+    const flush = () => {
+      if (/var\(--straw[,)]/.test(buf)){
+        const sel = stack[stack.length - 1] || '(读不到选择器)';
+        const n = (buf.match(/var\(--straw[,)]/g) || []).length;
+        for (let k = 0; k < n; k++) out.push(sel);
+      }
+      buf = '';
+    };
+    for (let i = 0; i < css.length; i++){
+      const c = css[i];
+      if (c === '{'){ stack.push(buf.trim()); buf = ''; }
+      else if (c === '}'){ flush(); stack.pop(); buf = ''; }
+      else if (c === ';'){ flush(); }
+      else buf += c;
+    }
+    return out;
+  }
+  const DUSK = /data-phase\s*=\s*["']?dusk\b/i, LIGHT = /data-theme\s*=\s*["']?light\b/i;
+  const gated = sel => DUSK.test(sel) && LIGHT.test(sel);
+  const files = ALL_SHEETS.filter(f => existsSync(f));
+  const found = files.flatMap(f => strawDecls(strip(readFileSync(f, 'utf8'))).map(sel => ({ file: f.split(/[\\/]/).pop(), sel })));
+  /* 牙③：三枚 fixture 先自证量具有行程——判不进这一格的数（0 枚）与合格那一档的数（1 枚）都得读得出来 */
+  {
+    const ok = 'html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); }';
+    const noGate = '.post-sign-mark{ color:var(--straw); }';
+    const duskOnly = 'html[data-phase="dusk"] .post-sign-mark{ color:var(--straw); }';
+    const none = '.post-body p{ color:var(--moss); }';
+    const pairs = strawDecls(ok), misses = strawDecls(noGate), half = strawDecls(duskOnly), ctrl = strawDecls(none);
+    const two = strawDecls(ok + noGate);
+    if (pairs.length !== 1 || !gated(pairs[0])) strawDrift++;
+    if (misses.length !== 1 || gated(misses[0])) strawDrift++;
+    if (half.length !== 1 || gated(half[0])) strawDrift++;
+    if (ctrl.length !== 0) strawDrift++;
+    if (two.length !== 2) strawDrift++;
+  }
+  /* 牙①：枚数与登记值对账（0 枚也红——那把尺没东西可量就不许挂着"配额有人算"这句绿） */
+  if (found.length !== STRAW_CONSUMERS_REGISTERED){
+    strawDrift++;
+    console.log(`  ✗ 盘上「var(--straw)」消费者 ${found.length} 枚、登记值 ${STRAW_CONSUMERS_REGISTERED} 枚 —— 枯草金的"每屏 ≤2"又要人工算了；添载体那天请连这一枚字面量与规范 §2:96／§12 那两行一起改，别只改样式表`);
+  }
+  /* 牙②：每一枚都必须带"傍晚 + 亮档"那道闸 */
+  for (const f of found) if (!gated(f.sel)){
+    strawDrift++;
+    console.log(`  ✗ ${f.file} 的「${f.sel}」消费了 --straw 却没有「data-phase="dusk"」与「data-theme="light"」双闸 —— §2:96 那句"唯一当主角的时段是傍晚"在这一处失效了（它会在四个时段都亮）`);
+  }
+  console.log('\n=== 枯草金配额（①d：在册消费者枚数 + 每一枚的傍晚双闸）===');
+  console.log(`  ${strawDrift ? '✗ 这一关没过' : '✓'} 扫了 ${files.length} 份样式表：--straw 消费者 ${found.length} 枚（登记值 ${STRAW_CONSUMERS_REGISTERED}），双闸在位 ${found.filter(f => gated(f.sel)).length} 枚${found.length ? '：' + found.map(f => `${f.file} 「${f.sel}」`).join(' / ') : ''}；三枚 fixture（双闸合格／无闸／只有傍晚）与一枚 var(--moss) 负控制各按其位`);
+}
+
 /* ---------- ①b 成对声明（`light-dark()` 一处写两档）与它的退路镜像 ----------
    这一关存在的唯一理由：第 0 问实测过，`light-dark()` 的第二参数在本仓的四把尺子里**原理性失明**
    （坏值写进暗档：palette / gap / media / phase 全 exit 0）。把两档并到一行之前，先让这一关读得到两档。
@@ -603,5 +683,5 @@ console.log(`  两层光（方向光 + 正文脚下地面光）复算 ${groundCh
   `${groundChecked < litChecked ? `少于方向光的 ${litChecked} 档＝有档位被第二层漏掉了` : '与方向光同档数＝两盏灯跑的是同一批档'}）`);
 if (!bad2 && !drift) console.log('\n✓ 条件块达标：时段、月相、方向光与两层光的合成都没有把任何一档推下它的地板');
 
-if (bad || bad2 || drift || ldDrift || useDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）`); process.exit(1); }
+if (bad || bad2 || drift || ldDrift || useDrift || strawDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');
