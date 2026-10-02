@@ -69,6 +69,26 @@ export const fonts = [
   { name: 'IBM Plex Mono', q: 'IBM+Plex+Mono:ital,wght@0,400;0,500;1,400', self: true },
 ];
 
+/* 一轮 §H2「这个站是怎么做的」那两枚事实（2026-10-02 `v5b/heads`）。
+   ⚠️ **落点为什么在这份文件里，而不是关于页模板的那句话里**：这一仓只交模板（作者定），而"这个站跑在什么上"
+   是**部署侧事实**——它会随上线路径改（`docs/部署与复现.md` §3 的现在时：生产部署只剩 Cloudflare Pages 一条，
+   Vercel 那枚已于 2026-10-01 删除）。把它抄进 `src/pages/about.astro` 的一句中文里，就是给同一件事立第二处真值，
+   正是 `AUTHOR`／`EMAIL` 那两格点名的"抄的那份改了没人知道"那一族。今天它只有关于页一个消费者（§13a 一处真值）。
+   ⚠️ **只写盘上撑得住的话**，出处逐枚钉着：
+   · `BUILD_TOOL` ← `package.json` 的 devDependencies（`astro` ^7.3.5）与 `astro.config.mjs`：产物是构建期
+     prerender 出来的静态文件（`dist/`，`@astrojs/sitemap` 跟着写清单）。
+   · `HOSTING` ← `docs/部署与复现.md` §3 那句现在时 ＋ `astro.config.mjs:34` 那枚 `PLATFORM` 判定。
+     ⚠️ 那枚判定里也写着同一个字面量，可它回答的是"这次构建是不是生产"（守卫判据），这一枚回答的是"站住在哪儿"
+     （对读者的一句话）——**两件事、两处字面**，这一笔账登记在规范 §13a。真要把它们折成一处，就得让
+     `astro.config.mjs` import 这份文件，而那会把构建期守卫拴在 `FONT_HOST` 那枚 env 的 throw 路径上
+     （守卫的本分是"读不到就 fail-closed"，不该被一枚字体镜像带着红）。下一轮收编时再折，别在这里先抄第二遍。
+   · **现役域名不进这里**：绝对地址的唯一出处是 `astro.config.mjs` 的 `SITE`（§16 那枚开关），关于页也不印域名。
+   · **那句"没有第三方脚本"不在这里**：它不是一枚会随上线路径改的事实，而是对产物的一次陈述——判据是交付前
+     拿 `dist/` 全部文本产物做一次 `<script>`／`src=` 普查（口径与读数见规范 §15 那一格）。把它铸成一枚常量，
+     等于给一句需要每次重新证一次的话立一个可以自说自话的抄本。 */
+export const BUILD_TOOL = 'Astro';
+export const HOSTING = 'Cloudflare Pages';
+
 /* 默认封面（作者 2026-10-01 晚：「把这张作为小东西和文章的默认封面，如果没有封面就默认使用这张」）。
    母图是他给的那张 1672×940 的 PNG（`晨雾松林中的 Mistwood.png`，2,265,682B，画面正中带 Mistwood 字样），
    **母图不进 `public/`**：那一层原样拷进产物，一枚没人引用的 2.27MB 就是白 ship。站上这枚是它的派生——

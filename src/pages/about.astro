@@ -13,7 +13,12 @@ import { intrinsicProps } from '../lib/image-dims.js';
    ⚠️ 说明写在 `---` 里而不是模板里：Astro 把 HTML 注释原样落进产物（`src/layouts/Layout.astro:21` 点过名）。 */
 import { visiblePosts } from '../lib/posts.js';
 import { allNotes } from '../lib/personal.js';
-import { fonts, BIRTH_DATE, EMAIL } from '../data/site.js';
+import { fonts, BIRTH_DATE, EMAIL, BUILD_TOOL, HOSTING } from '../data/site.js';
+/* 一轮 §H2「这个站是怎么做的」（2026-10-02 `v5b/heads`）：这一页的「站点档案」从小字扩成一小节——
+   字体（自托管）· 框架 · 上线 · 脚本那四格。两枚**部署侧事实**（`BUILD_TOOL`／`HOSTING`）不住在这一页，
+   它们住在 `src/data/site.js`（一处声明、模板只消费，与 `AUTHOR`／`EMAIL` 同一族），理由写在那份文件那一格里；
+   这里只把它们拼进句子。⚠️ 这一节一枚**拿不到的数字**都不许多写：能上屏的数全部由构建期从仓库里数出来
+   （`siteFacts()` 那一把尺），字体那一格吃的是 `fonts` 那份清单本身，不另数一遍。 */
 /* 一生格子（`card/lifegrid`）：吃 `src/lib/lifegrid.js` 那三枚纯函数——与 `tools/lifegrid-check.mjs`
    同一份实现（接法照 taxonomy.js：页面与门禁两处说了算的那种分叉，§16 记过）。 */
 import { parseBirth, lifeField, lifeFieldHtml } from '../lib/lifegrid.js';
@@ -141,7 +146,25 @@ const walk = notes[0];
           </div>
           <div>
             <dt>字体</dt>
-            <dd>{fontNames}</dd>
+            <dd>{fontNames} · 都在站内，中文按这个站用过的字切过</dd>
+          </div>
+          {/* 一轮 §H2 添的三格（2026-10-02 `v5b/heads`）：语气照上面那几格的形状——一句事实、一个限定，
+              不吆喝、不解释自己。⚠️ 两枚拉丁名吃 `src/data/site.js` 的那两份声明，这里不许抄第二份；
+              「脚本」那一格是这一节唯一一句**需要每次重新证一次**的话（判据＝交付前对 `dist/` 全部文本产物
+              做一次 `<script>`／`src=` 普查，口径与读数在规范 §15 那一格），所以它写成句子而不是写成一枚常量——
+              铸成常量就等于让下一轮不必再扫一遍也能自说自话。
+              ⚠️ 这一段走花括号那种不进产物的写法（`<!-- -->` 那种会原样烘进 `dist/`，字体子集那把尺就多读码点）。 */}
+          <div>
+            <dt>框架</dt>
+            <dd>{BUILD_TOOL}，构建期把每一页写成静态文件</dd>
+          </div>
+          <div>
+            <dt>上线</dt>
+            <dd>{HOSTING}，只发文件，没有服务端</dd>
+          </div>
+          <div>
+            <dt>脚本</dt>
+            <dd>没有第三方脚本，页面上跑的都是站内自己那几份</dd>
           </div>
           {tended ? (
             <div>
