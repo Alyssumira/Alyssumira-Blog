@@ -121,12 +121,23 @@ import { phaseAt, tableBounds } from '../lib/phase.js';
   let tlx = 0, tly = 0, lx = 0, ly = 0, lanternOn = false, everLit = false, idleT = 0;
   let lastX = 0, lastY = 0, lastT = 0;
   const IDLE_MS = 700;                       /* 手停了 0.7s，灯就该熄（§8.5） */
+  /* 光柱的呼吸（二轮 §7.1）：读的是 `tx`（下面那行 mousemove 已经算好的水平位置，-1..1），
+     不新读一次坐标、不新增监听、不新增环——它跟在下面那个 rAF 里 `lanternOn` 那一块，一次乘加一次写。
+     BREATH 是提案那格给的幅度（相对 ±4%）；BREATH_K 是**每帧**的插值系数，
+     "2–3s" 不是写在盘上的一枚时长，而是 帧数×系数 的等效时间常数（读数在规范 §8.5 与 §5.1 那两格）。
+     熄灯时把它一次性写回 1：静止态必须逐字等于 §5.1 那 12 枚字面量，不留一处偏掉的余值。 */
+  const BREATH = .04, BREATH_K = .017;
+  let bs = 1;
   const inRange = el => !!(el && el.closest && el.closest('.nav a,.nav button,.hero a,.hero button'));
 
   function blowOut(){
     if (!lanternOn) return;
     lanternOn = false;
     scene.classList.remove('lantern-on');    /* --hole 回到 1：雾合上，rim/glow 同时淡掉 */
+    /* 呼吸也一并交回初值：环只跟着亮着的灯跑，所以这里不写就永远停在被搅动的那一档上（§7.1）。
+       落回的过程由 `home.css` 那条已有的 `transition:opacity .8s` 淡着走，没为它新立时长。 */
+    bs = 1;
+    scene.style.setProperty('--shaft-breath', '1');
     setNavLit(false);
   }
   /* 灯照到导航那一段玻璃时，玻璃稍微变实一点——一枚灯、两种被照到的材质（§8.5 的"拨雾"并到这里）。
@@ -145,6 +156,7 @@ import { phaseAt, tableBounds } from '../lib/phase.js';
   function put(){
     scene.style.setProperty('--lx', lx.toFixed(1) + 'px');
     scene.style.setProperty('--ly', ly.toFixed(1) + 'px');
+    scene.style.setProperty('--shaft-breath', bs.toFixed(4));   /* 第三枚写在同一处、同一个帧里（§7.1） */
     setNavLit(nearNav(lx, ly));
   }
   function light(x, y, snap, hold){
@@ -182,6 +194,7 @@ import { phaseAt, tableBounds } from '../lib/phase.js';
       }
       if (lanternOn){
         lx += (tlx - lx) * .06;  ly += (tly - ly) * .06;   /* 灯总比手慢半拍 */
+        bs += (1 + tx * BREATH - bs) * BREATH_K;          /* 光柱比灯还慢一档：跟的不是手，是慢跟随（§7.1） */
         put();
       }
       requestAnimationFrame(loop);
