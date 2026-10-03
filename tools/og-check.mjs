@@ -48,6 +48,14 @@
    ⚠️ 变异与还原的跑法：这一族的扭动全部在一份**仓库副本**（sim 树，浏览器换成桩）里做，真工作树一个字节不动——
       因为要扭的对象里有 `public/og/*.png` 与稿件这些**已提交的 tracked 文件**，而 §16 那条"还原只走 `git checkout --`"
       在未提交态会连自己的活一起吞掉（本轮规矩：只走 cp 备份＋当场 sha256 复算）。
+   ⚠️ ④ 那一格在 2026-10-03 崩过一次（本轮这张卡修的就是它，读数登记在下面 ④ 那一格的文件头里）：清单里有一条的稿子转了
+      草稿 ⇒ `liveBySlug.get(s)` 是 undefined，而那一句的 `.title` 写在 **assert 的消息参数**上（消息是实参，assert 还没
+      看见第一个参数就先求值）⇒ 当场抛 `Cannot read properties of undefined (reading 'title')`，被 `cell()` 包装器打成
+      一条看着像结论的话，而那一格**剩余条目的对账一枚都没跑**。⇒ ④ 的判据本体现在是一条"先分流、再比题面"的纯函数
+      （`ogTitleAudit`）：逐枚点名、格内一枚 assert 都不留（末尾那道汇总除外，形状照 ③），自己印覆盖面（"检查了 N 条清单
+      条目"，N 现算，与清单条数不等即红），并吃八枚常驻反例（`OG_TITLE_FIXTURES`，枚数落在 `OG_TITLE_FIXTURES_REGISTERED`
+      这一枚独立登记字面量上，不同源就红）。**红照登、只修崩溃**：孤儿／题面漂移／有卡没清单条目／needle 换靶／空转
+      五族一枚没放宽，needle 那枚写死的 `forest-blog` 也原样留在原处（换靶归作者裁——§5 登记过的写死样例地雷）。
 
    ── 口径：哪几篇该有卡 ────────────────────────────────────────────────────────
    **只滤草稿**，含不列入的（`unlisted: true`）。这不是偷懒，是与站上同一份读法：
@@ -244,23 +252,156 @@ cell('③', 'public/og/ 里每一枚都对应一篇已发布稿（多一张也�
   return cardside.cards.size + cardside.odd.length + 2;
 });
 
-/* ④ 内容层·题面：清单记的那一句必须逐字符等于当前 front matter 的 title */
+/* ---------- ④ 的判据本体（**纯函数**：盘上真实读数与下面那八枚内置反例吃的是同一枚，不许各写一份影子判据）
+   输入「清单 cards ⇄ 清单 keys ⇄ 稿子侧 live（slug → {title}）⇄ needle」，输出逐枚点名完的红清单与覆盖面读数。
+   ⚠️ 这一格的本体是一条**分流**，不是一串 assert：清单里那一条在稿子侧没有对应活稿（转草稿或删了）⇒ 点名
+      "稿子侧没有它、清单也要跟着收手"并 continue；**有**活稿 ⇒ 才去比题面。为什么必须先分流、且格内一枚 assert
+      都不许留：`live.get(s)` 读不到就是 undefined，任何顺手 `.title` 的写法当场抛 TypeError，被 `cell()` 包装器收成
+      一条「Cannot read properties of undefined (reading 'title')」——那一格剩余的条目**一枚都不再检查**，打印只留下一句
+      看着像结论的话。更阴的一处在旧 ④ 的 needle 那一句上：`.title` 写在 **assert 的消息参数**里，而消息是实参，
+      assert 还没看见第一个参数就先求值 ⇒ 判据本身短路也照样抛（2026-10-03 在 main 上撞到的正是这一枚：needle
+      「forest-blog」转草稿 ⇒ ④ 崩在 needle 那一句上，三条孤儿点名之后的全部账目一起没了，屏上只留一句栈消息）。
+   ⚠️ 红一律进 `rows`、由调用方并入 `problems`；判据一枚不放宽：孤儿／题面漂移／有卡没清单条目／needle 换靶／空转
+      这五族各在，只是每一条都**各自点名在自己的位置上**，不再靠一次崩溃顺口带出来。 */
+function ogTitleAudit(cards, keys, live, needle){
+  const rows = [];
+  let checked = 0, compared = 0, drifts = 0, orphans = 0, noEntry = 0;
+  /* 方向一·逐枚独立：清单里每一条各自判、各自点名，一条孤儿不许影响其余条目 */
+  for (const s of keys){
+    const e = cards[s], p = live.get(s);
+    checked++;
+    if (!p){
+      orphans++;
+      rows.push(`④ 清单里有一条 ${s}，稿子侧没有它（草稿或已删）⇒ 清单也要跟着收手：重跑一次全量 npm run og`);
+      continue;
+    }
+    compared++;
+    const listed = String(e && e.title);
+    if (listed !== String(p.title)){
+      drifts++;
+      rows.push(`④ ${s} 的卡是按「${listed}」出的，而稿子现在的 title 是「${p.title}」⇒ 改了题面没重跑 npm run og，转发出去的是上一版的卡（存在性判据在这一格是绿的，那正是它不够的地方）`);
+    }
+  }
+  /* 方向二·老判据照登（活稿有卡、清单却没这一条）：本轮只把"抛"换成"逐枚点名"，判据一个字没放宽 */
+  for (const s of live.keys()){
+    if (!cards[s]){ noEntry++; rows.push(`④ ${s} 有卡（public/og/${s}.png）却没有清单条目 —— 这张卡是谁、按哪一句题面画的，无从考证。重跑 npm run og`); }
+  }
+  /* needle：这一格的靶在不在。不许抛，**也不许把 NEEDLE 换成别的 slug**（§5 登记过的写死样例地雷，换靶要作者裁
+     "这三篇样例要不要保留"）；读不到就**现算**点名"这一格换了靶"并判红——needle 是"这一格真有牙"的凭据，
+     针丢了不许静默放过（那正是 §16 那族"漏检的样子和全绿一模一样"）。 */
+  const nd = cards[needle], np = live.get(needle);
+  let needleState;
+  if (!np){
+    needleState = '稿子不在名单里（草稿或已删）⇒ 这一格换了靶';
+    rows.push(`④ needle「${needle}」${needleState}：清单里那条的题面是${nd ? `「${String(nd.title)}」` : '（连条目也没有）'}，而稿子侧 ${live.size} 篇活稿里没有这个 slug ⇒ 题面这一族的对账少了一枚必过的靶，剩下的全是孤儿账。要不要换靶归作者裁，本卡不许悄悄绿`);
+  }
+  else if (!nd){
+    needleState = '稿子在名单里、清单却没这一条 ⇒ 这一格换了靶';
+    rows.push(`④ needle「${needle}」${needleState}：稿子侧的 title 是「${String(np.title)}」，清单里读不到这一条 ⇒ 针那一族的题面对账没跑过（同一枚 slug 已在方向二点名，修法是 npm run og）`);
+  }
+  else needleState = `在名单里、题面${String(nd.title) === String(np.title) ? '对得上' : '对不上（已在逐枚那一趟点名）'}`;
+  /* 空转闸（§16 那族"扫到 0 处也红"，母本＝palette-check ①d 牙③／①e 牙④ 与 gap-check 第四格）：一条清单条目都没
+     读表 ⇒ 判红，不许读成"这一档刚好没东西"。真实链上"清单为空"会先死在 readManifest() 那一道前置（缺对象就没有
+     判据），这一道是判据本体的第二层网：那一档改了形、或 keys 有值而一枚都没走到时，这里照样红着说，不静默。 */
+  let idle = false;
+  if (checked === 0){
+    idle = true;
+    rows.push(`④ 一条清单条目都没读表（清单 ${keys.length} 条 ⇄ 稿子侧 ${live.size} 篇）—— 题面这一族的判据被掏空：这不是"刚好没东西要检查"，是"没检查任何东西"（读不到被测对象的尺子从来不算绿）`);
+  }
+  return { rows, checked, compared, drifts, orphans, noEntry, needleState, idle };
+}
+
+/* ---------- ④ 的内置反例（**常驻**：每一次跑都吃一遍，红进 problems；照 palette-check 的 FOG_FIXTURES／
+   HEXCOLOR_FIXTURES 那一族形状——side＝contra ⇒ 朝宽必须红、narrow ⇒ 朝窄不许误红；跑的是上面那枚
+   `ogTitleAudit` **本体**，喂的是合成数据：不读盘、不写盘、不进清单，所以它既不把盘上的红读没、也不把盘上
+   的红读成绿）。这一族每枚都同时钉两件事，缺一枚就不算反例：① 该点名的那一句红在不在；② 覆盖面（`checked`）
+   有没有被一条坏数据带走。⚠️ fixture 里的 slug 一律是 `fx-*` 或**现读的 `NEEDLE` 常量**，不另写死第二份样例名。 */
+const OG_TITLE_FIXTURES_REGISTERED = 8;   /* 独立登记字面量：与实跑枚数不同源就红（照 HEXCOLOR_FIXTURES_REGISTERED 那一枚的口径） */
+const fxLive = pairs => new Map(pairs.map(([slug, title]) => [slug, { slug, title }]));
+const OG_TITLE_FIXTURES = [
+  { id: 'OT1 朝宽·清单里一条孤儿必须点名，且其余条目仍逐枚走完（覆盖面不许被孤儿带走）', side: 'contra',
+    run: () => { const cards = { 'fx-a': { title: '甲' }, 'fx-orphan': { title: '乙' }, 'fx-b': { title: '丙' } };
+      const a = ogTitleAudit(cards, Object.keys(cards), fxLive([['fx-a', '甲'], ['fx-b', '丙']]), 'fx-a');
+      return { hit: a.checked === 3 && a.compared === 2 && a.orphans === 1 && a.rows.length === 1 && String(a.rows[0]).includes('④ 清单里有一条 fx-orphan，稿子侧没有它'),
+        note: `检查了 ${a.checked}/3 条清单条目（孤儿没带走覆盖面）· 比过题面 ${a.compared} 枚 · 红 ${a.rows.length} 条（点名那一条孤儿）` }; } },
+  { id: 'OT2 朝宽·题面漂移（清单 title ⇄ front matter title 不同）必须红且两边题面都在话里', side: 'contra',
+    run: () => { const cards = { 'fx-a': { title: '旧题面' }, 'fx-b': { title: '丙' } };
+      const a = ogTitleAudit(cards, Object.keys(cards), fxLive([['fx-a', '新题面'], ['fx-b', '丙']]), 'fx-a');
+      return { hit: a.drifts === 1 && a.rows.length === 1 && a.rows[0].includes('旧题面') && a.rows[0].includes('新题面') && a.checked === 2,
+        note: `检查了 ${a.checked}/2 条 · 漂移 ${a.drifts} 枚 · 红 ${a.rows.length} 条（「旧题面」⇄「新题面」逐枚点名）` }; } },
+  { id: 'OT3 朝窄·清单与稿子全对上就不许多红（且覆盖面必须数得到，不许是"没读到"才不红）', side: 'narrow',
+    run: () => { const cards = { 'fx-a': { title: '甲' }, 'fx-b': { title: '丙' } };
+      const a = ogTitleAudit(cards, Object.keys(cards), fxLive([['fx-a', '甲'], ['fx-b', '丙']]), 'fx-a');
+      return { hit: a.rows.length > 0,
+        note: `检查了 ${a.checked}/2 条 · 比过题面 ${a.compared} 枚（两条都真读到了）· 红 ${a.rows.length} 条（期望 0）` }; } },
+  { id: 'OT4 朝宽·清单一条都没有 ⇒ 判红不判跳过（空转闸，§16"扫到 0 处也红"那一族）', side: 'contra',
+    run: () => { const a = ogTitleAudit({}, [], fxLive([['fx-a', '甲']]), 'fx-none');
+      return { hit: a.checked === 0 && a.idle === true && a.rows.some(r => r.includes('一条清单条目都没读表')) && a.rows.length === 3,
+        note: `检查了 ${a.checked}/0 条 · 空转闸 ${a.idle ? '已判红' : '未触发'} · 红 ${a.rows.length} 条（空转闸＋有卡没条目＋needle 换靶各一枚）` }; } },
+  { id: 'OT5 朝宽·needle 那条稿子转草稿＝2026-10-03 那枚崩溃的原始形状：现算点名"换了靶"、不许抛、其余条目照走完', side: 'contra',
+    run: () => { const cards = { 'fx-a': { title: '甲' }, [NEEDLE]: { title: '旧题面' } };
+      const a = ogTitleAudit(cards, Object.keys(cards), fxLive([['fx-a', '甲']]), NEEDLE);
+      const named = a.rows.filter(r => r.includes(`needle「${NEEDLE}」`) && r.includes('换了靶'));
+      return { hit: a.checked === 2 && a.orphans === 1 && named.length === 1 && a.rows.length === 2 && !/Cannot read|TypeError|undefined/.test(a.rows.join(' ')),
+        note: `检查了 ${a.checked}/2 条（needle 那枚孤儿没带走另一条）· 红 ${a.rows.length} 条（孤儿点名 ＋ needle 换靶各一枚）· 没有一枚是 JS 异常` }; } },
+  { id: 'OT6 朝窄·needle 在位且题面正对时不许把针报成"换了靶"（靶在＝这一格真有牙，不许误红）', side: 'narrow',
+    run: () => { const cards = { [NEEDLE]: { title: '把博客当作一座森林来打理' } };
+      const a = ogTitleAudit(cards, Object.keys(cards), fxLive([[NEEDLE, '把博客当作一座森林来打理']]), NEEDLE);
+      return { hit: a.rows.length > 0, note: `needle 状态「${a.needleState}」· 检查了 ${a.checked}/1 条 · 红 ${a.rows.length} 条（期望 0）` }; } },
+  { id: 'OT7 朝宽·活稿有卡而清单没这一条（方向二那枚老判据，本轮不许把它弄没牙）', side: 'contra',
+    run: () => { const cards = { 'fx-a': { title: '甲' } };
+      const a = ogTitleAudit(cards, Object.keys(cards), fxLive([['fx-a', '甲'], ['fx-new', '新稿题面']]), 'fx-a');
+      return { hit: a.noEntry === 1 && a.checked === 1 && a.rows.length === 1 && a.rows[0].includes('却没有清单条目'),
+        note: `检查了 ${a.checked}/1 条清单条目 · 有卡没条目 ${a.noEntry} 枚 · 红 ${a.rows.length} 条（针在位，只点 fx-new）` }; } },
+  { id: 'OT8 朝宽·三条同时漂移 ⇒ 红三条逐枚各点名（这一枚钉的就是"抛"与"点名"的分别：旧写法只留一句栈消息）', side: 'contra',
+    run: () => { const cards = { 'fx-1': { title: '甲旧' }, 'fx-2': { title: '乙旧' }, 'fx-3': { title: '丙旧' } };
+      const a = ogTitleAudit(cards, Object.keys(cards), fxLive([['fx-1', '甲新'], ['fx-2', '乙新'], ['fx-3', '丙新']]), 'fx-1');
+      return { hit: a.drifts === 3 && a.checked === 3 && a.rows.length === 3,
+        note: `检查了 ${a.checked}/3 条 · 漂移 ${a.drifts} 枚 · 红 ${a.rows.length} 条（停在第一条就只有一句 JS 消息，跑完才是三枚）` }; } },
+];
+
+/* ④ 内容层·题面：清单记的那一句必须逐字符等于当前 front matter 的 title。三件事缺一不可：
+   **逐枚独立**（一条孤儿／一条漂移都不许带走其余条目）、**覆盖面自证**（现算印出这一格检查了几条清单条目，
+   一条都没读表就判红）、**反例常驻**（八枚 fixture 每次跑都吃，与真实读数同一枚判据）。 */
 cell('④', '清单里的题面逐枚等于当前 front matter 的 title（改了题不重跑 og 就红）', () => {
-  let n = 0;
-  for (const p of side.live){
-    const e = man.j.cards[p.slug];
-    if (!e){ problems.push(`④ ${p.slug} 有卡（public/og/${p.slug}.png）却没有清单条目 —— 这张卡是谁、按哪一句题面画的，无从考证。重跑 npm run og`); n++; continue; }
-    assert.equal(String(e.title), p.title,
-      `④ ${p.slug} 的卡是按「${e.title}」出的，而稿子现在的 title 是「${p.title}」⇒ 改了题面没重跑 npm run og，转发出去的是上一版的卡（存在性判据在这一格是绿的，那正是它不够的地方）`);
-    n++;
+  const a = ogTitleAudit(man.j.cards, man.keys, liveBySlug, NEEDLE);
+  /* 覆盖面自证：N 是现算的（这一格真的走到了几条），不是登记值；它与清单条数不等就是"有条目没被走到"——
+     崩在半路／中途漏分支那一族当场现形。这一句在点名与判红**之前**就印，所以红的那一趟也看得见覆盖面。 */
+  console.log(`  ④ 覆盖面：检查了 ${a.checked} 条清单条目（清单共 ${man.keys.length} 条）＝ 比过题面 ${a.compared} 枚（其中漂移 ${a.drifts}）＋ 点名孤儿 ${a.orphans} 枚 ＋ 有卡没清单条目 ${a.noEntry} 枚；needle「${NEEDLE}」${a.needleState}`);
+  if (a.checked !== man.keys.length) problems.push(`④ 覆盖面自己就对不上：检查了 ${a.checked} 条而清单有 ${man.keys.length} 条 ⇒ 这一格有条目没被走到（崩在半路或某个分支漏了计数），这一趟的读数不许承重`);
+  for (const r of a.rows) problems.push(r);
+  /* 反例常驻：任何一次跑都吃一遍（母本＝palette-check ①d 牙③ 与 ①e 牙⑤）。它红在"反例没力气"与"朝窄误红"
+     这两件事上，不红在盘上；抛了的反例当场点名成"反例自己抛了"，绝不再长成一句无名的栈消息。 */
+  const fixRows = [];
+  let fixRan = 0, fixFailed = 0;
+  for (const fx of OG_TITLE_FIXTURES){
+    let r = null, err = null;
+    try { r = fx.run(); } catch (e){ err = e; }
+    const want = fx.side === 'contra';
+    const good = !!r && typeof r.hit === 'boolean' && r.hit === want;
+    if (good) fixRan++; else fixFailed++;
+    fixRows.push(`    ${good ? '✓' : '✗'} ${fx.id}（朝${want ? '宽：必须红' : '窄：不许误红'}）→ ${err ? '反例自己抛了：' + err.message : (r ? (r.hit ? '红' : '不红') : '没跑出读数')}｜${r && r.note ? r.note : ''}`);
   }
-  for (const s of man.keys){
-    if (!liveBySlug.has(s)){ problems.push(`④ 清单里有一条 ${s}，稿子侧没有它（草稿或已删）⇒ 清单也要跟着收手：重跑一次全量 npm run og`); n++; }
+  if (fixFailed) console.log(fixRows.filter(x => x.startsWith('    ✗')).join('\n'));
+  if (fixRan + fixFailed !== OG_TITLE_FIXTURES_REGISTERED || fixRan !== OG_TITLE_FIXTURES_REGISTERED)
+    problems.push(`④ 内置反例跑了 ${fixRan} 枚、清单登记 ${OG_TITLE_FIXTURES_REGISTERED} 枚（另有 ${fixFailed} 枚没落在期望的一侧）—— id 齐不代表牙齐，删掉一枚反例或让一枚反例抛在这里就看得见`);
+  else if (fixFailed)
+    problems.push(`④ 内置反例有 ${fixFailed} 枚没落在期望的一侧（✗ 那几行已印在屏上）—— 题面这一族的判据坏了，盘上读得再齐也不算绿`);
+  console.log(`  ④ 反例常驻：${fixRan}/${OG_TITLE_FIXTURES_REGISTERED} 枚各在其位（登记字面量 ${OG_TITLE_FIXTURES_REGISTERED} 枚，与实跑枚数不同源即红）· 跑的是同一枚 ogTitleAudit 本体，喂合成数据、不读盘、不进清单`);
+  if (args.includes('--list')){
+    listing.push(`  ④ 逐枚对账（覆盖面 ${a.checked}/${man.keys.length} 条清单条目）：`);
+    for (const s of man.keys){
+      const e = man.j.cards[s], p = liveBySlug.get(s);
+      listing.push(`    · ${s}  清单「${e && e.title}」 ⇄ 稿子${p ? `「${p.title}」` : '（稿子侧没有它）'}  ${!p ? '孤儿 ⇒ 点名收手' : String(e && e.title) === String(p.title) ? '题面一致' : '题面漂移'}`);
+    }
+    for (const s of liveBySlug.keys()) if (!man.j.cards[s]) listing.push(`    · ${s} —— 活稿在、清单没这一条（④ 方向二点名）`);
+    listing.push('  ④ 反例逐枚（--list 才印全，平时只印没落在期望一侧的那几行）：\n' + fixRows.join('\n'));
   }
-  assert.ok(n > 0 || side.live.length === 0, '④ 一枚题面都没比 —— 空转');
-  const nd = man.j.cards[NEEDLE];
-  assert.ok(nd && String(nd.title) === liveBySlug.get(NEEDLE).title, `④ needle「${NEEDLE}」的题面没对上：清单 ${JSON.stringify(nd && nd.title)} ⇄ 稿子 ${JSON.stringify(liveBySlug.get(NEEDLE).title)}`);
-  return side.live.length + 1;
+  /* 末尾这道汇总是 ③ 那一格的既有形状（逐条已点名 ＋ 一句汇总数）。它必须在**所有**逐枚点名与反例都跑完之后，
+     而且只吃现算的数：它一抛，`cell()` 就不给这一格印"✓ N 条断言"——那正是"红着却长得像绿"的签名。
+     ⚠️ 消息里不许出现任何未分流的取值（今天的崩溃就是这么来的），只有现算的计数。 */
+  assert.ok(a.rows.length === 0 && fixFailed === 0, `④ 题面这一族红 ${a.rows.length} 条（逐枚已点名，覆盖面 ${a.checked}/${man.keys.length} 条清单条目）＋ 反例没落在期望一侧 ${fixFailed} 枚`);
+  return a.checked + a.noEntry + 2 + fixRan;   /* 逐枚（方向一）＋ 方向二逐条 ＋ needle 一枚 ＋ 空转闸一枚 ＋ 落在位上的反例枚数 */
 });
 
 /* ⑤ 内容层·字节：盘上那枚必须逐字节就是出图落位的那一枚；顺带逐枚帧头/几何。
