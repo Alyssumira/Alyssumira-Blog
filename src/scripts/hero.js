@@ -258,7 +258,7 @@ import { phaseAt, tableBounds } from '../lib/phase.js';
       if (!keep()) return;
       f.style.transition = `transform ${ms}ms cubic-bezier(.22,1,.36,1)`;
       f.style.transform = `translate(${dx + ox}px,${dy + oy}px)`;
-      f.style.opacity = '.85';      /* `.firefly` 起手 opacity:0（home.css:281），不写这一句就是"落了但看不见"；.85 照惊起重新亮起那一档 */
+      f.style.opacity = '.85';      /* `.firefly` 起手 opacity:0（home.css 里 `opacity:0; will-change:transform,opacity` 那一格），不写这一句就是"落了但看不见"；.85 照惊起重新亮起那一档 */
     }, 60);
     setTimeout(() => {
       if (!keep()) return;

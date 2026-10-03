@@ -362,7 +362,7 @@ const browse = [
     ))}
 
     {/* 三族索引页的可见入口（F2，判它出现几次数的账在 `---` 上面那一格）：
-        ⚠️ 零新 CSS 的两条落点——① 锚点吃 `mistwood.css:556` 那条 `.tax-empty a`，做法是**给名单添一枚名字**
+        ⚠️ 零新 CSS 的两条落点——① 锚点吃 `mistwood.css` 那条 `.tax-empty a`（`color:var(--moss-ink); text-decoration-line:underline`），做法是**给名单添一枚名字**
            （`.tax-empty a,.essay-browse a`），声明仍只有一处真值（§17 复用类、不复制声明，同一份表里的先例
            是 `.cover img,.thing .shot,.portrait img,.post-body img`）；② 容器 `.essay-browse` 一条声明都不写，
            行内布局＋继承的行高 ⇒ `gap-check` 那 142 枚间距与 30 枚圆角一个都不动。
@@ -379,7 +379,7 @@ const browse = [
         今天三篇 ÷ 每页 3 行 ＝ 一页 ⇒ 产物里既没有 `<nav>`、也没有 `/essays/page/` 这串字节，
         `/essays/` 与不分页那一档逐字节相同（§15 那一格记的实测）。这不是"藏起来"，是"这条路不存在"
         ——§12 那条"关掉之后不留活壳"在分页这一族的读法。
-        零新 CSS（本轮硬口径）：宿主是 `.tax-empty`（分类/标签/系列那三页空态那句话的档，`mistwood.css:551`），
+        零新 CSS（本轮硬口径）：宿主是 `.tax-empty`（分类/标签/系列那三页空态那句话的档，`mistwood.css` 那条 `max-width:52ch`），
         链接吃同一份 `.tax-empty a` 的声明 ⇒ 零枚新垂直槽位、零枚新圆角字面，
         `tools/gap-check.mjs` 那 142 枚与 30 枚一个都不动；落点在最后一个 `.year-block` 之后，
         用的是它那条在册 96px 的余隙，不新起一段节奏。 */}

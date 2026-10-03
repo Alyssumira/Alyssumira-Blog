@@ -2,7 +2,7 @@
    零依赖、只读、只碰 `public/`：Node 24 自己解得开 PNG/JPEG/GIF/WebP 的四枚头部，不需要任何系统图像库。
 
    ── 为什么这件事必须在构建期做，而不是让 CSS 顶 ──────────────────────────
-   `src/styles/essay.css:377` 给正文图版写的是 `.post-body figure.shot img{ display:block; width:100%; height:auto }`。
+   `src/styles/essay.css` 给正文图版写的那一条是 `.post-body figure.shot img{ display:block; width:100%; height:auto }`。
    `height:auto` 在没有固有尺寸的那一枚 `<img>` 上，取图之前量不出高度 ⇒ 那一块在解码完成的一瞬间从 0 高长到
    几百 px 高，正是 CLS 的教科书形状（§8.4 那条"先铺雾再散开"管的是**观感**，管不到布局盒什么时候长出来）。
    有了 `width`/`height` 两枚属性，布局盒在取图之前就是对的（UA 样式表给 img 的 `aspect-ratio: attr(w)/attr(h)`）。
@@ -22,8 +22,8 @@
    ── 已签条款的边界（本文件一个字都不越）────────────────────────────────
    · §5 照片铁律：不改 `public/assets/bg-*.jpg` 的成对换与引用方式，只往已有的 `<img>` 上补两枚**被 CSS 完全
      覆写**的属性（`.bg-photo img` 与 `.cover img` 都写着 `position:absolute; inset:0; width:100%; height:100%`，
-     `mistwood.css:504`／`home.css:89` ⇒ 属性不参与最终盒尺寸，实测见 §8.4 那一格）。
-   · §12「占位提示压真图」：占位那格判据是 `.portrait:not(:has(img))::after`（`mistwood.css:638`），看的是**有没有 img 子节点**，
+     `mistwood.css` 的 `.cover img,.thing .shot,.portrait img,.post-body img`／`home.css` 的 `.bg-photo img` ⇒ 属性不参与最终盒尺寸，实测见 §8.4 那一格）。
+   · §12「占位提示压真图」：占位那格判据是 `.portrait:not(:has(img))::after`（`mistwood.css` 里 `content:"人像 → 褪色处理后放入"` 那一条），看的是**有没有 img 子节点**，
      与 img 带不带属性无关 ⇒ 零牵连。
    · §8.4 入场虚焦：`filter: … blur(10px)` → `.in` 由 `load` 事件驱动（`src/scripts/site.js`），属性补齐不动这条链。
 */

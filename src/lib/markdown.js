@@ -33,7 +33,7 @@ const IMG_LINK = new RegExp('^\\[!\\[([^\\]]*)\\]\\(' + U + TITLE + '\\)\\]\\(' 
 const LINK_RE  = new RegExp('\\[([^\\]]+)\\]\\(' + U + TITLE + '\\)', 'g');
 
 /* 正文里那一枚 `<img>` 发什么属性（`card/imgpipe`，2026-09-30）。一枚一枚交代，因为这仓对"顺手加"敏感：
-   · `width` / `height`——**构建期从真文件头读**（`src/lib/image-dims.js`，零依赖）。落点是 `essay.css:377`
+   · `width` / `height`——**构建期从真文件头读**（`src/lib/image-dims.js`，零依赖）。落点是 `essay.css`
      那条 `.post-body figure.shot img{ display:block; width:100%; height:auto }`：`height:auto` 在没有固有尺寸的
      img 上取图前量不出高 ⇒ 解码完成那一瞬间布局盒从 0 长到几百 px，那是 CLS 的教科书形状。有了这两枚，UA 样式表
      的 `aspect-ratio: attr(w)/attr(h)` 让盒子在取图之前就对。**读不到就不发**（远端／盘上没有／格式认不出），

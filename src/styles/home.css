@@ -434,7 +434,7 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
   -webkit-backdrop-filter:blur(18px) saturate(1.1); backdrop-filter:blur(18px) saturate(1.1);
   box-shadow:var(--shadow-contact),var(--glass-edge);
   /* 悬停只动 `transform` 一枚属性（§1 预算表那句「每个可点元素 1 个主反馈，悬停变化 ≤ 3 个属性」，位移/透明度/缩放那一族），
-     位移取已签的那个数：`mistwood.css:610` 图鉴卡悬停 `translateY(-4px)`＝§8.3「上浮 4px」，`.thing[href]`
+     位移取已签的那个数：`mistwood.css` 的 `.thing[href]:hover` 那条图鉴卡悬停 `translateY(-4px)`＝§8.3「上浮 4px」，`.thing[href]`
      那条过渡也是逐字符同一条。**没有铺底、没有第二档形状**：§1 那一格今天全站只许一枚「钉死形状的铺底」，
      名额在目录行 `.row::before` 上，本卡不开第二档。 */
   transition:transform .5s cubic-bezier(.22,1,.36,1);
@@ -447,7 +447,7 @@ html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); 
 }
 .hero-cta:hover{ transform:translateY(-4px); }
 /* 按下那一下：`scale(.98)` ＋回弹档是 §8.3 已签的形状（§8.1 那档回弹缓动的唯一合法用途就是"按下"），
-   写法逐字符照 `.thing[href]:active`（`mistwood.css:612`）＝悬停位移留着、再叠那枚 .98。 */
+   写法逐字符照 `mistwood.css` 的 `.thing[href]:active`（`transform:translateY(-4px) scale(.98)`）＝悬停位移留着、再叠那枚 .98。 */
 .hero-cta:active{ transform:translateY(-4px) scale(.98); transition:transform .4s cubic-bezier(.24,1.32,.4,1); }
 
 .hero-log{

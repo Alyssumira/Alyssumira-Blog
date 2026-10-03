@@ -1189,9 +1189,9 @@ const markSpansOf = html => {
 
 /* ---------- 1h. 正文配图那一族的层叠胜负：产物级 CSS 真值（`card/framecascade`，§8.4 末那笔已还的债）----------
    这一格钉的是 `docs/设计规范.md` §8.4 末登记的、**已经还了却没有任何机器尺子钉着**的那笔债：
-   共享底座给"内容位照片"写的是裁框（`mistwood.css:504-506` 那行名单里有 `.post-body img`，声明
+   共享底座给"内容位照片"写的是裁框（`mistwood.css` 的 `.cover img,.thing .shot,.portrait img,.post-body img` 那行 `position:absolute; inset:0` 名单里有 `.post-body img`，声明
    `position:absolute; inset:0; width:100%; height:100%; object-fit:cover`），而详情页正文图版要的是
-   "走满栏宽不裁比例"（`essay.css:370` 的 `position:static`）。两条权重同为 (0,1,1) 时**谁赢取决于打包
+   "走满栏宽不裁比例"（`essay.css` 里 `article.post-body img` 那条 `position:static`）。两条权重同为 (0,1,1) 时**谁赢取决于打包
    顺序**，真产物上 `.frame` 因此塌成 2px；修法是把 essay 层就地升权重成 `article.post-body img`（(0,1,2)），
    从此"靠权重赢，不靠打包顺序"（§8.8 那句"那是运气不是设计"是同一条）。
    ⚠️ 为什么今天非要有这一格：全站正文配图 **0 枚**（`grep -c '!\[' src/content/posts/*.md` ＝ 0/0/0）⇒

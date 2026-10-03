@@ -8,7 +8,7 @@ import { intrinsicProps } from '../lib/image-dims.js';
    为什么这一枚值得动：`tools/imgpipe-check.mjs` 那把尺量的是"dist 里的属性 ⇄ 盘上真尺寸"，
    而抄来的字面量一旦哪天换了别的人像就会悄悄对不上——那正是判据要红的形状，可它红的是我们自己的记账，
    不是页面的病。换掉之后这一枚图没有"第二处真值"可漂。
-   几何零影响：`mistwood.css:504` 给 `.portrait img` 写的是 `position:absolute; inset:0; width:100%; height:100%`，
+   几何零影响：`mistwood.css` 的 `.cover img,.thing .shot,.portrait img,.post-body img` 那一行给 `.portrait img` 写的是 `position:absolute; inset:0; width:100%; height:100%`，
    盒子由 `.portrait` 那枚 `width:220px; aspect-ratio:1/1`（:634）定，两枚属性从来不上屏（实测见规范 §8.4 那一格）。
    ⚠️ 说明写在 `---` 里而不是模板里：Astro 把 HTML 注释原样落进产物（`src/layouts/Layout.astro:21` 点过名）。 */
 import { visiblePosts } from '../lib/posts.js';

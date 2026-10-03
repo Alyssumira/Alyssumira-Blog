@@ -35,7 +35,7 @@ const things = await allThings();
           return (
             <a class="thing reveal" {...props}>
               {/* 截图那枚 `<img>` 补 width/height/decoding，与封面同一口径：`.thing .shot` 住在
-                  `mistwood.css:504` 那条 `position:absolute; inset:0; width:100%; height:100%` 里 ⇒ 属性不上屏，
+                  `mistwood.css` 里 `.cover img,.thing .shot,.portrait img,.post-body img` 那一行的那条 `position:absolute; inset:0; width:100%; height:100%` 里 ⇒ 属性不上屏，
                   图鉴卡的格子尺寸由 CSS 定。⚠️ 2026-10-01 晚这一枚从"填了 shot 才画"改成**永远画**：空着退回站点默认那张
                   （`DEFAULT_COVER`，与文章封面同一枚退路、同一枚 `coverSrc()`）⇒ §15 那条"作者没给图之前不许假装图
                   在那儿"同日改判。今天 `things` 零枚卡 ⇒ 这一格**没有载体**，填卡那天才看得见。 */}

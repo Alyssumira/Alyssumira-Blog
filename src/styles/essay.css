@@ -98,7 +98,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
       不新增一种"线长"语义；本卡全站横族用到的线长仍只有三档（全幅 / 中段渐隐 / 短错落），一枚没多。
    ② 深浅不新起常数，也不碰 `--band-a`（那枚是三档共用的浓度排序，band-a 声明只许两处、消费者只许
       那两层页头伪元素——见 §17 末与 §13b；本卡一枚没动）。走 `opacity:var(--fog)` 这枚在册画法
-      （先例 `home.css:215 .mist-band`），色走 `--ink-3` 的 `color-mix()` 百分比（14/11/8，
+      （先例 `home.css` 的 `.mist-band`——`opacity:calc(.75 * var(--fog))` 那一格），色走 `--ink-3` 的 `color-mix()` 百分比（14/11/8，
       全部低于 404 亮族那 62–70%，"安静即规格"§15 落在数上）⇒ 零新 hex、零新 rgba、零第五色。
    ③ 线条不是模糊（零 `blur()`）、零 `animation`、零滚动驱动；`bottom/width/height` 是绝对定位偏移
       与百分比，不是 margin·padding·gap ⇒ gap-check 那 142 枚一枚没多（题花坐在 meta 与 title 之间
@@ -644,7 +644,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
       纸上点不动），不新开一行规则。 */
 .post-body .headref{ opacity:0; font-size:.6em; }
 .post-body h2:hover .headref,.post-body h3:hover .headref,.post-body .headref:focus-visible{ opacity:1; }
-@media (hover:none){ .post-body .headref{ opacity:1; } }   /* 触屏没有 hover，锚就常显（同一档写法：mistwood.css:600） */
+@media (hover:none){ .post-body .headref{ opacity:1; } }   /* 触屏没有 hover，锚就常显（同一档写法：mistwood.css 的 `@media (hover:none){ .row-ex{ opacity:1 } }`） */
 
 /* 站内锚点的落距（2026-10-02 修的一处既存缺陷；账在 §15 详情页那一族与 §19 降级那一族）：
    点目录里那一行、或点章名末尾这枚 `#`，浏览器把宿主自己的顶缘放到视口 y=0，而 `.nav` 是 `position:fixed`

@@ -659,7 +659,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
 /* ============ 键盘导航提示条（一轮 §C2，2026-10-02 `v5b/heads`）============ */
 /* 首次按 Tab 才浮出的一条薄玻璃，三秒后淡出。四条口径钉在这里：
    ① **面不吃新材质**：`--glass` ＋ `--glass-border` ＋ `backdrop-filter:blur(14px)` 那三件逐字符照
-     `.thing-bar`（`mistwood.css:817-822`）那一族——§1.4 签的是"全站只许三种模糊"，`blur(14px)` 是
+     `.thing-bar`（`mistwood.css` 里那条 `-webkit-backdrop-filter:blur(14px)`）那一族——§1.4 签的是"全站只许三种模糊"，`blur(14px)` 是
      **在册那一枚半径**（图鉴玻璃条用的就是它），这里不起了第四枚 `blur()`、也不给 `.nav` 那枚 `saturate(1.1)`
      添第二个宿主（玻璃条那一族本来就没有它）。只有 `box-shadow` 取的是 `.nav` 那三层（接触影／环境影／
      玻璃上下沿，`mistwood.css:124`）——它离身后内容有一段空气，该有散开的那一圈；三层全是现成令牌。
@@ -738,7 +738,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
   html[data-theme="dark"]{ --paper-ink:var(--bg-base); }
 
   /* ---- §19.3 那条致命陷阱：入场在纸上不存在 ---- */
-  /* `.reveal` 起手态是 opacity:0（`base.css:125`），进 `.in` 才亮，而进 `.in` 靠 IntersectionObserver。
+  /* `.reveal` 起手态是 opacity:0（`base.css` 里 `opacity:0; transform:translateY(16px)` 那一格），进 `.in` 才亮，而进 `.in` 靠 IntersectionObserver。
      无 JS / 深链 / 程序化打印时它是 0 ⇒ **印出一片空白**。这里不是"给一个兜底的 .in"，是"纸上没有入场这回事"。
      ⚠️ 这一条被注释掉之后，`?nojs=1` 那一档的打印截图应当是一片纸白——§19.7 两侧格子的第一格。 */
   html .reveal{ opacity:1; transform:none; transition:none; transition-delay:0s; animation:none; }
@@ -827,7 +827,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
      ⚠️ 两条都带 `html ` 前缀（§19 那一节的选择器一律加一枚类型权重，压过页面层、不靠打包顺序）。 */
   html .code-copy, html .lightbox{ display:none; }
 
-  /* 身后的雾（`essay.css:97-98`）：`--read-fog` 是 site.js 每个滚动帧写一次的，纸上没有那个驱动者，
+  /* 身后的雾（`essay.css` 里 `.post-body` 那格的 `--read-fog:-9999px`）：`--read-fog` 是 site.js 每个滚动帧写一次的，纸上没有那个驱动者，
      起始值 -9999px 会把整段正文推进"淡到底"那一侧 ⇒ 印出来是一片看不见的字。与上面同族，同一个病。
      ⚠️ 同一条选择器顺手撤掉的 `background-image` 是正文脚下那层地面光（§15 详情页那一格）：
      它在 19.1 归属的就是"方向光与那层气"那一行——纸不给它任何"面"，纸上也不需要有照度。 */
@@ -841,7 +841,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
      `mistwood.css` 的 `body` 带着 `transition:background-color .8s, color .8s`，而切到打印媒体这一格，
      `color` 正是被这一节改值的属性 ⇒ 换墨是一次 0.8s 的过渡。仿真后 350ms 读到的 computed color 是
      `rgb(30, 35, 28)`（夜林那口墨只走到 93%），不是 `#0E130D`；抢跑得更早就是一行近白的字印在纸上。
-     `.post-body a` 同一个病（`essay.css:182` 那条 0.3s 的 `text-decoration-color`），所以一并掐掉，
+     `.post-body a` 同一个病（`essay.css` 里 `.post-body a` 那条 0.3s 的 `text-decoration-color`），所以一并掐掉，
      并且它的选择器多带一枚 `main`——不为别的，就为压过 `essay.css` 那条 (0,1,1) 而不是靠打包顺序。 */
   html body{ background:none; background-color:transparent; color:var(--paper-ink); transition:none; animation:none; }
   html main .post-body a{ text-decoration-color:currentcolor; text-decoration-thickness:1px; transition:none; }
@@ -868,7 +868,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
      被吃掉的一段；② 伪元素那根线是 `background:` 画的，而这一节"纸本身：不给它任何面"的口径就是
      纸上留下的每一样都不靠背景表达（同上面那条"章记号从面改由边画"是同一个病）。
      所以这里不是另起一套打印规格，是把上面那一组**整体 undo**：撤掉伪元素（`content:none`，
-     与 `essay.css:193` 那枚 `.fn-title::before` 同一手法），再把那枚 1px 占位 border 的颜色填回来。
+     与 `essay.css` 的 `.footnotes .fn-title::before{ content:none }` 同一手法），再把那枚 1px 占位 border 的颜色填回来。
      ⚠️ `html footer.print-foot` 那条页脚线一个字不碰——它是"这张纸出自哪儿、是哪一篇"的收据行，
      不是版面分隔线，而且它本来就画在 border 上、没有伪元素可撤。 */
   html .colophon::before, html .footnotes::before, html .post-nav::before,
@@ -879,7 +879,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
   /* 站内链接不附——纸上的 `/essays/xxx/` 既点不动、也不是读者能核对的东西，附一条同站地址是噪音。
      ⚠️ 判据是 `href^="http"`，所以将来 `SITE` 换成真域名之后有人写站内全址会被一起附上，
      那条边界登记在 §19.2。现在三篇正文里外链 0 条，这一条规则**没有现役载体**（§19.7 那格用内存改写去证明它出得来）。
-     下划线在纸上不许用 40% 的那档（`essay.css:181` 那个 color-mix）：淡一档就是"这条到底是不是链接"——
+     下划线在纸上不许用 40% 的那档（`essay.css` 里 `.post-body a` 那格 `text-decoration-color` 的那个 color-mix）：淡一档就是"这条到底是不是链接"——
      改值那一条写在上面"纸本身"那一组里（`html main .post-body a`），连 `transition` 一起掐。 */
   html .post-body a[href^="http"]::after{
     content:" 〈" attr(href) "〉";
@@ -888,7 +888,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
 
   /* ---- §19.6 边注回到句间：纸上没有"栏外" ---- */
   /* 只 undo 到"能读"：撤掉浮进留白那三样（float / clear / width / 那个负 margin / text-align），
-     并把窄屏那对 `（）` 的 `content` 收回来。**不重抄 `essay.css:161-176` 的取值**——
+     并把窄屏那对 `（）` 的 `content` 收回来。**不重抄 `essay.css` 里 `.post-body .sidenote` 在 `@media (min-width:1240px)` 那条的取值**——
      重抄一份就是再造一处会漂移的真值（§17 那条同一句话）。 */
   html .post-body .sidenote{ float:none; clear:none; width:auto; margin:0 2px; text-align:initial; }
   html .post-body .sn-mark{ float:none; margin:0 2px 0 5px; }

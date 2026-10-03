@@ -7,7 +7,7 @@
       它们各自带密度条、按年分节、限宽 720 的错落，几何是 §15 逐格登记过的实测读数，
       搬一次就等于把已签字的版式重新过一遍风险。这里复用只是"同一门语言说第二遍"。
    ⚠️ `card/imgpipe`（2026-09-30）给封面那枚 `<img>` 补了 `width`/`height`/`decoding`，两句口径：
-      ① **两枚属性不上屏**——`mistwood.css:504` 写的是 `.cover img{ position:absolute; inset:0; width:100%; height:100% }`，
+      ① **两枚属性不上屏**——`mistwood.css` 里 `.cover img,.thing .shot,.portrait img,.post-body img` 那一行写的是 `.cover img{ position:absolute; inset:0; width:100%; height:100% }`，
          盒子由 `.row .cover{ width:92px; aspect-ratio:4/3 }`（:493）定，`card/hairline` 量的那枚 92×69 一个字不动；
       ② 地址那一枚 `coverSrc()` 在这一行里**调了两次**，不是为了省事少一行变量，是因为第 ④ 格把那枚字面形状
          钉住了（`src={coverSrc(post.data.cover)}` 原文比对，它判的是"cover 先过那一枚退路、再经 root() 才进 src"）——
