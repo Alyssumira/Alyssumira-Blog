@@ -714,7 +714,7 @@ a.row:visited{ color:var(--ink-visited); }
 
 /* 写作年轮横条（三轮 §1.1 横条版；母题指认＝§13b 母题②苔点，降级谱与打印在 §13b／§19.1，窄屏那一档在 §11）。
    一片尺架里的第二把尺：过去一年每天一格、按月轻轻分段，写过稿的日子按当天字数上深浅。
-   ⚠️ 零枚新垂直槽位：段与段之间那 3px 走 `column-gap`（gap-check 现在三本账：垂直那 144 枚只看
+   ⚠️ 零枚新垂直槽位：段与段之间那 3px 走 `column-gap`（gap-check 现在三本账：垂直那 145 枚只看
       `margin`／`padding`／`gap`／`row-gap` 那一族，`column-gap` 与左右两半归横向那本（86 枚，这一枚在册记 X 档）、
       圆角是第三本（32 枚 12 种），同 §4 那格"8vw 在第二值位"的口径），格与格之间不留缝（365 枚缝比格还宽）。
    ⚠️ 画幅 12px ＝ 这一页小字那一档（`.row-side`／`.d-lab` 都是 10–12px 族），不是新起的数；
@@ -735,7 +735,7 @@ a.row:visited{ color:var(--ink-visited); }
       `about.astro:139` 的 `.w-dot` 就是这个先例：**几何写在标记属性上、CSS 只管色与档**，这里一枚半径都不写。
    ⚠️ 零枚新垂直槽位：画幅走 `em`（宿栏字高的一档，`em` 不在 gap-check 的拆值口径里，与 `.row-tick` 同一句），
       环与环之间没有缝、环与图例之间那口气吃 `.density-wrap` 在册那枚 `gap:14px`、
-      环与下面那列目录之间那口气吃 `.page-head` 在册那枚 `padding-bottom:64px` ⇒ 144 枚一枚不多。
+      环与下面那列目录之间那口气吃 `.page-head` 在册那枚 `padding-bottom:64px` ⇒ 145 枚一枚不多。
    ⚠️ 零新色：`--moss`（圈线）与 `--ink`（点）两枚在册令牌，`.55` 那档照 `.density .tick` 搬（同一只尺架里
       两把尺的 opacity 嗓门一致，不是第三枚值）；`--ink` 跟着主题翻面，与全站那六枚基础墨同一判法。
    ⚠️ 链接的靶面只给在**画出来的那一线上**：`<a>` 自己 `pointer-events:none`，圈线与点各自收回 `auto`——
@@ -765,7 +765,7 @@ a.row:visited{ color:var(--ink-visited); }
    ⚠️ `z-index:-1` 与 `pointer-events:none` 都不是可选项：前者照 §15 那两条"气必须在 -1"的理由
    （装饰层不许蒙在正在读的字上，而这一页的字就是那六条地址），后者不许三枚 3px 的点抢走链接的命中区。
    ⚠️ 零新垂直槽位、零新圆角：这里只有 position／top／left／width／height／transform／z-index／
-   pointer-events／overflow ⇒ gap-check 那 144 枚与 32 枚一个不涨。萤火自己的 3px／50%／`--firefly`／
+   pointer-events／overflow ⇒ gap-check 那 145 枚与 32 枚一个不涨。萤火自己的 3px／50%／`--firefly`／
    光晕**不在这里重抄**：它只住在 `home.css` 那份 `.firefly` 里（这一页载同一份表，见 `src/pages/404.astro`），
    关键帧只住在 `hero.js` 注入的那一段里——两处各一份就是 §17 那笔"迟早分叉"的债。 */
 .lost > #fireflies{
@@ -1049,7 +1049,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
       与列表页那根条同一条口径，只是两处宿主字号不同：那儿 12px、这儿 17px）。这里几枚声明落在 gap-check 三本账
       （垂直 145 枚／横向 86 枚／圆角 32 枚 12 种）上的只有一枚：`display`／`flex-wrap`／`align-items`／`flex`／`fill`
       三本账都不数，只有 `column-gap:3px` 归横向那本、在册记 X 档（与 `.yring` 那枚同值，两条各认各的宿主）；
-      `margin`／`padding`／`row-gap` 一个字不写 ⇒ 那 144 枚垂直槽位与 32 枚／12 种圆角一枚不为它动。
+      `margin`／`padding`／`row-gap` 一个字不写 ⇒ 那 145 枚垂直槽位与 32 枚／12 种圆角一枚不为它动。
    ⚠️ 不吃 `--fog`、零 `animation`、零滚动驱动；打印整块撤（`base.css` 那段撤场清单里那一行添一枚名字）。 */
 .word-river{ display:flex; flex-wrap:wrap; align-items:center; column-gap:3px; }
 .w-dot{ flex:none; fill:var(--moss); }
