@@ -78,8 +78,14 @@
      两级路径，形如 `在 @media(…) 里 sel{…}`，那是下一枚卡的事）。
    · 非样式表的裸行号指针（指 `.mjs`／`.astro`／`.ts`／`docs/*.md` 的）今天 124 枚，**一枚不在射程里**：
      那族文件比 CSS 稳，且换锚要引"符号"这个新概念，先把 CSS 这一族验通再说。
-   · `tools/palette-check.mjs` 整枚文件是另一张卡的靶，本卡一枚字没动它；它里面那些指针（14 枚裸行号 +
-     若干枚锚）照本尺的口径读数，读出问题一律进 backlog（见汇报），不在本卡改。
+   · token 那一档（锚只引一枚令牌名）今天盘上读到 **0 枚活的**：那几枚写法的连接词都不干净
+     （`；首页的纱罩` `，傍晚的纱罩` `那条 filter 声明，`），所以文法收得下、靶却是空的——
+     这一格不是恒绿：任何一枚带干净连接词的令牌锚一落地它就跟着红，而 ④ 那条"锚读到 0 枚即红"
+     管的是整族，不是单档。
+   · `tools/palette-check.mjs` 整枚文件是另一张卡的靶，本卡一枚字没动它。按本尺的口径读数：那文件里
+     15 枚裸行号进棘轮总数、5 枚锚枚枚复算到位、零红——所以那一族在它头上没有 backlog；
+     另有 3 枚（`:499` `:687` `:1005`）连接词不干净读不到，与 `--firefly:#A9C4A0` 那枚"行号与令牌名
+     挤在同一对反引号里"的写法一起，登记在汇报的 backlog 里，等它那张卡自己收。
 */
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, basename, sep, posix } from 'node:path';
@@ -265,10 +271,12 @@ function snippetEligible(s) {
   if (/\.[a-z]{2,4}:[0-9]+$/i.test(t)) return false;            // 文件:行 同形串
   if (/\.(astro|js|mjs|ts|json|html|css|md|ps1|py|sh|pyc|txt|xml|svg|png|jpg)$/i.test(t)) return false;
   if (/^\.[0-9]/.test(t)) return false;                          // .6em 那种长度字面量
-  if (/^-/.test(t) && !/^-[\w-]+\s*:/i.test(t)) return false;    // -fallback 那种半截名字
+  if (/^--[\w-]+$/.test(t)) return true;                         // 只引一枚令牌名（`--firefly` 那档）
+  if (/^--[\w-]+\s*:/.test(t)) return true;                      // 令牌声明
+  if (/^--/.test(t)) return false;                               // `--scrim-*` 通配半截名、`--surface !important` 半截声明
+  if (/^-/.test(t) && !/^-[\w-]+\s*:/i.test(t)) return false;    // `-fallback` 那种名字片段
   if (/^[.#*@[:[]/.test(t)) return true;
   if (/^[a-z][a-z-]*\s*:/i.test(t)) return true;                 // prop:value
-  if (/^--[\w-]+/.test(t)) return true;
   if (/^[a-z][a-z0-9-]*(\s*[.#[:>~+{])/.test(t)) return true;   // 后代选择器 html .x；`(` 故意不在边界里——
                                                                  // `light-dark(…)` 那种函数值不是锚，收了就是假红
   if (/^[a-z][a-z-]*\s*\{/.test(t)) return true;                 // body{}
