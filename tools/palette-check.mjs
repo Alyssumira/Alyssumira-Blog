@@ -53,7 +53,19 @@
      写成 `color:#b3215a` 时这一关 rc=0、一声不响（卡面实测）。新格 ①e 的判据、九枚在册色属性、两条实现约束
      （必须在块体内数／属性名不许当行首锚）、以及"文件集裁成五份、与 `ALL_SHEETS` 故意不同源"那一句的理由
      都写在 ①e 那一格里。**洞二**（`base.css` 之外的未登记**令牌**声明，如 `home.css:22 --firefly` 改值永不红）
-     本卡**没碰**：它要先裁一枚"分层令牌白名单"从哪儿读，那是另一张卡。 */
+     本卡**没碰**：它要先裁一枚"分层令牌白名单"从哪儿读，那是另一张卡。
+   ⚠️ 2026-10-03（`w2s/layer2`，W2-S 这张卡）补的就是**洞二**：① 那一族读得到令牌、也读得到"色属性里的裸 hex"（①e），
+     但它的反向 orphan 判据只遍历 `inBase`（`h.file === 'base.css'` 那一圈），所以 `base.css` **之外**那份令牌声明
+     进了色板那张表、被打印出来，**改它的值却永不红**（盘上实例就是上面那枚 `--firefly`）。
+     这一格先造的是那把尺缺的**源**：机器可读的第二层白名单 `LAYER2_SET`（逐枚带一句它凭什么住在第二层）
+     ＋一枚**独立字面量** `LAYER2_REGISTERED`（不许从扫描结果推导——"全集与靶同趟生成"＝自证，永远绿，本仓踩过）。
+     三把牙：① 第二层冒出不在名单上的**带色**声明 ⇒ 红并点名；② 名单上某一枚在盘上没了 ⇒ 红（注册表过期）；
+     ③ 名单枚数 ≠ 登记值 ⇒ 红。外加失去靶红（名单空／扫到 0 份表／一枚带色的第二层声明都读不到）与七枚内置反例。
+     写法照 `LD_NEEDLE` / `HEXCOLOR_*` 那一族的既有习惯——三处同源：规范 §17 那张分层表 / 白名单本体 / 这枚登记值。
+     判据与"带色"这一刀的口径（含被排除的每一枚为什么排除）写在 ①f 那一格里。
+     ⚠️ `base.css` 那一侧一枚判据都没放宽：`REGISTERED = 46`、①c、①d、①e、④ 全部照旧绿。
+     ⚠️ HC9 那枚反例（令牌位的 `--firefly:#A9C4A0` 不算红）期望一个字没动——它钉的是"①e 不许越界修洞二"，
+     与 ①f 把这枚名字登记进白名单是两件事，不是矛盾。 */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -713,6 +725,8 @@ let ldDrift = 0;
       （卡面记旧 :358）那枚反向 orphan 判据放过——它只认 `h.file === 'base.css'`，改值永不红）
       **本牙不许顺手修**：它要先裁一枚"分层令牌白名单"从哪儿读，那是另一张卡。
       HC9 那枚反例钉在"令牌位不算红"上，正是为了让那一张卡动手时看得见这一族的边界在哪儿。
+      ⚠️ 2026-10-03 `w2s/layer2`（W2-S）把那张卡交了账：白名单的源现在住在下面 ①f 那一格（`LAYER2_SET`）。
+      本牙的射程一个字没动——HC9 期望照旧是"令牌位不进九枚色属性名册 ⇒ 不红"；洞二那一族从此红在 ①f，不红在这里。
    ⚠️ 已知射程边界（写在这儿，不藏在回执里）：`@keyframes` 里 `from`／`to`／`100%` 那种帧名按 allBlocks 的
       既有口径整块丢弃 ⇒ 那一族帧里的裸 hex 本牙读不到；而 `0%,30%` 那种带逗号的帧名不在剔除名单里，会被数到。
       这是"沿用 allBlocks 的块体切分"这条口径的既有形状，本卡不重开它。 */
@@ -877,6 +891,245 @@ let hexDrift = 0, hexFixRan = 0, hexFixFailed = 0;
     console.log('\n=== ①e 反例清单（--selftest：洞一那一族朝宽必须红、朝窄不许误红；它故意吃坏数据，所以不接进 npm run check 的默认链）===');
     console.log(hexFixRows.join('\n'));
     console.log(`  ${hexFixFailed ? `✗ ${hexFixFailed} 枚反例没在期望的位置红` : `✓ ${hexFixRan} 枚反例全部落在期望的一侧（登记值 ${HEXCOLOR_FIXTURES_REGISTERED} 枚）`}`);
+  }
+}
+
+/* ---------- ①f 第二层（`base.css` 之外）的令牌白名单（洞二，2026-10-03 `w2s/layer2` 新增，进退出码）----------
+   洞二是什么：① 那一族读得到令牌（`HEX` / `FN` / `CMIX` 三条正则），也读得到令牌里跨文件重复声明与"少一枚"，
+   但**反向那一圈只遍历 `inBase`**（① 那一格里 `h.file === 'base.css' && !h.mirror` 那一句）⇒ `base.css` 之外那份令牌声明
+   进了色板那张表、被逐行打印（交付态第 17/18/34 行就印着 `--surface #F7F8F5` / `--firefly #A9C4A0` /
+   `--surface #141A14`），而**改它的值永不红**。盘上那一枚实例是 `home.css` 的 `--firefly:#A9C4A0`。
+   ⇒ 这一格先造的是**缺的那枚源**：仓里今天没有任何机器可读的东西能当"哪些令牌许住第二层"的清单
+     （`BASE_SET` 只描述 base.css 的（选择器→令牌）；`REGISTERED = 46` 是枚数不是名单；`LD_NEEDLE` ＋
+     `LD_REGISTERED = 6` 钉的是一枚令牌的逐字符值与 `light-dark()` 的对数；`CONSUMED_EXCEPTIONS` /
+     `EXC_REGISTERED = 0` 是零消费者例外表；`STRAW_ALWAYS_ON_EXCEPTIONS` 数的是选择器；`HEXCOLOR_PROPS` /
+     `HEXCOLOR_SHEETS` 是属性名与文件名名单；CSS 自己的 `@property` 只有四枚而 `phase-check` 读的是硬编码两枚名；
+     规范 §17 那张分层表是 markdown 里的中文散文，而 `gap-check` 文件头明写"模式族只吃 `src/styles/`，
+     不许走到 `docs/**`"）。所以白名单落在**这一格**，写法照 `LD_NEEDLE` / `HEXCOLOR_*` 那一族的既有习惯：
+     三处同源＝规范 §17 那张分层表 / `LAYER2_SET` 本体 / `LAYER2_REGISTERED` 这枚**独立字面量**。
+     ⚠️ 登记值绝不从扫描结果推导（"全集与靶同趟生成"＝自证、永远绿），也不与 `LAYER2_SET` 的键数同源到同一趟代码。
+   三把牙（各红各的话，不许合成一句"这关没过"）：
+     ① 第二层出现**不在名单上的带色令牌声明** ⇒ 红并点名 `文件∶行 ⇄ 选择器（上下文）⇄ 令牌 ⇄ 那枚值`；
+     ② 名单上某一枚在盘上（`base.css` 之外的四份表）**不再被声明** ⇒ 红（注册表过期：搬回 base.css／改名／删掉
+        都要在这一格与 `LAYER2_REGISTERED` 与规范那一行一起销账，不许只动样式表）；
+     ③ 名单枚数 ≠ `LAYER2_REGISTERED` ⇒ 红；另加两条同源检查（名单里写重名／某一枚没有理由句子）。
+   防空转（§16"读不到被测对象的尺子从来不算绿"；本仓 `font-fallback-check --gate` 那一回的形状）三读：
+     扫到 0 份表 ⇒ 红；`LAYER2_SET` 是空的 ⇒ 红在**失去靶**（不许静默绿，也不许当条件跳过）；
+     扫到了表却一枚带色的第二层声明都读不到 ⇒ 红。
+   「带色」这一刀的口径（卡面给的收窄选项，落在这里并给出收窄前后的读数）：
+     判**红**的那一枚声明＝值里含 ① 十六进制字面量（三位或六位，字面量与 `HEX_LIT` 逐字符相同）／
+     ② `light-dark(` ／ ③ `color-mix(` ／ ④ `rgb(` 或 `rgba(` 之一的自定义属性声明。
+     按这一条，盘上带色的是 **30 处 / 11 枚名**；按最宽那一刀（第二层**任何**一枚 `--*:` 声明都进牙①）是
+     **79 处 / 25 枚名**。两刀在交付态都红 **0 枚**——因为 `LAYER2_SET` 登记的是**全部 25 枚名**（每枚带理由），
+     差别只在"将来新冒出来的那一枚"要不要先登记：收窄那一刀只管色，乘数与几何留在①e／②／`gap-check` 那一侧。
+     被这一刀**排除**的 14 枚名，逐枚为什么：`--fog`（乘数，压在 opacity 上，④ 那一格吃它三枚端点）、
+     `--photo-look`（一串 filter 函数，不是 `<color>`）、`--lit-at`／`--lit-r`（方位与半径，`light-dark()` 不吃它）、
+     `--head-top`／`--band-h`／`--title-size`／`--title-box`（页头气带几何）、`--band-a`（气带浓度乘数）、
+     `--lantern-boost`／`--lantern-r`（雾灯乘数与半径，含两枚 `@property`）、`--shaft-base`（光柱底端乘数，`@property`）、
+     `--hole`（灯洞透明度乘数，`@property`）、`--read-fog`（阅读雾线起点 `-9999px`，运行时由 `site.js` 改写）。
+     ⚠️ 这一刀读不到的写法照旧点名登记，不藏：具名色（`red`）、`hsl()`／`hwb()`／`lab()`／`lch()`／`oklch()`／
+     `color()` 打头的值**不在**上面四族里 ⇒ 本牙判不到（盘上今天一枚都没有）；`@keyframes` 的 `from`／`to`／`%`
+     帧整块不进块体切分（与 ①e 同一个既有边界）。要收这两族就得连 ①e 的名册一起改，那是另一张卡。
+   文件集：四份非 base 样式表（`mistwood` / `home` / `essay` / `notes`），与 ①e 的 `HEXCOLOR_SHEETS`
+     **不同源**（那一格是"五份在册、base 在册但不进扫描"，这一格是"四份、base 根本不在册"——两族的口径不同，
+     各自带一份名单，谁也不牵动谁）。`notes.css` 在册而今天 0 枚声明：**扫它正是因为它今天 0 枚**
+     （§17 那句"`essay.css`／`notes.css` 对应页"管的是这两层，不扫它它就永远是盲区）。
+     不在本牙射程的声明（点名，不含糊）：`index.astro` 模板内联的 `--i`（入场节拍序号，8 枚写在 `style="--i:N"`
+     里）、`hero.js` / `site.js` 用 `setProperty` 写进行内的 `--lx`／`--ly`／`--shaft-breath`／`--cascade`／`--read-fog`
+     运行时值——它们不住在任何样式表里，§17 那张表管的是**样式表分层**；侦察那趟给的 81 处 / 26 枚名是
+     「四份表 79 处 / 25 枚名」＋「`index.astro` 内联 2 枚声明位 / 1 枚名 `--i`」两本账相加，本牙只吃前一账。
+   冲突裁决（调度方已给，本卡核对盘上后执行）：规范 §17 那句「`essay.css`／`notes.css` 不声明任何色板令牌」
+     与盘上不符——`essay.css` 的 `:root{--ground:color-mix(in srgb,var(--lit) 30%,transparent)}` 是一枚带色的
+     第二层声明，而 ②③ 那两格的第二层光复算正靠它（`paintOf('--ground', effFn)` 那一枚读不到就红在"第二层光的判据正在空转"）。
+     ⇒ 裁它**合法在册**：它是派生层（母漆 `--lit` 已在 `BASE_SET` 之外的第二层、按比例解出来，零新色），
+     不是一枚新色。所以它进 `LAYER2_SET` 并带"派生层"那句理由，与本卡读到的那句现在时更正同源。 */
+const LAYER2_SHEETS = ['mistwood.css', 'home.css', 'essay.css', 'notes.css'];
+const LAYER2_SCANNED_REGISTERED = 4;   /* 独立字面量：在册四份、base.css 不在册（与 HEXCOLOR_SCANNED_REGISTERED 不同源，理由在上面那一段） */
+const LAYER2_REGISTERED = 25;          /* 独立字面量（三处同源的第三处）：规范 §17 那张分层表 ⇄ 下面的名单 ⇄ 这一枚 */
+/* 机器可读的第二层白名单：键＝允许住在 `base.css` **之外**的令牌名，值＝它凭什么在册（逐枚一句，不许空）。
+   ⚠️ 键名一律小写逐字符（`declsOfBody` 把属性名 `toLowerCase()` 过，CSS 自定义属性本是大写不敏感……
+   严格说是"大小写敏感"，但本仓五份表今天全小写；真冒出一枚 `--Firefly` 那种写法，本牙与 ①e 同一口径按小写认，
+   这一条边界登记在这里而不是藏起来）。 */
+const LAYER2_SET = {
+  /* ---- mistwood.css：全站加载、内容属子页那一层（§17 表第二行点名的就是这几枚） ---- */
+  '--glass-lit': 'mistwood.css 的 `:root` 亮暗成对那三枚之一（玻璃被照亮，§8.5）：只有子页导航与玻璃条用得到。`card/pairedtokens` 起两档并成一行 `light-dark()`，暗支由 ①b 拆回两档，退路镜像 `@supports not` 那两支由 ①b 逐字符比对——本牙只认它是第二层在册带色名。',
+  '--surface': '同上一族（移动端实色卡面，§11）：`light-dark(#F7F8F5, #141A14)`。⚠️ 它与 `base.css` 无关——①／①b 那几格读到它进色板表（交付态第 17/34 行印的就是它），而反向 orphan 那一圈只遍历 `inBase`，洞二正是这一格补的射程。',
+  '--lit': '子页方向光（§2.1，画在 `.wrap::before`，首页那束在 `.hero`）＋亮色三段时段色温（dawn / dusk / night 各一枚 rgba）＋ `@supports` 镜像两支：只有子页用得到。②③ 那两格的方向光复算吃的就是它，α 上限由 §2.4 守着。',
+  '--bg-base': '暗色两段色温覆写（`html[data-phase="dusk"|"dawn"][data-theme="dark"]`，§2.3 路线图 #11）：与 `base.css` **同名不同键**——① 那一族的键带上下文，条件块与基准板不算分叉，所以它既过 ① 也必须在第二层名单上（"只转色相不转亮度"那句要求它与基准底同趟重锁）。',
+  '--bg-top': '同上一枚的顶：暗色 dusk / dawn 两档的 `--bg-top` 覆写，理由与 `--bg-base` 同一句（§2.3 末与 §17 那张表第二行）。',
+  /* ---- home.css：只有首页加载（§17 表第三行） ---- */
+  '--scrim-top': '首屏纱罩三段之一（§2.3 / §5）：照片只在首页在场，纱罩跟着照片走，子页没有照片 ⇒ 只有首页用得到；并成 `light-dark()` 后另有 `@supports` 镜像两支与傍晚那一档的覆写。',
+  '--scrim-mid': '同上（中段）。C1 沉底之后它"不跟转"的那笔账（差 3/255、方向没反）写在规范 §2.3 那一格，不归本牙。',
+  '--scrim-bottom': '同上（下沿，α=1 那一支）。',
+  '--scrim-text': '首屏文字脚下那枚 `radial-gradient(...rgba(...)...)` 提亮／压暗层（§5 铁律 3 那一族）：一枚 gradient，`light-dark()` 只吃 `<color>` 所以它**不许**并档，两档各写一遍（`:root` 与 `html[data-theme="dark"]`）。',
+  '--firefly': '惊起萤火虫那枚色（§8.6）：只有首页有萤火，且只有一档写过值 ⇒ 不并档。⚠️ 它就是洞二那一枚盘上实例（`home.css:22 --firefly:#A9C4A0`），也是 ①e 的 HC9 反例钉住"令牌位不进色属性名册"的那个名字——两件事并存：①e 不管它，①f 从此管它（改值不在名单外，删名会红在牙②）。',
+  /* ---- essay.css：详情页那一层（§17 表末行的那句更正点名的就是它） ---- */
+  '--ground': '正文脚下那层地面光（§15）：`color-mix(in srgb, var(--lit) 30%, transparent)`——**派生层，不是新色**（母漆 `--lit` 三成，零新 hex／零新 rgba），所以 2026-10-03 那句"不声明任何色板令牌"的更正裁它合法在册。②③ 的第二层光复算正靠它（`paintOf` 读 `--ground` 那一枚，读不到就红在"第二层光的判据正在空转"），本卡的登记与那句更正同源。',
+  '--read-fog': '阅读雾线的起点值（`-9999px`，§8.7）：几何不是色，运行时由 `site.js` 的 `setProperty` 改写那一枚 ⇒ 不进本牙的带色那一刀，但它在第二层在册名单里（牙② 管它别消失）。',
+  /* ---- 乘数／几何／filter：第二层在册，但带色那一刀不判它们（口径与排除理由在上面那一段逐枚点名） ---- */
+  '--fog': '显示设置里那枚"雾"的乘数（淡 .4 / 中 1 / 浓 1.35）：只乘在氛围层的 `opacity` 上，不动颜色；④ 那一格吃的就是它这三枚端点，牙⑤ 钉着登记上界 1.35。',
+  '--photo-look': '照片那串 filter（`saturate() brightness()`，§10.5 褪色）：两档各写，因为 `light-dark()` 只吃 `<color>`（mistwood.css 那一格明写了这一句）。',
+  '--lit-at': '方向光的方位（`-14% -10%`＋时段三行）：几何。',
+  '--lit-r': '方向光的半径（`56vmax`＋时段三行）：几何。',
+  '--head-top': '子页页头气带的上沿（`vh` 三档＋窄屏三档）：几何，`gap-check` 那一侧管它的数。',
+  '--band-h': '气带高度：几何。',
+  '--band-a': '气带浓度乘数（基准 .75 / 404 那档 .95，§13b 与 §17 末那格签过）：乘数，不是色。',
+  '--title-size': '页头标题字号 `clamp()`：几何。',
+  '--title-box': '带子中心的推导值（`calc(1.85 * var(--title-size))`）：几何。',
+  '--lantern-boost': '满月那两晚雾灯半径的乘数（§6 / §8.5）：只住在首页 `.scene`，§17「不许归并的东西」第一条点名的就是这一族。',
+  '--lantern-r': '雾灯半径 `clamp()`（含 `@property --lantern-r` 注册与 `@media (pointer:coarse)` 那一档）：几何＋乘数，同上。',
+  '--shaft-base': '光柱底端强度乘数（八档时段＋四档 `data-shaft`，§5.1）：`@property` 注册为 `<number>` ⇒ 不是色。',
+  '--hole': '雾灯洞的透明度乘数（`.scene.lantern-on .scrim{--hole:.04}`，§8.5）：`@property` 注册为 `<number>`，进的是 `rgba(0,0,0,var(--hole,1))` 的 α 位。',
+};
+/* 「带色」的口径（上面那一段写的四族）。⚠️ `HEX_LIT` 带 /g，与 `.test()` 不相容（lastIndex 会咬人），
+   所以这里另写一枚**不带 /g** 的副本，字面量与它逐字符相同——两枚长歪就是下一场漂移。 */
+const LAYER2_HEX_RE = /#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})\b/;
+const LAYER2_FN_RE = /(?:light-dark|color-mix|rgba?)\(/i;
+const isLayer2Color = v => LAYER2_HEX_RE.test(v) || LAYER2_FN_RE.test(v);
+/* 第二层声明的抽取本体（**纯函数**，真实扫描与七枚内置反例吃的是同一枚）：
+   沿用 `splitBlocks` ＋ `declsOfBody` ＋ `declLine`——仓里"规则体"与"行号"各只有一份定义，本牙不另起。
+   ⚠️ `base.css` 的剔除发生在本函数里（照 `bareHexColorRows` 那一格的口径），不许在调用方另写一份过滤。 */
+function layer2Decls(files){
+  const decls = [];
+  let scanned = 0;
+  for (const { file, src } of files){
+    if (file === 'base.css') continue;             /* 第一层归 ①／①b／①c 那几格的账 */
+    scanned++;
+    for (const b of splitBlocks(src).raw) for (const d of declsOfBody(b.body)){
+      if (!d.custom) continue;                     /* 本牙只管令牌位；色属性里的裸 hex 归 ①e */
+      const value = d.value.trim().replace(/\s+/g, ' ');
+      decls.push({ file, line: declLine(b, d), sel: b.sel, ctx: b.ctx, name: d.name, value, color: isLayer2Color(value) });
+    }
+  }
+  return { decls, scanned, read: files.length };
+}
+/* 判据本体：把抽出来的声明与白名单对账，三把牙各自的命中都带出来（fixture 传替身 allow 才能不吃盘上事实）。 */
+function layer2Audit(files, allow = LAYER2_SET){
+  const { decls, scanned, read } = layer2Decls(files);
+  const colorRows = decls.filter(d => d.color);
+  const names = new Set(decls.map(d => d.name));
+  const unlisted = colorRows.filter(r => !Object.prototype.hasOwnProperty.call(allow, r.name));
+  const stale = Object.keys(allow).filter(n => !names.has(n));
+  return { decls, colorRows, names, unlisted, stale, scanned, read };
+}
+/* 七枚常驻反例（照 ①e 的 HC1–HC9 与 ④ 的 FOG_FIXTURES 的形状：contra 必须红、narrow 不许误红；
+   跑的是 layer2Audit 本体。三把牙各有一枚正钉，剩下的钉口径边界与"base 不进本牙"那枚形状钉。 */
+const LAYER2_FIXTURES = [
+  { id: 'L2F1 朝宽·不在名单上的 hex 令牌（洞二那一枚原始形状，必须红且点名）', side: 'contra',
+    run: () => { const t = layer2Audit([{ file: 'fixture-home.css', src: ':root{ --probe-ink:#B3215A; }' }]);
+      const r = t.unlisted[0];
+      return { hit: !!r && t.unlisted.length === 1 && r.name === '--probe-ink' && r.color === true,
+        note: `红 ${t.unlisted.length} 处${r ? `｜点名 ${r.file}:${r.line} ⇄ ${r.sel} ⇄ ${r.name} ⇄ ${r.value}` : '（没点名）'}` }; } },
+  { id: 'L2F2 朝宽·不在名单上的 light-dark() 令牌（HEX 读不到它、①b 只数对数，本牙必须看得见）', side: 'contra',
+    run: () => { const t = layer2Audit([{ file: 'fixture-mistwood.css', src: ':root{ --probe-glass:light-dark(#F7F8F5, #141A14); }' }]);
+      const r = t.unlisted[0];
+      return { hit: !!r && t.unlisted.length === 1 && r.name === '--probe-glass',
+        note: `红 ${t.unlisted.length} 处｜令牌 ${r ? r.name : '∅'}（值 ${r ? r.value : '∅'} 走的是四族里的 hex＋light-dark 两族）` }; } },
+  { id: 'L2F3 朝宽·不在名单上的 color-mix() 派生令牌（FN 那一族读不到派生写法，CMIX 读得到——本牙吃同一批正则口径）', side: 'contra',
+    run: () => { const t = layer2Audit([{ file: 'fixture-essay.css', src: ':root{ --probe-ground:color-mix(in srgb, var(--lit) 30%, transparent); }' }]);
+      const r = t.unlisted[0];
+      return { hit: !!r && t.unlisted.length === 1 && r.name === '--probe-ground',
+        note: `红 ${t.unlisted.length} 处｜令牌 ${r ? r.name : '∅'}（在册的那枚 --ground 同形状，只差没登记这一枚名字）` }; } },
+  { id: 'L2F4 朝宽·名单里躺着一枚盘上没有的名（牙② 注册表过期必须有行程）', side: 'contra',
+    run: () => { const allow = { '--ghost-ink': '本牙自证用的替身：盘上第二层没有任何一处声明它', '--firefly': LAYER2_SET['--firefly'] };
+      const t = layer2Audit([{ file: 'fixture-home.css', src: 'html[data-phase="dusk"] .firefly-field{ --firefly:#A9C4A0; }' }], allow);
+      return { hit: t.stale.length === 1 && t.stale[0] === '--ghost-ink' && !t.unlisted.length,
+        note: `过期 ${t.stale.length} 枚（${t.stale.join(' / ') || '无'}）· 不在名单的带色声明 ${t.unlisted.length} 枚（期望 0——在册那一枚不该被牵连）` }; } },
+  { id: 'L2F5 朝窄·`--firefly:#A9C4A0`（洞二那一枚盘上实例：在册 ⇒ 牙① 不许红；与 ①e 的 HC9 成对——那里钉"不进色属性名册"，这里钉"在册且在第二层"）', side: 'narrow',
+    /* ⚠️ 这一枚只判牙①（在册名不许红）：fixture 只带一枚声明，拿牙② 的"名单里盘上找不到"去比会把
+       另外 24 枚在册名全算成过期——那是 fixture 的形状，不是盘上的事实。牙② 的正钉在 L2F4。 */
+    run: () => { const t = layer2Audit([{ file: 'fixture-home.css', src: ':root{ --firefly:#A9C4A0; }' }]);
+      return { hit: t.unlisted.length > 0,
+        note: `读到声明 ${t.decls.length} 枚（带色 ${t.colorRows.length} 枚，就是它）、不在名单 ${t.unlisted.length} 枚 —— 读到了才叫不红` }; } },
+  { id: 'L2F6 朝窄·不在名单但**不带色**的声明（`--probe-look:saturate(.5)`：这一族留在带色那一刀之外，不许误红）', side: 'narrow',
+    run: () => { const t = layer2Audit([{ file: 'fixture-mistwood.css', src: ':root{ --probe-look:saturate(.5) brightness(1.1); }' }]);
+      return { hit: t.unlisted.length > 0,
+        note: `读到声明 ${t.decls.length} 枚、其中带色 ${t.colorRows.length} 枚（0 ⇒ 本牙不判它；排除的 14 枚名与理由在上面那一段逐枚点名）` }; } },
+  { id: 'L2F7 朝宽·同一串 CSS × 两份文件名（base.css 是第一层、根本不进本牙＝形状钉，照 HC5 的写法）', side: 'contra',
+    run: () => { const css = ':root{ --probe-ink:#B3215A; }';
+      const t = layer2Audit([{ file: 'base.css', src: css }, { file: 'fixture-home.css', src: css }]);
+      return { hit: t.scanned === 1 && t.unlisted.length === 1 && t.unlisted[0].file !== 'base.css',
+        note: `读了 ${t.read} 份／扫了 ${t.scanned} 份（base.css 在册都不在册——它属第一层）｜红 ${t.unlisted.length} 枚且点名 ${t.unlisted[0] ? t.unlisted[0].file : '∅'}（期望：只有非 base 那一半红）` }; } },
+];
+const LAYER2_FIXTURES_REGISTERED = 7;   /* 独立字面量，与实跑枚数不同源就红（照 HEXCOLOR_FIXTURES_REGISTERED 的口径） */
+let layer2Drift = 0, l2FixRan = 0, l2FixFailed = 0;
+{
+  console.log('\n=== ①f 第二层令牌白名单（洞二：`base.css` 之外的令牌声明 ⇄ 哪些令牌许住第二层）===');
+  const l2Files = LAYER2_SHEETS.map(f => join(ROOT, 'src', 'styles', f));
+  const l2Missing = l2Files.filter(f => !existsSync(f)).map(f => f.split(/[\\/]/).pop());
+  for (const f of l2Missing){ layer2Drift++; console.log(`  ✗ 本牙在册的样式表 ${f} 读不到 —— 这一格正在对不存在的文件判绿，按 §16 判红不判跳过`); }
+  if ([...new Set(LAYER2_SHEETS)].length !== LAYER2_SHEETS.length){
+    layer2Drift++;
+    console.log(`  ✗ 第二层文件名单里写重了名（${LAYER2_SHEETS.length} 枚 ⇄ 去重 ${new Set(LAYER2_SHEETS).size} 枚）—— 重名会把扫描份数骗过去`);
+  }
+  const l2 = layer2Audit(l2Files.filter(f => existsSync(f)).map(f => ({ file: f.split(/[\\/]/).pop(), src: readFileSync(f, 'utf8') })));
+  /* 牙④（防空转，三读，先跑在最前：失去靶不许被"红 0 枚"那种摘要盖过去） */
+  if (!Object.keys(LAYER2_SET).length){
+    layer2Drift++;
+    console.log('  ✗ `LAYER2_SET` 是空的（0 枚名）—— 这一格**失去了靶**：白名单不点名任何令牌，牙① 退化成"谁都红"、牙② 退化成"什么都不查"，两本账同时没人守。判红不判跳过（本仓 `font-fallback-check --gate` 那一回踩的就是"扫到 0 就静默绿"）。');
+  }
+  if (!l2.scanned){
+    layer2Drift++;
+    console.log(`  ✗ 本牙扫到 0 份样式表（在册 ${LAYER2_SHEETS.length} 份）—— 读不到被测对象的尺子从来不算绿（§16），这里判红不判跳过`);
+  } else if (l2.scanned !== LAYER2_SCANNED_REGISTERED){
+    layer2Drift++;
+    console.log(`  ✗ 本牙实际扫了 ${l2.scanned} 份表、登记值 ${LAYER2_SCANNED_REGISTERED} 份（在册 ${LAYER2_SHEETS.length} 份，base.css 根本不进册）—— 文件集被人动过而这里没跟着登记（三处同源在这一格的形态）`);
+  }
+  if (l2.scanned && !l2.colorRows.length){
+    layer2Drift++;
+    console.log(`  ✗ 扫了 ${l2.scanned} 份表却一枚带色的第二层声明都没读到 —— 洞二那一族在盘上是既成事实（base.css 之外那 30 处，home.css 的 --firefly:#A9C4A0 就在其中），读不到就是本牙的口径歪了，不许顶着"不在名单 0 处"过关`);
+  }
+  /* 牙①：不在名单上的带色声明 ⇒ 逐处点名（四格齐全：文件∶行 ⇄ 选择器（上下文）⇄ 令牌 ⇄ 那枚值） */
+  for (const r of l2.unlisted){
+    layer2Drift++;
+    console.log(`  ✗ ${r.file}:${r.line} ⇄ ${r.sel}${r.ctx ? `（${r.ctx}）` : ''} ⇄ ${r.name}: ${r.value} —— base.css 之外冒出一枚**不在白名单上的带色令牌**（洞二那一族）`);
+    console.log(`      二选一：① 它本该住在第一层 ⇒ 搬回 base.css，走 ①／①b／①c 那几格"一处真值＋完备性＋消费对账"的账；② 它确实只属于这一层 ⇒ 先裁它凭什么，再登记进 LAYER2_SET 并连 LAYER2_REGISTERED 与规范 §17 那张分层表一起改。⚠️ 只改样式表就是这一格要治的病：进了色板表、被打印、改值永不红。`);
+  }
+  /* 牙②：名单上某一枚在盘上没了 ⇒ 注册表过期 */
+  for (const n of l2.stale){
+    layer2Drift++;
+    console.log(`  ✗ ${n} 在 LAYER2_SET 里在册，可 base.css 之外的 ${l2.scanned} 份表里再没有一处声明它 —— 注册表过期（${LAYER2_REGISTERED} 枚那一本账的第三处）`);
+    console.log(`      要么它被搬回第一层／改了名／整枚撤掉 ⇒ 这一格、LAYER2_REGISTERED 与规范 §17 那一行一起销账；要么它是被人误删了 ⇒ 把它写回去。三处同源，动一处必红另两处。`);
+  }
+  /* 牙③：枚数与登记值（独立字面量，绝不从扫描推导）＋ 逐枚带理由 */
+  if (Object.keys(LAYER2_SET).length !== LAYER2_REGISTERED){
+    layer2Drift++;
+    console.log(`  ✗ 白名单实际 ${Object.keys(LAYER2_SET).length} 枚名、登记值 ${LAYER2_REGISTERED} 枚 —— 这第二层白名单的"三处同源"断了（规范 §17 那张分层表 / LAYER2_SET 本体 / 这一枚独立字面量）`);
+  }
+  const noWhy = Object.entries(LAYER2_SET).filter(([, why]) => !String(why || '').trim()).map(([n]) => n);
+  if (noWhy.length){
+    layer2Drift++;
+    console.log(`  ✗ 白名单里这 ${noWhy.length} 枚没有"凭什么在册"那一句：${noWhy.join(' / ')} —— 卡面要求逐枚带理由，空着的名就是没人裁过的名`);
+  }
+  /* 牙⑤：七枚内置反例每次跑都吃一遍（红在"反例没力气"与"朝窄误红"，不红在盘上） */
+  const l2FixRows = [];
+  for (const fx of LAYER2_FIXTURES){
+    let r = null, err = null;
+    try { r = fx.run(); } catch (e){ err = e; }
+    const ran = !!r && typeof r.hit === 'boolean';
+    const wantRed = fx.side === 'contra';
+    const good = ran && r.hit === wantRed;
+    if (good) l2FixRan++; else l2FixFailed++;
+    l2FixRows.push(`    ${good ? '✓' : '✗'} ${fx.id}（朝${wantRed ? '宽：必须红' : '窄：不许误红'}）→ ${err ? '抛了 ' + err.message : (ran ? (r.hit ? '红' : '不红') : '没跑出读数') + '｜' + (r && r.note ? r.note : '')}`);
+  }
+  if (l2FixFailed){ layer2Drift += l2FixFailed; console.log(l2FixRows.filter(x => x.startsWith('    ✗')).join('\n')); }
+  if (l2FixRan + l2FixFailed !== LAYER2_FIXTURES_REGISTERED || l2FixRan !== LAYER2_FIXTURES_REGISTERED){
+    layer2Drift++;
+    console.log(`  ✗ 反例跑了 ${l2FixRan} 枚、清单登记 ${LAYER2_FIXTURES_REGISTERED} 枚（另有 ${l2FixFailed} 枚没在期望的位置红）—— id 齐不代表牙齐，删掉一枚反例这里就看得见`);
+  }
+  const colorNames = [...new Map(l2.colorRows.map(r => [r.name, r])).keys()];
+  const perName = n => l2.colorRows.filter(r => r.name === n).length;
+  console.log(`  ${layer2Drift ? '✗ 这一关没过' : '✓'} ①f 第二层白名单：在册 ${LAYER2_SHEETS.length} 份表（${LAYER2_SHEETS.join(' / ')}）· 实扫 ${l2.scanned} 份（登记值 ${LAYER2_SCANNED_REGISTERED}；base.css 是第一层，不进本牙）· 白名单 ${Object.keys(LAYER2_SET).length} 枚名（登记值 ${LAYER2_REGISTERED}＝独立字面量）· 盘上第二层声明 ${l2.decls.length} 处 / ${l2.names.size} 枚名 · 其中带色 ${l2.colorRows.length} 处 / ${colorNames.length} 枚名 · 不在名单的带色声明 ${l2.unlisted.length} 处 · 名单里盘上找不到的 ${l2.stale.length} 枚 · 内置反例 ${l2FixRan}/${LAYER2_FIXTURES_REGISTERED} 枚各在其位`);
+  console.log(`    逐枚带色名（盘上现读处数）：${colorNames.map(n => `${n} ${perName(n)}${Object.prototype.hasOwnProperty.call(LAYER2_SET, n) ? '' : '⇒ 不在名单'}`).join(' · ')}`);
+  console.log(`    收窄前后的两刀（口径与被排除的枚名都在上面那一段逐枚点名）：带色那一刀＝${l2.colorRows.length} 处 / ${colorNames.length} 枚名（本牙判红的射程）· 最宽那一刀＝${l2.decls.length} 处 / ${l2.names.size} 枚名（乘数与几何留在 ①e／②／gap-check 那一侧；两刀在交付态都红 0 枚，因为白名单登记的是全部 ${l2.names.size} 枚名）`);
+  if (process.env.PALETTE_LAYER2_ROWS){
+    console.log('    第二层逐枚明细（名 ⇄ 文件∶行 ⇄ 上下文与选择器 ⇄ 值 ⇄ 带色? ⇄ 在册?）：');
+    console.log(l2.decls.map(d => `      ${d.name.padEnd(16)} ${d.file}:${String(d.line).padEnd(5)} ${d.ctx ? `[${d.ctx}] ` : ''}${d.sel} ⇄ ${d.value || '(空)'} ${d.color ? '带色' : '—'} ${Object.prototype.hasOwnProperty.call(LAYER2_SET, d.name) ? '在册' : '✗ 不在名单'}`).join('\n'));
+  }
+  if (SELFTEST){
+    console.log('\n=== ①f 反例清单（--selftest：洞二那一族朝宽必须红、朝窄不许误红；它故意吃坏数据，所以不接进 npm run check 的默认链）===');
+    console.log(l2FixRows.join('\n'));
+    console.log(`  ${l2FixFailed ? `✗ ${l2FixFailed} 枚反例没在期望的位置红` : `✓ ${l2FixRan} 枚反例全部落在期望的一侧（登记值 ${LAYER2_FIXTURES_REGISTERED} 枚）`}`);
   }
 }
 
@@ -1373,9 +1626,9 @@ let fogCeilDrift = 0, fogFloorPrinted = 0;
     console.log(`  ${fogCeilDrift ? `✗ ${fogCeilDrift} 处牙⑤ 没过（上界本体或它的自证）` : `✓ 牙⑤ ${fogBndFix.length} 枚自证各在其位，盘上最大端点 ${fogBnd.max} 未越过登记上界 ${FOG_CEILING_REGISTERED}`}`);
     /* ⚠️ 这一句 exit 在最终那一行之前，所以 ①e（洞一）那九枚反例的红必须在这里也计一次，
        否则 `--selftest` 会把 ①e 的歪判据藏成 rc=0（2026-10-03 `w2q/hexcolor` 加的这一枚）。 */
-    process.exit(fogFixFailed || fogCeilDrift || hexDrift ? 1 : 0);
+    process.exit(fogFixFailed || fogCeilDrift || hexDrift || layer2Drift ? 1 : 0);
   }
 }
 
-if (bad || bad2 || drift || ldDrift || useDrift || strawDrift || fogDrift || fogCeilDrift || hexDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）、${fogDrift} 处「雾当明暗」的牙②③④没过（某一档的在册前景读不到／扫到 0 组失去靶／盘上 --fog 端点与本格登记值不同源／反例没红在该红的位置）、${fogCeilDrift} 处「雾当明暗」的牙⑤ 单调上界没过（--fog 最大端点越过登记上界 ${FOG_CEILING_REGISTERED}＝把雾往"更浓＝更暗"那一侧推，那一族已判不可落；或这枚牙自己的四枚自证 fixture 没了行程）、${hexDrift} 处「①e 规则体里的裸十六进制」（洞一）没过（非 base 表里九枚色属性写了裸 hex／本牙扫到 0 份表／扫到的份数或读到落点数与登记值不同源／那 ${HEXCOLOR_FIXTURES_REGISTERED} 枚内置反例没落在期望的一侧）`); process.exit(1); }
+if (bad || bad2 || drift || ldDrift || useDrift || strawDrift || layer2Drift || fogDrift || fogCeilDrift || hexDrift){ console.log(`\n✗ ${bad} 个基础令牌、${bad2} 处时段/月相/方向光读数、${drift} 处"色板有两处真值"跌破登记值、${ldDrift} 处成对声明/退路镜像没过对账、${useDrift} 处消费对账没过（零消费又没登记，或例外表没销账）、${strawDrift} 处枯草金配额没过（在册消费者枚数对不上，或某处消费者没带"傍晚 + 亮档"那道闸）、${layer2Drift} 处「①f 第二层令牌白名单」（洞二）没过（base.css 之外冒出不在名单上的带色令牌／名单里某一枚在盘上不再被声明＝注册表过期／白名单枚数与独立登记值 ${LAYER2_REGISTERED} 对不上／某一枚没有"凭什么在册"那句／白名单为空或扫到 0 份表或一枚带色的第二层声明都读不到＝失去靶／那 ${LAYER2_FIXTURES_REGISTERED} 枚内置反例没落在期望的一侧）`); process.exit(1); }
 console.log('\n✓ 色板达标：正文级 ≥7、次要 ≥4.5 全部守住');
