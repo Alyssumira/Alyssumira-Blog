@@ -942,7 +942,17 @@ let hexDrift = 0, hexFixRan = 0, hexFixFailed = 0;
      与盘上不符——`essay.css` 的 `:root{--ground:color-mix(in srgb,var(--lit) 30%,transparent)}` 是一枚带色的
      第二层声明，而 ②③ 那两格的第二层光复算正靠它（`paintOf('--ground', effFn)` 那一枚读不到就红在"第二层光的判据正在空转"）。
      ⇒ 裁它**合法在册**：它是派生层（母漆 `--lit` 已在 `BASE_SET` 之外的第二层、按比例解出来，零新色），
-     不是一枚新色。所以它进 `LAYER2_SET` 并带"派生层"那句理由，与本卡读到的那句现在时更正同源。 */
+     不是一枚新色。所以它进 `LAYER2_SET` 并带"派生层"那句理由，与本卡读到的那句现在时更正同源。
+   ⚠️ 本牙判的是**在册与否 / 在不在盘上**（名级），**不判值**——实测：把 `home.css` 的 `--firefly:#A9C4A0` 改成
+     `#A9C4A1`，新旧两版尺子都 rc=0。值这一维在第二层不是一格没人守的空洞，但守它的不是本牙，逐枚点名：
+       · 六枚并档的（`--glass-lit` / `--surface` / `--lit` / `--scrim-top` / `-mid` / `-bottom`）⇒ ①b 逐字符比
+         成对声明与 `@supports` 镜像（改那边不改这里就红），`LD_NEEDLE` 还把 `--scrim-top` 两档值钉到逐字符；
+       · `--bg-base` / `--bg-top` / `--lit` / `--ground` ⇒ ②③ 那十四档复算吃它们的有效值（破地板红、读不到红、
+         α=0 红、`color-mix` 解不动红）；
+       · `--firefly` 与 `--scrim-text` ⇒ 今天**只有色板表打印与 ① 的跨文件重复**，值级没有牙。这一格是本卡
+         读到的既成事实、不是本卡的欠账：要给它加值级牙，得先裁"逐字符钉死多少枚第二层的值是判据、多少枚是
+         作者的自由"，那与 `LD_NEEDLE` 那一族是同一道题，另开一张卡。别把本牙那句"改值永不红 ⇒ 洞二"读成
+         "①f 把改值也拦住了"——它拦的是**新增没登记的名**与**登记过却消失的名**。 */
 const LAYER2_SHEETS = ['mistwood.css', 'home.css', 'essay.css', 'notes.css'];
 const LAYER2_SCANNED_REGISTERED = 4;   /* 独立字面量：在册四份、base.css 不在册（与 HEXCOLOR_SCANNED_REGISTERED 不同源，理由在上面那一段） */
 const LAYER2_REGISTERED = 25;          /* 独立字面量（三处同源的第三处）：规范 §17 那张分层表 ⇄ 下面的名单 ⇄ 这一枚 */
