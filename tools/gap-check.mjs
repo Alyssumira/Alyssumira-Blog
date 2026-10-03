@@ -146,7 +146,7 @@ const HSHORTHAND = ['margin', 'padding', 'gap'];
    （`.thing-bar` 与 `.settings` 上内垫都是它），涨的是槽位不是新值；横向 18px、`bottom:16px`、`left:50%`、
    `max-width:84vw` 四件都不在拆值口径里，所以这一格全站也只多这一枚。C 档 52 枚仍一枚没动。
    ⚠️ `w2u/seal`（2026-10-03，规范二轮 §7.2 那枚文末落款落地）把 X 抬到 69、总数抬到 **145**：多出来的那一枚是
-   `essay.css` 的 `.post-seal{margin-top:14px}`——**取值 14px 是本页那一族已有的在册档**（`.post-when`／
+   `essay.css` 的 `.post-seal{margin:14px auto 0}` 里上下那一半——**取值 14px 是本页那一族已有的在册档**（`.post-when`／
    `.stamp-note`／图注三处都是它，且从来不在 8 的格子上 ⇒ 落的还是 X 档，不新开一档、也不替它上格），
    涨的是**槽位**不是**新值**。同一条里 `font-size`／`color`／`letter-spacing` 三枚都不在 `VPROPS`，
    那枚点的 `fill` 与 `width`／`height` 标记属性也都不在拆值口径里 ⇒ 全站这一格只多这一枚。
@@ -303,7 +303,7 @@ const REGISTRY = [
   ['essay.css', '@media (min-width:1240px)', '.post-body .sn-mark', 'margin', '2px', 'X', '上标号与浮注对位'],
   ['essay.css', '', '.post-body figure.shot', 'margin', '44px', 'X', '图版上下：比段距宽、比小节窄，那一档是图自己的'],
   ['essay.css', '', '.post-body figcaption', 'margin-top', '14px', 'X', '图注与其图版之间（值与引用内段距同档，机制不同：它上头不是行）'],
-  ['essay.css', '', '.post-seal', 'margin-top', '14px', 'X', '落款那一行与它上面 `.post-tail` 那一块之间：取值逐字符借本页那一族已有的 14px（`.post-when`／`.stamp-note`／图注），与它们同一档 X——14px 从来不在 8 的格子上，这一枚不新开一档、也不为它上格（`w2u/seal` 2026-10-03）'],
+  ['essay.css', '', '.post-seal', 'margin', '14px', 'X', '落款那一行与它上面 `.post-tail` 那一块之间：取值逐字符借本页那一族已有的 14px（`.post-when`／`.stamp-note`／图注三处都是它），写法照 `.post-tail`／`.post-nav` 那两块的 `margin:N auto 0`（`auto` 不认领、第 3 值是 0 也不认领）；与它们同一档 X——14px 从来不在 8 的格子上，这一枚不新开一档、也不为它上格（`w2u/seal` 2026-10-03）'],
   ['essay.css', '', '.post-nav', 'margin', '14vh', 'A', '上下篇与正文之间按视口走（§15：读完这一篇要有一段"抬头"的距离）'],
   ['essay.css', '', '.post-nav', 'gap', '32px', 'C', '左右两枚链接之间（≤720 转竖排时这一枚就是行距）'],
   ['essay.css', '', '.post-nav', 'padding-top', '48px', 'C', '封口线与"上一篇／下一篇"之间'],

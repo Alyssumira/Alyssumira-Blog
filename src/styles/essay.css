@@ -776,11 +776,11 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 /* 落款（`w2u/seal`，2026-10-03；判词在规范二轮 §7.2 那一格、撤禁令与三问的答案在 §21）：一枚枯草金点 ＋
    站点中文全名，住在 `.post-tail` 与 `.post-nav` 之间。模板那一行的注释管"为什么不放进 `.post-tail`"与
    "为什么没有日期、没有「写于」"，这一格管三笔账与三条代价。
-   ⚠️ **零枚新数值**：这一行新落的只有一枚 `margin-top` 槽位，取值逐字符借本页那一族已有的 14px
-   （`.post-when` :125／`.stamp-note` :43／图注 `figcaption`）——不新写一枚 font-size、一枚颜色、
-   一枚槽位字面量；字号·字色·字距三条声明照 `.post-when` 那一份抄（14px／`--ink-2`／.02em）。
+   ⚠️ **零枚新数值**：这一行新落的只有一枚 `margin` 的上下那一半＝14px，取值逐字符借本页那一族已有的 14px
+   （`.post-when` :125／`.stamp-note` :43／图注那格），`auto` 居中与 `max-width:680px` 照 `.post-tail` :29 与
+   `.post-nav` :801 那两块的写法——680 是它们身上已有的值，而 `max-width` 不在 gap-check 的拆值口径里、不认领。
    gap-check 三本账因此变成 垂直 145 枚（A14／B10／C52／X69）／横向那本与圆角那本一枚不添
-   （14px 从来不在 8 的格子上 ⇒ 它落 X 档，与 `.post-when`／`.stamp-note` 同一档；点走 SVG 不走 `border-radius`）。
+   （14px 从来不在 8 的格子上 ⇒ 落 X 档，与 `.post-when`／`.stamp-note` 同一档；点走 SVG 不走 `border-radius`）。
    ⚠️ **代价一·与页脚同屏重复（照实记，不写成"不重复"）**：这一行与全站页脚那行 `.foot-id`
    （`mistwood · 作者名`，`Layout.astro:266`）说的是同一件事——"这一页出自谁"——而判词实测两者**同屏**：
    文末块下缘到页脚上缘 248px（1440×900）／240px（390×844），两档都远小于一屏高。§3271 那一族
@@ -792,7 +792,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
    常亮例外清单（选择器逐字符点名，双闸那枚 Hero 斜体一格没松）与规范 §21。
    ⚠️ **代价三·纸上不上**：`base.css` 打印段那一串里点名 `html .post-seal` 整枚撤掉——纸上已经有
    `.print-foot` 那枚 `mistwood · essays · 日期`，同一张纸上落两枚签名就是上面那一族说的那种重复。 */
-.post-seal{ margin-top:14px; font-size:14px; color:var(--ink-2); letter-spacing:.02em; }
+.post-seal{ max-width:680px; margin:14px auto 0; font-size:14px; color:var(--ink-2); letter-spacing:.02em; }
 /* 那枚点：`<circle r="1">` 的几何在标记属性上，这里只给色（照 mistwood.css:1055 那枚 `.w-dot` 的分工） */
 .seal-dot{ fill:var(--straw); }
 
