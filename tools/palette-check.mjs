@@ -581,8 +581,11 @@ let strawDrift = 0;
     console.log(`  ✗ 盘上落到常亮例外那一族的消费者 ${alwaysOn} 枚、登记值 ${STRAW_ALWAYS_ON_REGISTERED} 枚 —— 同一把键写两遍（或那一枚被删了）都在这里红`);
   }
   const gatedN = found.filter(f => gated(f.sel)).length;
+  /* 每一枚消费者各点一次族名：㈠ 双闸／㈡ 常亮在册／两族都不沾——⚠️ 这一串不许压成二选一，
+     否则 M1 那种"闸被摘掉又没登记"的一枚会被印成"㈡常亮在册"，红话之外摘要行自己先撒了谎 */
+  const fam = sel => gated(sel) ? '㈠双闸' : excepted(sel) ? '㈡常亮在册' : '⚠两族都不沾';
   console.log('\n=== 枯草金配额（①d：在册消费者枚数 + 每一枚属于哪一族：傍晚双闸 ⇄ 登记过的常亮例外）===');
-  console.log(`  ${strawDrift ? '✗ 这一关没过' : '✓'} 扫了 ${files.length} 份样式表：--straw 消费者 ${found.length} 枚（登记值 ${STRAW_CONSUMERS_REGISTERED}）＝双闸 ${gatedN} 枚（㈠，home.css 那枚 Hero 斜体的闸一枚没松）＋ 常亮例外 ${alwaysOn} 枚（㈡，清单 ${Object.keys(STRAW_ALWAYS_ON_EXCEPTIONS).length} 把键／登记值 ${STRAW_ALWAYS_ON_REGISTERED} 枚）${found.length ? '：' + found.map(f => `${f.file} 「${f.sel}」${gated(f.sel) ? '㈠双闸' : '㈡常亮在册'}`).join(' / ') : ''}；四枚 fixture（双闸合格／无闸未登记／只有傍晚／常亮但在册）与一枚 var(--moss) 负控制各按其位`);
+  console.log(`  ${strawDrift ? '✗ 这一关没过' : '✓'} 扫了 ${files.length} 份样式表：--straw 消费者 ${found.length} 枚（登记值 ${STRAW_CONSUMERS_REGISTERED}）＝㈠ 傍晚双闸 ${gatedN} 枚 ＋ ㈡ 登记过的常亮例外 ${alwaysOn} 枚（清单 ${Object.keys(STRAW_ALWAYS_ON_EXCEPTIONS).length} 把键／登记值 ${STRAW_ALWAYS_ON_REGISTERED} 枚）${found.length ? '：' + found.map(f => `${f.file} 「${f.sel}」${fam(f.sel)}`).join(' / ') : ''}；四枚 fixture（双闸合格／无闸未登记／只有傍晚／常亮但在册）与一枚 var(--moss) 负控制各按其位`);
 }
 
 /* ---------- ①b 成对声明（`light-dark()` 一处写两档）与它的退路镜像 ----------
