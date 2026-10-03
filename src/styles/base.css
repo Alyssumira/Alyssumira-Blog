@@ -356,7 +356,7 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 .search[hidden]{ display:none; }
 /* 分隔点：与首页日志那一行 `.hero-log .sep` 同族（8px 左右、透明度 .5），它是入口那一块的一部分，
    所以无 JS 时跟着整块一起消失——留在扉页行末尾的半个接续词就是画坏的那一行。
-   取值口径抄 home.css:275 那一份（窄屏那一档也是 8px）。`tools/gap-check.mjs` 现在三本账：垂直 145 枚（A14／B10／C52／X69）／
+   取值口径抄 home.css:275 那一份（窄屏那一档也是 8px）。`tools/gap-check.mjs` 现在三本账：垂直 146 枚（A14／B10／C52／X70）／
    横向 86 枚（A6／B0／C25／X54／H1）／圆角 32 枚 12 种——左右这一枚水平量住在横向那本账里、在册记 C 档，
    上下那两枚 0 两本间距账都不收（零与 auto 是重置，不是间距决策）。 */
 .search .sep{ margin:0 8px; opacity:.5; }

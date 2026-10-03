@@ -357,7 +357,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
        docs/** 在禁改名单里，这一格的对账只落在这段注释里，签不签进 §13b／§3 由签字的人判。
    ⚠️ 零枚新元素（只动这一条声明，`src/lib/markdown.js` 与 `feed.js` 的 `ALLOW`⇄`feed-check.mjs` 的 `TAGS` 两本账一个字没碰）、
      零枚新色（不写 color：点吃 `currentColor`，也就是 `em` 自己那枚 `--moss-ink`，色板基础板 46 枚不涨到 47；
-     也不碰 `--ink-3`——那是装饰档，§2.4 不许它用在正文级小字上）、零枚新间距槽位（不写 margin/padding/gap ⇒ 垂直 145 枚／横向 86 枚不动）、
+     也不碰 `--ink-3`——那是装饰档，§2.4 不许它用在正文级小字上）、零枚新间距槽位（不写 margin/padding/gap ⇒ 垂直 146 枚／横向 86 枚不动）、
      零枚新圆角（不写 border-radius ⇒ 32/12 不动）、零枚新动画。
    ⚠️ 纸上（§19.4／§19.6 那一路，`base.css` 禁改，所以这里只答"撤不撤"）：**不撤，而且不需要谁来撤它**。
      它是文字层的一口墨：`--moss-ink` 在打印那一节自动折回 `--paper-ink`，点跟着墨一起上纸。
@@ -420,7 +420,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
    （表格、`.footnotes ol`）今天**都没有 ruby 载体**，所以那几层的行盒没量过；Firefox／Safari 对 `<ruby>`
    基线与 `text-autospace` 的互操作本机没量过。将来在那些层里用这枚构造，先复这一笔账（回执的未验到清单里有名字）。
 
-   ⚠️ 零新间距槽位（不写 margin/padding/gap ⇒ `gap-check` 那 145 枚一枚不涨）、零新圆角（不写 border-radius ⇒ 32/12 不动）、
+   ⚠️ 零新间距槽位（不写 margin/padding/gap ⇒ `gap-check` 那 146 枚一枚不涨）、零新圆角（不写 border-radius ⇒ 32/12 不动）、
    零新色（不写 color/background）。`rp` 那两枚括号是**兜底标点**，由 UA 样式表在支持 ruby 时收起（实测 computed `display:none`），
    所以这里不给它任何规则：阅读器里那一档"注读成（注）"的退路归 HTML 自己管，不归这张表。 */
 .post-body rt{ font-family:"IBM Plex Mono","IBM Plex Mono-fallback",monospace; font-size:.6em; }
@@ -552,7 +552,7 @@ html[data-focus="1"] .wrap::before{ display:none; }
    栏外那条边注从横排改竖排，读起来像页边的一条竖注。声明两枚：读向那一枚 `writing-mode:vertical-rl`，与收尾这一卡补进来的
    `max-height:200px`（它收的是竖排之后那一维的行长；为什么要它，见下面几何账 `height:auto` 那一格）——
    ⚠️ 零枚新槽位：margin／padding／gap／width／height 一枚不写，新落的那枚 `max-height` 也不在 `gap-check` 的槽位属性集
-   （`VPROPS`／`HPROPS` 只收 margin／padding／gap 那几个）⇒ 间距三本账一枚不涨（垂直 145 枚／横向 86 枚不动，
+   （`VPROPS`／`HPROPS` 只收 margin／padding／gap 那几个）⇒ 间距三本账一枚不涨（垂直 146 枚／横向 86 枚不动，
    包括在册那三枚 `2px`／`20px`／`-232px` 与 `.sn-mark` 那枚 `8px`，字面值逐枚照旧）。
    ⚠️ 零新动画（`writing-mode` 是静态属性）、零新色、零新元素（`markdown.js` 那只壳造出来的还是同一份 `<span class="sidenote">`）。
 
@@ -714,10 +714,10 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
    `border:1px`），为两枚点开一档描边就是把 §9 那格的发丝线口径掀了。
    ⚠️ `translateY(-2px)` 是几何派生不是挑的数：盒子 2px、影子里那枚再往下 4px ⇒ 配对总高 6px，而
    `vertical-align:middle` 对准的是盒子自己的中心（1px 处）⇒ 要中心落在配对中心就得抬 (6−2)/2＝2px。
-   ⚠️ `margin-right:6px` 是**横向**槽位：`tools/gap-check.mjs` 现在三本账——垂直 145 枚（A14／B10／C52／X69）／
+   ⚠️ `margin-right:6px` 是**横向**槽位：`tools/gap-check.mjs` 现在三本账——垂直 146 枚（A14／B10／C52／X70）／
    横向 86 枚（A6／B0／C25／X54／H1）／圆角 32 枚 12 种，`margin-left`／`padding-left`／`margin-right`／`column-gap`
    那一族由横向那本账逐枚认领（这一枚就在册：`.post-body figcaption::before` 的 `margin-right:6px` 记 X 档），
-   而垂直那 145 枚里始终没有它——两本各数各的那一半；6px 取的是 `.year-mark{margin-bottom:6px}` 在册那一档的
+   而垂直那 146 枚里始终没有它——两本各数各的那一半；6px 取的是 `.year-mark{margin-bottom:6px}` 在册那一档的
    光学量级，不新开一档留白。宿主 `figcaption` 那三行（14px／12px／.12em／`--ink-3`）一个字不动。
    ⚠️ 打印：整枚 `display:none`（`base.css` 的 §19 那一节新加那一行）——它是纯图形、零信息，"这是一帧照片"在纸上
    由那张图自己承担，而两枚点靠 `background`＋`box-shadow` 画、纸上不用 `print-color-adjust:exact`（§19.4），
@@ -776,11 +776,11 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
 /* 落款（`w2u/seal`，2026-10-03；判词在规范二轮 §7.2 那一格、撤禁令与三问的答案在 §21）：一枚枯草金点 ＋
    站点中文全名，住在 `.post-tail` 与 `.post-nav` 之间。模板那一行的注释管"为什么不放进 `.post-tail`"与
    "为什么没有日期、没有「写于」"，这一格管三笔账与三条代价。
-   ⚠️ **零枚新数值**：这一行新落的只有一枚 `margin` 的上下那一半＝14px，取值逐字符借本页那一族已有的 14px
-   （`.post-when` :125／`.stamp-note` :43／图注那格），`auto` 居中与 `max-width:680px` 照 `.post-tail` :29 与
-   `.post-nav` :801 那两块的写法——680 是它们身上已有的值，而 `max-width` 不在 gap-check 的拆值口径里、不认领。
-   gap-check 三本账因此变成 垂直 145 枚（A14／B10／C52／X69）／横向那本与圆角那本一枚不添
-   （14px 从来不在 8 的格子上 ⇒ 落 X 档，与 `.post-when`／`.stamp-note` 同一档；点走 SVG 不走 `border-radius`）。
+   ⚠️ **两枚 14px、零枚新数值**：这一行上下各一枚 14px——上缘那一枚是 `w2u/seal` 落的（2026-10-03），下缘那一枚是本卡
+   （同日 `w2u2/sealgap`）补的：主检出真产物上量到这一行只有 `margin-top`，下缘 0.00px 直接贴着全站那块深苔地面 `.site-foot`，1440×900 与 390×844 两档同值。
+   两枚取值都逐字符借本页那一族已有的 14px（`.post-when` :125／`.stamp-note` :43／图注那格），`auto` 居中与 `max-width:680px` 照 `.post-tail` :29 与 `.post-nav` :801 那两块的写法——680 是它们身上已有的值，而 `max-width` 不在 gap-check 的拆值口径里、不认领。
+   gap-check 三本账因此是 垂直 146 枚（A14／B10／C52／X70）／横向那本与圆角那本一枚不添
+   （14px 从来不在 8 的格子上 ⇒ 上下两枚都落 X 档，与 `.post-when`／`.stamp-note` 同一档；点走 SVG 不走 `border-radius`。⚠️ 写法从 `margin:14px auto 0` 那一枚简写**拆成四枚长手**（上下 14px ＋ 左右 `auto`，计算值一字不变）：本表的拆值口径把简写的第一值读成「上下」那一枚槽，照 `margin:14px auto` 写，这枚下缘留白在账上**数不出来**（上下同值折成一枚、键里连 `margin-bottom` 都不出现），拆两枚长手才让它逐枚点名）。
    ⚠️ **代价一·与页脚同屏重复（照实记，不写成"不重复"）**：这一行与全站页脚那行 `.foot-id`
    （`mistwood · 作者名`，`Layout.astro:266`）说的是同一件事——"这一页出自谁"——而判词实测两者**同屏**：
    文末块下缘到页脚上缘 248px（1440×900）／240px（390×844），两档都远小于一屏高。§3271 那一族
@@ -792,7 +792,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
    常亮例外清单（选择器逐字符点名，双闸那枚 Hero 斜体一格没松）与规范 §21。
    ⚠️ **代价三·纸上不上**：`base.css` 打印段那一串里点名 `html .post-seal` 整枚撤掉——纸上已经有
    `.print-foot` 那枚 `mistwood · essays · 日期`，同一张纸上落两枚签名就是上面那一族说的那种重复。 */
-.post-seal{ max-width:680px; margin:14px auto 0; font-size:14px; color:var(--ink-2); letter-spacing:.02em; }
+.post-seal{ max-width:680px; margin-top:14px; margin-bottom:14px; margin-left:auto; margin-right:auto; font-size:14px; color:var(--ink-2); letter-spacing:.02em; }
 /* 那枚点：`<circle r="1">` 的几何在标记属性上，这里只给色（照 mistwood.css:1055 那枚 `.w-dot` 的分工） */
 .seal-dot{ fill:var(--straw); }
 

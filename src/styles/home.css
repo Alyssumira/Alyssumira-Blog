@@ -309,7 +309,7 @@ html[data-theme="dark"] .firefly{ box-shadow:0 0 8px 2px rgba(169,196,160,.56); 
    闸门在 `hero.js` 那一段（IntersectionObserver ⇄ visibilitychange 同一枚 `syncPause()`），
    JS 那一头是"不再排下一帧"，这一条是 CSS 那一头的"同一帧也不推进"——两族同一个闸，不是一处停一处跑。
    ⚠️ 这一条只管 `animation-play-state` 一枚属性：零新时长、零新缓动（§8.8 那两枚贝塞尔一个没多）、
-   零几何、零间距 ⇒ gap-check 那 145 枚垂直槽与 32 枚圆角都不涨；`prefers-reduced-motion` 那一档
+   零几何、零间距 ⇒ gap-check 那 146 枚垂直槽与 32 枚圆角都不涨；`prefers-reduced-motion` 那一档
    本来就被 base.css 的 `animation:none !important` 收着，这一条对它没有可加的东西（萤火也不在岗）。
    选择器用 `#fireflies` 那枚 id（盒子只在首页与 404 两处存在），不新增一种类 ⇒ 不改版面、不改换行。
    ⚠️ `!important` 不是风格问题而是必需：`hero.js` 给每一枚萤火写的是 **`animation` 简写**
