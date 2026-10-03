@@ -9,7 +9,7 @@
     "preview": "astro preview",
     "new-post": "node tools/new-post.mjs",
     "og": "node tools/og-cards.mjs",
-    "check": "node tools/new-post.mjs --check && node tools/check-markdown.mjs && node tools/palette-check.mjs && node tools/phase-check.mjs && node tools/gap-check.mjs && node tools/taxonomy-check.mjs && node tools/media-check.mjs && node tools/jieqi-check.mjs && node tools/font-subset.mjs --verify",
+    "check": "node tools/new-post.mjs --check && node tools/check-markdown.mjs && node tools/palette-check.mjs && node tools/phase-check.mjs && node tools/gap-check.mjs && node tools/taxonomy-check.mjs && node tools/media-check.mjs && node tools/jieqi-check.mjs && node tools/font-subset.mjs --verify && node tools/pointer-check.mjs",
     "selftest": "node tools/phase-check.mjs --selftest",
     "gate": "npm run check && npm run build && node tools/font-subset.mjs --check && node tools/imgpipe-check.mjs && node tools/feed-check.mjs && node tools/pagination-check.mjs && node tools/ring-check.mjs && node tools/alias-check.mjs && node tools/lifegrid-check.mjs && node tools/reading-check.mjs && node tools/search-check.mjs && node tools/runtime-check.mjs && node tools/og-check.mjs --dist"
   },
