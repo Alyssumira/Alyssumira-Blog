@@ -434,7 +434,7 @@ const aside = [
 ].filter(Boolean).join('／');
 console.log(`· 裸行号读到 ${bare.length} 枚（登记值 ${BARE_RATCHET}）`
   + (aside ? `，其中 ${aside}（只报不红：棘轮只管枚数）` : '')
-  + (bare.length < BARE_RATCHET ? `；比登记值少 ${BARE_RATCHET - bare.length} 枚——棘轮就是要让它绿着往下走，下一次把登记值往小里滑一格是那一族的账` : ''));
+  + (bare.length > 0 && bare.length < BARE_RATCHET ? `；比登记值少 ${BARE_RATCHET - bare.length} 枚——棘轮就是要让它绿着往下走，下一次把登记值往小里滑一格是那一族的账` : ''));
 for (const x of reds) console.log(x);
 if (reds.length) { console.log(`✗ pointer-check：${reds.length} 句红`); process.exit(1); }
 console.log(`✓ 指针：${live.length} 枚符号锚枚枚落到位，裸行号 ${bare.length} 枚未涨过登记值 ${BARE_RATCHET}，两处同源都在`);
