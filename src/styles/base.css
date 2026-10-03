@@ -356,7 +356,7 @@ em{ font-family:"Fraunces","Fraunces-fallback","Noto Serif SC",serif; font-style
 .search[hidden]{ display:none; }
 /* 分隔点：与首页日志那一行 `.hero-log .sep` 同族（8px 左右、透明度 .5），它是入口那一块的一部分，
    所以无 JS 时跟着整块一起消失——留在扉页行末尾的半个接续词就是画坏的那一行。
-   取值口径抄 home.css:275 那一份（窄屏那一档也是 8px）。`tools/gap-check.mjs` 现在三本账：垂直 144 枚（A14／B10／C52／X68）／
+   取值口径抄 home.css:275 那一份（窄屏那一档也是 8px）。`tools/gap-check.mjs` 现在三本账：垂直 145 枚（A14／B10／C52／X69）／
    横向 86 枚（A6／B0／C25／X54／H1）／圆角 32 枚 12 种——左右这一枚水平量住在横向那本账里、在册记 C 档，
    上下那两枚 0 两本间距账都不收（零与 auto 是重置，不是间距决策）。 */
 .search .sep{ margin:0 8px; opacity:.5; }
@@ -745,13 +745,20 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
 
   /* ---- §19.1 撤场清单：氛围层与控件 ---- */
   /* 颗粒 / 玻璃导航 / 进度线与章节刻度与右上角那枚阅读弧 / 右侧目录 / 标题里那枚锚记号 / 首页那两张照片底与纱罩与雾带与灯与萤火 /
-     方向光与那层气 / 盖章按钮 / 上下篇。每一行的理由在 §19.1 那张表里，这里不重抄。
+     方向光与那层气 / 盖章按钮 / 上下篇 / 文末那枚落款。每一行的理由在 §19.1 那张表里，这里不重抄。
      ⚠️ 本轮添一行：`html .site-foot`（二轮 §6.1 那块深苔地面）。撤的是**整块**，不是只撤那层颜色——
      两条理由任一条都够：① 纸上不留一层面（§19.1 开头那句，本卡给它新添的那一行就住在那张表里），
      `print-color-adjust` 仍旧不用 `exact`（§19.4 那句"让 exact 没东西可管"照旧成立，靠的就是这一撤）；
      ② 它里面那两枚链接指向的是 `/rss.xml` 与 `mailto:`——纸上既点不动、也不是读者能核对的东西，
      与 19.1 撤玻璃导航同一理由（"一条没有 href 目标可去的胶囊导航印在每页顶部是纯噪音"）。
      纸上那句出处仍然只有 `html footer.print-foot` 那一行管（下面那格），`--paper-ink` 那一族一个字不搬它。 */
+  /* ⚠️ 本轮（`w2u/seal` 2026-10-03）再添一行：`html .post-seal`——详情页 `.post-tail` 与 `.post-nav`
+     之间那枚落款（一枚枯草金点 ＋ 站点中文全名）。撤的理由与上面 `.post-tail`／`.post-nav` 同一族，
+     而且更硬：纸上**已经有**下面那格 `html footer.print-foot` 交出的一串 `mistwood · essays · 日期`
+     （§19.5），那是纸上唯一那句出处；同一张纸上再落一枚签名＝同一件事说两遍，撞的就是这一族。
+     ⚠️ 它落在 `.post-tail` **块外**，所以不会跟着那块整块撤走（§19.1 那句"清单也是判据"要求的正是
+     落它那天必须同时回答"它是哪一行"）——这一行就是那句回答。撤法与相邻那两枚同一口径：整枚
+     `display:none`、不重画、不改色、零枚新声明。 */
   html .grain,
   html header.nav, html .settings, html .display,
   /* 一轮 §C2 那条键盘提示条（`base.css` 末尾那一格）：纸上它本来也不该有——① 它是**交互反馈**，
@@ -762,7 +769,7 @@ html[data-theme="dark"] .site-foot{ color:var(--ink); }
   html #progress, html #progress-marks, html #read-arc, html #toc, html .headref,
   html .scene, html .bg-gradient, html .bg-photo, html .scrim, html .mist-band,
   html .lantern-rim, html .lantern-glow, html .firefly,
-  html .post-tail, html .post-nav,
+  html .post-tail, html .post-nav, html .post-seal,
   html .site-foot,
   html .wrap::before, html .page-head::before, html .page-head::after{ display:none; }
 

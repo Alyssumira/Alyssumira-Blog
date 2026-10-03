@@ -523,7 +523,7 @@ html[data-tier="lost"] .page-head::after{
    ⚠️ **窄屏退成什么**：零新档、照旧大写。这一族的字是等宽面（12px／`.14em`），`Q` 与 `q` 的 advance width 同一枚
       （现读 `public/fonts/ibm-plex-mono/` 那三张 latin slice 各 229 枚 cmap，`Q`／`q`／`0-9` 同张在册）
       ⇒ 大写既不加宽也不换脸、不必走回退栈，上面那格④"340 档也占不到半栏"的读数照旧成立。
-   ⚠️ **三本账一枚不动**：`text-transform` 既不是间距也不是圆角 ⇒ 垂直 144 枚／横向那一本／圆角 32 枚都不为它翻；
+   ⚠️ **三本账一枚不动**：`text-transform` 既不是间距也不是圆角 ⇒ 垂直 145 枚／横向那一本／圆角 32 枚都不为它翻；
       它也不碰 `EssayIndex.astro` 与 `index.astro` 的任何字面量。
    ⚠️ **§7「两层各管一种语言」照旧**：这一行的字面只有拉丁＋数字两枚字符，没有中文掺进来（汉字本来也不吃
       `text-transform`，所以那一层不在本档的范围里）。⛔ 页脚那一族（`base.css:646-648` 的 `.foot-id`／`.foot-acts`）
@@ -562,7 +562,7 @@ html[data-tier="lost"] .page-head::after{
       `.essay-index li::before`／`:last-child::after` 那一族），错落住在 `.row` ⇒ 整列的左缘仍然齐平，
       读出来是石头而不是断线。
    ⚠️ **垂直那本账一枚不碰**：这里只写 `margin-left`，同一格 `.row` 里那枚在册 `padding:26px 0` 一个字没改 ⇒
-      `tools/gap-check.mjs` 垂直 144 枚（A14／B10／C52／X68）不增不减；横向那一本为这一枚多认一条（新 C 档一枚）。
+      `tools/gap-check.mjs` 垂直 145 枚（A14／B10／C52／X69）不增不减；横向那一本为这一枚多认一条（新 C 档一枚）。
    ⚠️ **键盘与鼠标同一枚值**：静态缩进不挂在任何状态态上，键盘走的是与鼠标同一扇 `:hover` ∪ `:focus-visible`
       的门（下面那两行 `.row:hover::before,.row:focus-visible::before` 与 `.row-ex` 同条名单），这一枚错落对两者
       一模一样 ⇒ 不许出现"只有鼠标才错位"的差别待遇。`.row:hover`／`.row:active` 那两行 `transform:translateX(6px)`
@@ -1047,7 +1047,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
       它所在那一格 `div` 从 `body`（`:100` 那枚 17px）继承来的字号，**不是 `dd` 自己的 14px**——点落在
       那一行字之外，实测峰值一枚 17.00px、最短那篇一枚 6.92px（画幅仍是"宿主字号的一档到三分之一档"，
       与列表页那根条同一条口径，只是两处宿主字号不同：那儿 12px、这儿 17px）。这里几枚声明落在 gap-check 三本账
-      （垂直 144 枚／横向 86 枚／圆角 32 枚 12 种）上的只有一枚：`display`／`flex-wrap`／`align-items`／`flex`／`fill`
+      （垂直 145 枚／横向 86 枚／圆角 32 枚 12 种）上的只有一枚：`display`／`flex-wrap`／`align-items`／`flex`／`fill`
       三本账都不数，只有 `column-gap:3px` 归横向那本、在册记 X 档（与 `.yring` 那枚同值，两条各认各的宿主）；
       `margin`／`padding`／`row-gap` 一个字不写 ⇒ 那 144 枚垂直槽位与 32 枚／12 种圆角一枚不为它动。
    ⚠️ 不吃 `--fog`、零 `animation`、零滚动驱动；打印整块撤（`base.css` 那段撤场清单里那一行添一枚名字）。 */
@@ -1079,7 +1079,7 @@ html[data-theme="dark"] .contact-links a:hover{ color:var(--moss); }
    明天也不该被一格格子占掉：格子的语气是"读数"，不是"这一屏的主角"）、**零新圆角**（格子就该是方的，
    gap-check 那根 12 种／30 枚的圆角梯子一枚不为它动）、**零新模糊 / 零新时长档**（一处动处处静，§1.2）。
    ⚠️ **零新垂直间距槽位**：这里只写 column-gap 与 border，margin / padding / row-gap 一个字不写——
-   行与行之间那 1px 由 .life-cell 的下边框打出来，它是画的笔画而不是留白。gap-check 现在三本账（垂直 144 枚／
+   行与行之间那 1px 由 .life-cell 的下边框打出来，它是画的笔画而不是留白。gap-check 现在三本账（垂直 145 枚／
    横向 86 枚／圆角 32 枚 12 种）：VPROPS 不认 border ⇒ 垂直那本不为这块翻页；`column-gap:2px` 由横向那本收，在册记 X 档。 */
 .life-grid{ border-top:1px solid var(--line); }
 .life-year{ display:grid; grid-template-columns:repeat(52,minmax(0,1fr)); column-gap:2px; }

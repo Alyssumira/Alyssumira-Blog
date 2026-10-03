@@ -399,6 +399,24 @@ const crumb = crumbTrail(HERE);
       )}
     </div>
 
+    {/* 落款（`w2u/seal`，2026-10-03）：一枚枯草金小点 ＋ 站点中文全名，住在盖章那一块与上下篇**之间**。
+        ⚠️ **不落 `.post-tail` 里面**（那是第一个候选落点，判词点名过）：那块是"读完之后能做的几件事"，
+           末位由上面 `:395` 那句原话签着（`letter` 那一行＝第六件），而这一件无 href、无动作、不指向任何
+           东西——放进去就是给那一排添一件"能做的事"，它不是事。
+        ⚠️ **没有日期、没有「写于」**（判词那三问的第②问按"要么删"处理）：日期屏上页头 `.post-meta` 一枚、
+           纸上 `.print-foot` 一枚，第三枚不新增信息；「写于」在**有 `hour` 态**那一档会与页头那行叠成 2 枚
+           （`:75` 那句"没填就整行不出现"管的就是这一档），所以框架词整个不要。
+        ⚠️ **这一格唯一新增的信息是站点中文全名**：`晨雾森林` 今天只在 `<title>`／meta／feed 三处
+           （`index.astro:49`、`rss.xml.js:40`、`atom.xml.js:68`、`llms.txt.js:75`），正文 0 处。⚠️ 它在这一行
+           是**第五处字面**：站内没有中文站名的单处真值（`Layout.astro:55` 那枚 `SITE_NAME` 是拉丁名），
+           把它收编成一处是 §13a「抄的那份改了没人知道」那一族的账、归规范，不在本卡。
+        ⚠️ 几何写在标记属性上（`width`／`height`／`viewBox`／`r`），CSS 只管色（`essay.css` 那两条）——
+           照 `about.astro:139` 那枚 `.w-dot` 那一族 ⇒ `border-radius` 零枚、圆角那本账一枚不添。
+        ⚠️ 纸上整枚撤（`base.css` 打印段点名 `html .post-seal`）：纸上已有下面那枚 `.print-foot` 的
+           `mistwood · essays · 日期`，同屏再落一枚签名就是同一件事说两遍。与全站页脚 `.foot-id` 那行
+           （`Layout.astro:266`）同屏重复这一笔代价写在 `essay.css` 那一格，不在这里重复一次。 */}
+    <p class="post-seal"><svg class="seal-dot" width="2" height="2" viewBox="0 0 2 2" aria-hidden="true" focusable="false"><circle cx="1" cy="1" r="1"/></svg>{' '}晨雾森林</p>
+
     {(prev || next) && (
       <nav class="post-nav reveal">
         {prev && <a href={`/essays/${prev.id}/`}><span>← prev</span>{prev.data.title}</a>}

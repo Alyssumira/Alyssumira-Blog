@@ -407,7 +407,8 @@ let drift = 0, basePalette = 0, baseHex = 0, baseRgba = 0, dupKeys = 0, missingK
    只在规范里写死"零载体，载体在 C4，C4 若不改这枚必须撤"。**选 A**，实测理由：先把在册 20 枚唯一令牌
    逐枚数了消费者（抹注释后找 `var(--令牌` 后面紧跟 `,` 或 `)` 的出现次数——只认 `var(` 打头会漏掉
    `var(--x, 兜底)` 那种带 fallback 的写法，也会把 `var(--xy)` 读成 `var(--x)`，所以两枚分隔符都要认），
-   **每一枚都至少有一处消费者**，最薄的是 `--straw`（home.css 1 处）与 `--ink-visited`（mistwood.css 1 处），
+   **每一枚都至少有一处消费者**，最薄的是 `--straw`（home.css 1 处 ＋ essay.css 1 处，2026-10-03 `w2u/seal`
+   落文末那枚落款之后多出来的第二处）与 `--ink-visited`（mistwood.css 1 处），
    所以这一关不会误伤任何在册令牌，唯一落进例外表的就是 C1 自己那一枚。
    三条牙，缺一条这关就会长成"跑了但什么都管不到"：
    ① 零消费又不在例外表 ⇒ 红（防"加了令牌忘了它没人用"）；
@@ -466,19 +467,38 @@ let useDrift = 0;
    不是"一屏几枚"。于是配额一直是人工账：一轮 A2（年标记号）与人手算过一遍（规范 §13b 那一格：3 > 2 ⇒ 判不进），
    本卡（二轮 §7.2 落款）又要算一遍（详情页 1 枚 ⇒ 枚数那一维过，倒在"傍晚"那一维上）。
    两笔账算的是同一枚令牌、用的却是两份没上盘的心算 ⇒ 这一格把**可静态核的那一半**搬上机器：
-     牙① 枚数对账——四份样式表里 `var(--straw)` 的消费者枚数必须等于 `STRAW_CONSUMERS_REGISTERED`（现值 1）。
+     牙① 枚数对账——四份样式表里 `var(--straw)` 的消费者枚数必须等于 `STRAW_CONSUMERS_REGISTERED`（现值 2）。
           多一枚＝红（"又添一处枯草金"当天就要重新算每屏枚数，这一格把它拦成一次显式的改登记值），
           少到 0＝也红（配额尺子读不到对象就是空转；那枚令牌该按 ①c 的"零载体不许长期在场"撤掉，不是留着一句空判据）。
-     牙② 闸门对账——**每一处**消费者的选择器必须同时带 `data-phase="dusk"` 与 `data-theme="light"`。
-          这一条把 §2:96 那半句"唯一当主角的时段是傍晚"变成可执行形状：§2.3:235 写的落地方式是
-          「Hero 斜体词换成 --straw，本屏 2 处配额里只用 1 处」，而盘上唯一在册的那处消费者正是这么gate的；
-          任何"全天常亮"的枯草金都是在把傍晚之外的屏也变成它当主角，本卡判 §7.2 落款就是判在这一维上。
-     牙③ 防空转（两侧格子常驻，不必改 src 就能验量具）：三枚内置 fixture——带双闸的那条必须数出 1 枚且判合格、
-          不带闸的那条必须判不合格、只有傍晚一道闸的那条也必须判不合格；再加一条 `var(--moss)` 的负控制必须数出 0 枚
+     牙② 闸门对账【**按族判**，2026-10-03 `w2u/seal` 从"每一枚都必须双闸"改到这里】——每一处消费者两族必占一族：
+          ㈠ **双闸族**：选择器同时带 `data-phase="dusk"` 与 `data-theme="light"`。§2:96 那半句"唯一当主角的
+             时段是傍晚"就是这一族——§2.3:235 写的落地方式（「Hero 斜体词换成 --straw，本屏 2 处配额里只用 1 处」）
+             与盘上 `home.css` 那枚在册消费者到今天**一枚都没松**，这次改判据一寸也没让它让（变异 M1 验的就是它）。
+          ㈡ **登记过的常亮例外族**：选择器**逐字符**等于下面 `STRAW_ALWAYS_ON_EXCEPTIONS` 的某一把键。
+             今天这一族只有一枚：文末那枚落款的点（`essay.css` 的 `.seal-dot`），它四档时段、两档主题都在——
+             授权来自作者本人 2026-10-02 那句"全部做了，撞禁令的按他说的来"，撤 §12 那格禁令的账写在规范 §21，
+             代价（枯草金第一次离开傍晚、与页脚 `.foot-id` 同屏）写在 `essay.css` 那一格的注释里。
+          ⚠️ 这一格**不是**"任一消费者没双闸也绿"：键是**整条选择器逐字符**，不认前缀、不认"含 .post-seal 就放行"。
+          所以把双闸从 Hero 那枚上摘下来，它的选择器就变了形、换不到例外的键 ⇒ 仍旧红在闸上；
+          反过来想靠"往清单里加一把键"过关，就得同时改 `STRAW_CONSUMERS_REGISTERED` 与 `STRAW_ALWAYS_ON_REGISTERED`
+          两枚字面量，而这两枚与规范句子是三处同源（照上面 ①c 的 `EXC_REGISTERED` 那一族的口径写）。
+     牙②b 例外表自己也要销账（照 ①c 牙② 那一族）：清单里挂着一把键而盘上数不到对应的消费者 ⇒ 红；
+          清单里那一枚自己**已经**带上双闸了 ⇒ 也红（免检名单不许长期挂着已经不需要免检的东西）。
+     牙②c 常亮例外的**命中枚数**与 `STRAW_ALWAYS_ON_REGISTERED`（现值 1）、与清单自己的键数三处对账，任一不符即红。
+     牙③ 防空转（四枚 fixture 加一枚负控制常驻，不必改 src 就能验量具有行程）：带双闸的那条必须数出 1 枚且判合格、
+          不带闸也未登记的那条必须判不合格、只有傍晚一道闸的那条也必须判不合格、**逐字符等于清单键的那条必须
+          判"常亮例外合格"**；再加一条 `var(--moss)` 的负控制必须数出 0 枚
           （防"选择器扫到了但声明没数"那一族假绿）。
    ⚠️ 这一格管不到"同一枚元素上写两次 `var(--straw)`"算几处的语义，也管不到运行时由 JS 改色的那一种（站内今天没有）；
-      它管的是**静态在册消费者的枚数与它们的闸门**——这是"每屏 ≤2"在源码这一侧唯一读得到的形状。 */
-const STRAW_CONSUMERS_REGISTERED = 1;
+      它管的是**静态在册消费者的枚数与它们各自属于哪一族**——这是"每屏 ≤2"在源码这一侧唯一读得到的形状。 */
+const STRAW_CONSUMERS_REGISTERED = 2;
+/* 登记过的**常亮**例外（`w2u/seal` 2026-10-03）：键＝消费者在盘上的那条选择器**逐字符**，值＝为什么它可以不带双闸。
+   ⚠️ 这把键必须与 `essay.css` 里那条声明的选择器一字不差：`.seal-dot` 改名、或那条声明被挪进别的选择器，
+      都由牙②b 当场点名（"清单挂着而盘上数不到"），不靠人记得。 */
+const STRAW_ALWAYS_ON_EXCEPTIONS = {
+  '.seal-dot': '文末落款那枚枯草金点（essay.css `.seal-dot{fill:var(--straw)}`）：每篇的署名时刻，四档时段与两档主题都要在。§2:96 那半句"唯一当主角的时段是傍晚"在这一处按作者本人的授权让位，判词的三问与三条代价在规范 §21 与 essay.css 那一格。',
+};
+const STRAW_ALWAYS_ON_REGISTERED = 1;
 let strawDrift = 0;
 {
   const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
@@ -506,19 +526,24 @@ let strawDrift = 0;
   }
   const DUSK = /data-phase\s*=\s*["']?dusk\b/i, LIGHT = /data-theme\s*=\s*["']?light\b/i;
   const gated = sel => DUSK.test(sel) && LIGHT.test(sel);
+  /* 常亮例外按**整条选择器逐字符**点名（不认前缀、不认"含 .post-seal 就放行"）——见上面牙② 的那一段 */
+  const excepted = sel => Object.prototype.hasOwnProperty.call(STRAW_ALWAYS_ON_EXCEPTIONS, sel);
   const files = ALL_SHEETS.filter(f => existsSync(f));
   const found = files.flatMap(f => strawDecls(strip(readFileSync(f, 'utf8'))).map(sel => ({ file: f.split(/[\\/]/).pop(), sel })));
-  /* 牙③：三枚 fixture 先自证量具有行程——判不进这一格的数（0 枚）与合格那一档的数（1 枚）都得读得出来 */
+  /* 牙③：四枚 fixture 先自证量具有行程——判不进这一格的数（0 枚）与合格那一档的数（1 枚）都得读得出来，
+     两族各一枚正例（双闸合格／常亮但在册）、两族各一枚反例（无闸未登记／只有一道闸） */
   {
     const ok = 'html[data-phase="dusk"][data-theme="light"] .hero-title em{ color:var(--straw); }';
     const noGate = '.post-sign-mark{ color:var(--straw); }';
     const duskOnly = 'html[data-phase="dusk"] .post-sign-mark{ color:var(--straw); }';
+    const onList = '.seal-dot{ fill:var(--straw); }';
     const none = '.post-body p{ color:var(--moss); }';
-    const pairs = strawDecls(ok), misses = strawDecls(noGate), half = strawDecls(duskOnly), ctrl = strawDecls(none);
+    const pairs = strawDecls(ok), misses = strawDecls(noGate), half = strawDecls(duskOnly), listed = strawDecls(onList), ctrl = strawDecls(none);
     const two = strawDecls(ok + noGate);
-    if (pairs.length !== 1 || !gated(pairs[0])) strawDrift++;
-    if (misses.length !== 1 || gated(misses[0])) strawDrift++;
-    if (half.length !== 1 || gated(half[0])) strawDrift++;
+    if (pairs.length !== 1 || !gated(pairs[0]) || excepted(pairs[0])) strawDrift++;      /* ㈠ 双闸族正例：合格，且不蹭例外那一族 */
+    if (misses.length !== 1 || gated(misses[0]) || excepted(misses[0])) strawDrift++;    /* 反例：无闸又不在清单 ⇒ 两族都不沾 */
+    if (half.length !== 1 || gated(half[0]) || excepted(half[0])) strawDrift++;          /* 反例：只有傍晚一道闸，同样不沾 */
+    if (listed.length !== 1 || gated(listed[0]) || !excepted(listed[0])) strawDrift++;   /* ㈡ 常亮族正例：只能走例外这一族 */
     if (ctrl.length !== 0) strawDrift++;
     if (two.length !== 2) strawDrift++;
   }
@@ -527,13 +552,37 @@ let strawDrift = 0;
     strawDrift++;
     console.log(`  ✗ 盘上「var(--straw)」消费者 ${found.length} 枚、登记值 ${STRAW_CONSUMERS_REGISTERED} 枚 —— 枯草金的"每屏 ≤2"又要人工算了；添载体那天请连这一枚字面量与规范 §2:96／§12 那两行一起改，别只改样式表`);
   }
-  /* 牙②：每一枚都必须带"傍晚 + 亮档"那道闸 */
-  for (const f of found) if (!gated(f.sel)){
+  /* 牙②：按族判——每一枚要么带着"傍晚 + 亮档"那道闸（㈠），要么逐字符命中常亮例外的键（㈡） */
+  let alwaysOn = 0;
+  for (const f of found){
+    if (gated(f.sel)) continue;
+    if (excepted(f.sel)){ alwaysOn++; continue; }
     strawDrift++;
-    console.log(`  ✗ ${f.file} 的「${f.sel}」消费了 --straw 却没有「data-phase="dusk"」与「data-theme="light"」双闸 —— §2:96 那句"唯一当主角的时段是傍晚"在这一处失效了（它会在四个时段都亮）`);
+    console.log(`  ✗ ${f.file} 的「${f.sel}」消费了 --straw，却既没有「data-phase="dusk"」与「data-theme="light"」双闸、也不在常亮例外清单里 —— §2:96 那句"唯一当主角的时段是傍晚"在这一处失效了（它会在四个时段都亮）。要它常亮就把它**逐字符**点名进 STRAW_ALWAYS_ON_EXCEPTIONS 并连 STRAW_ALWAYS_ON_REGISTERED 与规范 §2:96／§21 一起改，别把这一格改松`);
   }
-  console.log('\n=== 枯草金配额（①d：在册消费者枚数 + 每一枚的傍晚双闸）===');
-  console.log(`  ${strawDrift ? '✗ 这一关没过' : '✓'} 扫了 ${files.length} 份样式表：--straw 消费者 ${found.length} 枚（登记值 ${STRAW_CONSUMERS_REGISTERED}），双闸在位 ${found.filter(f => gated(f.sel)).length} 枚${found.length ? '：' + found.map(f => `${f.file} 「${f.sel}」`).join(' / ') : ''}；三枚 fixture（双闸合格／无闸／只有傍晚）与一枚 var(--moss) 负控制各按其位`);
+  /* 牙②b：例外清单自己也对账（照 ①c 的 CONSUMED_EXCEPTIONS 那一族——挂着没落地、或落地后已不需要免检，都红） */
+  const onDisk = new Set(found.map(f => f.sel));
+  for (const sel of Object.keys(STRAW_ALWAYS_ON_EXCEPTIONS)){
+    if (!onDisk.has(sel)){
+      strawDrift++;
+      console.log(`  ✗ 常亮例外清单里挂着「${sel}」，盘上却数不到这一枚消费者 —— 例外要销账，不然这张表会变成长期免检的黑名单（改名／挪宿主／删声明都算这一格）`);
+    } else if (gated(sel)){
+      strawDrift++;
+      console.log(`  ✗ 例外清单里的「${sel}」今天自己带上了「data-phase="dusk"」＋「data-theme="light"」双闸 ⇒ 它已经属于㈠ 那一族，从常亮例外里划掉 —— 免检名单不许留着已经不需要免检的东西`);
+    }
+  }
+  /* 牙②c：三处同源——清单键数 ⇄ 常亮例外的命中枚数 ⇄ 独立字面量 STRAW_ALWAYS_ON_REGISTERED */
+  if (Object.keys(STRAW_ALWAYS_ON_EXCEPTIONS).length !== STRAW_ALWAYS_ON_REGISTERED){
+    strawDrift++;
+    console.log(`  ✗ 常亮例外清单实际 ${Object.keys(STRAW_ALWAYS_ON_EXCEPTIONS).length} 把键、登记值 ${STRAW_ALWAYS_ON_REGISTERED} 枚 —— 这一格的"三处同源"断了（规范句子 / 这一枚字面量 / 表）`);
+  }
+  if (alwaysOn !== STRAW_ALWAYS_ON_REGISTERED){
+    strawDrift++;
+    console.log(`  ✗ 盘上落到常亮例外那一族的消费者 ${alwaysOn} 枚、登记值 ${STRAW_ALWAYS_ON_REGISTERED} 枚 —— 同一把键写两遍（或那一枚被删了）都在这里红`);
+  }
+  const gatedN = found.filter(f => gated(f.sel)).length;
+  console.log('\n=== 枯草金配额（①d：在册消费者枚数 + 每一枚属于哪一族：傍晚双闸 ⇄ 登记过的常亮例外）===');
+  console.log(`  ${strawDrift ? '✗ 这一关没过' : '✓'} 扫了 ${files.length} 份样式表：--straw 消费者 ${found.length} 枚（登记值 ${STRAW_CONSUMERS_REGISTERED}）＝双闸 ${gatedN} 枚（㈠，home.css 那枚 Hero 斜体的闸一枚没松）＋ 常亮例外 ${alwaysOn} 枚（㈡，清单 ${Object.keys(STRAW_ALWAYS_ON_EXCEPTIONS).length} 把键／登记值 ${STRAW_ALWAYS_ON_REGISTERED} 枚）${found.length ? '：' + found.map(f => `${f.file} 「${f.sel}」${gated(f.sel) ? '㈠双闸' : '㈡常亮在册'}`).join(' / ') : ''}；四枚 fixture（双闸合格／无闸未登记／只有傍晚／常亮但在册）与一枚 var(--moss) 负控制各按其位`);
 }
 
 /* ---------- ①b 成对声明（`light-dark()` 一处写两档）与它的退路镜像 ----------

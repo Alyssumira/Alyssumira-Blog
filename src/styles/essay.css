@@ -714,7 +714,7 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
    `border:1px`），为两枚点开一档描边就是把 §9 那格的发丝线口径掀了。
    ⚠️ `translateY(-2px)` 是几何派生不是挑的数：盒子 2px、影子里那枚再往下 4px ⇒ 配对总高 6px，而
    `vertical-align:middle` 对准的是盒子自己的中心（1px 处）⇒ 要中心落在配对中心就得抬 (6−2)/2＝2px。
-   ⚠️ `margin-right:6px` 是**横向**槽位：`tools/gap-check.mjs` 现在三本账——垂直 144 枚（A14／B10／C52／X68）／
+   ⚠️ `margin-right:6px` 是**横向**槽位：`tools/gap-check.mjs` 现在三本账——垂直 145 枚（A14／B10／C52／X69）／
    横向 86 枚（A6／B0／C25／X54／H1）／圆角 32 枚 12 种，`margin-left`／`padding-left`／`margin-right`／`column-gap`
    那一族由横向那本账逐枚认领（这一枚就在册：`.post-body figcaption::before` 的 `margin-right:6px` 记 X 档），
    而垂直那 144 枚里始终没有它——两本各数各的那一半；6px 取的是 `.year-mark{margin-bottom:6px}` 在册那一档的
@@ -772,6 +772,29 @@ article.post-body img{ position:static; width:auto; max-width:100%; height:auto;
    纵向那一格由上面那枚已认领的 gap:14px 给——这里不写第二枚垂直数。 */
 .lightbox-close{ align-self:flex-end; }
 
+
+/* 落款（`w2u/seal`，2026-10-03；判词在规范二轮 §7.2 那一格、撤禁令与三问的答案在 §21）：一枚枯草金点 ＋
+   站点中文全名，住在 `.post-tail` 与 `.post-nav` 之间。模板那一行的注释管"为什么不放进 `.post-tail`"与
+   "为什么没有日期、没有「写于」"，这一格管三笔账与三条代价。
+   ⚠️ **零枚新数值**：这一行新落的只有一枚 `margin-top` 槽位，取值逐字符借本页那一族已有的 14px
+   （`.post-when` :125／`.stamp-note` :43／图注 `figcaption`）——不新写一枚 font-size、一枚颜色、
+   一枚槽位字面量；字号·字色·字距三条声明照 `.post-when` 那一份抄（14px／`--ink-2`／.02em）。
+   gap-check 三本账因此变成 垂直 145 枚（A14／B10／C52／X69）／横向那本与圆角那本一枚不添
+   （14px 从来不在 8 的格子上 ⇒ 它落 X 档，与 `.post-when`／`.stamp-note` 同一档；点走 SVG 不走 `border-radius`）。
+   ⚠️ **代价一·与页脚同屏重复（照实记，不写成"不重复"）**：这一行与全站页脚那行 `.foot-id`
+   （`mistwood · 作者名`，`Layout.astro:266`）说的是同一件事——"这一页出自谁"——而判词实测两者**同屏**：
+   文末块下缘到页脚上缘 248px（1440×900）／240px（390×844），两档都远小于一屏高。§3271 那一族
+   （"同一件事在同一屏里说两遍"）管的正是这个形状，本卡没有绕开它：这一枚是**每篇**的署名时刻、
+   `.foot-id` 是**全站**的管治标识，这个分工是判断不是读数，授权来自作者本人 2026-10-02 那句"全部做了"。
+   ⚠️ **代价二·枯草金第一次离开傍晚**：它四档时段、两档主题都亮，§2:96 那半句"唯一当主角的时段是傍晚"
+   在这一处让位。本卡**不**给它加时段闸——`data-phase` 的边界是按访客经纬度算的真日出日落，一枚落款会在
+   **阅读途中**出现或消失，那是把内容挂在一枚时钟上。这笔账登记在 `tools/palette-check.mjs` ①d 那份
+   常亮例外清单（选择器逐字符点名，双闸那枚 Hero 斜体一格没松）与规范 §21。
+   ⚠️ **代价三·纸上不上**：`base.css` 打印段那一串里点名 `html .post-seal` 整枚撤掉——纸上已经有
+   `.print-foot` 那枚 `mistwood · essays · 日期`，同一张纸上落两枚签名就是上面那一族说的那种重复。 */
+.post-seal{ margin-top:14px; font-size:14px; color:var(--ink-2); letter-spacing:.02em; }
+/* 那枚点：`<circle r="1">` 的几何在标记属性上，这里只给色（照 mistwood.css:1055 那枚 `.w-dot` 的分工） */
+.seal-dot{ fill:var(--straw); }
 
 /* 上下篇：大号文字链接，同页脚语言 */
 .post-nav{
